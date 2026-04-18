@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marcena Rio</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --brand: #1a1a2e;
+  --brand-mid: #2d2d4e;
+  --accent: #c8a96e;
+  --accent-light: #f0e6d3;
+  --bg: #f8f6f2;
+  --bg2: #ffffff;
+  --text: #1a1a2e;
+  --text2: #6b6880;
+  --text3: #9b98a8;
+  --border: rgba(26,26,46,0.10);
+  --border2: rgba(26,26,46,0.18);
+  --green: #2d7a4f;
+  --green-bg: #eaf5ee;
+  --amber: #8a5c1a;
+  --amber-bg: #fdf3e3;
+  --blue: #1a4a8a;
+  --blue-bg: #e8f0fc;
+  --red: #8a1a1a;
+  --red-bg: #fce8e8;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 2px 12px rgba(26,26,46,0.08);
+  --shadow-lg: 0 8px 32px rgba(26,26,46,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+h1,h2,h3 { font-family: 'DM Serif Display', serif; font-weight: 400; }
+
+/* AUTH SCREEN */
+#auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand);
+  padding: 2rem;
+}
+.auth-box {
+  background: var(--bg2);
+  border-radius: 20px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+}
+.auth-logo {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.auth-logo h1 {
+  font-size: 32px;
+  color: var(--brand);
+  letter-spacing: -0.5px;
+}
+.auth-logo span {
+  color: var(--accent);
+  font-style: italic;
+}
+.auth-logo p {
+  font-size: 13px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+.auth-tabs {
+  display: flex;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  margin-bottom: 1.5rem;
+}
+.auth-tab {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text2);
+  font-weight: 400;
+  transition: all 0.15s;
+}
+.auth-tab.active {
+  background: var(--bg2);
+  color: var(--text);
+  font-weight: 500;
+  box-shadow: var(--shadow);
+}
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; letter-spacing: 0.3px; }
+.form-group input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: border-color 0.15s;
+  outline: none;
+}
+.form-group input:focus { border-color: var(--accent); background: var(--bg2); }
+.btn-main {
+  width: 100%;
+  padding: 11px;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.15s;
+  letter-spacing: 0.2px;
+}
+.btn-main:hover { background: var(--brand-mid); }
+.btn-main:disabled { opacity: 0.6; cursor: not-allowed; }
+.auth-msg { font-size: 13px; text-align: center; margin-top: 10px; min-height: 18px; }
+.auth-msg.error { color: var(--red); }
+.auth-msg.success { color: var(--green); }
+
+/* APP SHELL */
+#app-screen { display: none; min-height: 100vh; }
+.topbar {
+  background: var(--brand);
+  color: #fff;
+  padding: 0 2rem;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-logo { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -0.3px; }
+.topbar-logo span { color: var(--accent); font-style: italic; }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.topbar-user { font-size: 13px; opacity: 0.7; }
+.btn-logout {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: background 0.15s;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.2); }
+
+.nav-bar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex;
+  gap: 0;
+}
+.nav-item {
+  padding: 14px 18px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text2);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  font-weight: 400;
+}
+.nav-item.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 500; }
+.nav-item:hover:not(.active) { color: var(--text); }
+
+.main-content { max-width: 860px; margin: 0 auto; padding: 2rem; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* CARDS */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+}
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.card-title { font-size: 16px; font-weight: 500; color: var(--text); }
+.card-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+/* BADGES */
+.badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.2px;
+}
+.badge-blue { background: var(--blue-bg); color: var(--blue); }
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-amber { background: var(--amber-bg); color: var(--amber); }
+.badge-accent { background: var(--accent-light); color: #7a5c2a; }
+
+/* TIMELINE */
+.timeline { position: relative; }
+.tl-item { display: flex; gap: 14px; }
+.tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.tl-dot {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+  flex-shrink: 0;
+}
+.tl-dot.done { background: var(--green-bg); color: var(--green); }
+.tl-dot.active { background: var(--accent-light); color: #7a5c2a; border: 2px solid var(--accent); }
+.tl-dot.pending { background: var(--bg); color: var(--text3); border: 1px solid var(--border2); }
+.tl-line { width: 1px; flex: 1; min-height: 14px; background: var(--border2); }
+.tl-content { padding-bottom: 18px; flex: 1; padding-top: 5px; }
+.tl-name { font-size: 14px; font-weight: 500; }
+.tl-name.done { color: var(--text2); }
+.tl-name.active { color: var(--text); }
+.tl-name.pending { color: var(--text3); }
+.tl-status { font-size: 12px; margin-top: 2px; }
+.tl-status.done { color: var(--green); }
+.tl-status.active { color: #7a5c2a; }
+.tl-status.pending { color: var(--text3); }
+.tl-date { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* PROGRESS */
+.progress-bar { height: 4px; background: var(--bg); border-radius: 2px; margin: 8px 0 4px; }
+.progress-fill { height: 4px; background: var(--accent); border-radius: 2px; transition: width 0.4s; }
+
+/* FORM */
+.form-row { margin-bottom: 0.85rem; }
+.form-row label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+.form-row input, .form-row select, .form-row textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); background: var(--bg2); }
+.form-row textarea { height: 80px; resize: vertical; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.btn-submit {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px 24px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.15s;
+}
+.btn-submit:hover { background: var(--brand-mid); }
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.25rem; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; box-shadow: var(--shadow); }
+.stat-num { font-size: 28px; font-family: 'DM Serif Display', serif; color: var(--text); }
+.stat-label { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* ADMIN STEP CONTROL */
+.step-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.btn-step {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-step:hover { opacity: 0.85; }
+.btn-step:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-step-back {
+  background: var(--bg);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-step-back:hover { background: var(--border); }
+
+/* RD CONFIG */
+.rd-banner {
+  background: var(--amber-bg);
+  border: 1px solid #e8c87a;
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.rd-banner.connected {
+  background: var(--green-bg);
+  border-color: #7acc9e;
+}
+.rd-banner-title { font-size: 14px; font-weight: 500; color: var(--amber); margin-bottom: 4px; }
+.rd-banner.connected .rd-banner-title { color: var(--green); }
+.rd-banner-sub { font-size: 12px; color: #a07830; }
+.rd-banner.connected .rd-banner-sub { color: #3a7a50; }
+.rd-row { display: flex; gap: 8px; margin-top: 10px; }
+.rd-row input { flex: 1; padding: 8px 12px; border: 1px solid #e8c87a; border-radius: 6px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: #fff; outline: none; }
+.btn-rd { background: var(--brand); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; }
+
+/* ALERT */
+.alert { border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin: 8px 0; }
+.alert-success { background: var(--green-bg); color: var(--green); border: 1px solid #a8dfc0; }
+.alert-error { background: var(--red-bg); color: var(--red); border: 1px solid #f0a8a8; }
+.alert-info { background: var(--blue-bg); color: var(--blue); border: 1px solid #a8c4f0; }
+
+/* PROJECT LIST */
+.proj-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.proj-row:last-child { border-bottom: none; }
+.proj-row:hover .proj-name { color: var(--accent); }
+.proj-name { font-size: 14px; font-weight: 500; }
+.proj-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--text3); }
+.empty-state p { font-size: 14px; margin-top: 8px; }
+
+/* LOADER */
+.loader { text-align: center; padding: 2rem; color: var(--text2); font-size: 14px; }
+
+/* NOTIFICATION */
+#notif {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--brand);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: all 0.25s;
+  pointer-events: none;
+  max-width: 300px;
+}
+#notif.show { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 600px) {
+  .main-content { padding: 1rem; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .topbar { padding: 0 1rem; }
+  .nav-bar { padding: 0 0.5rem; overflow-x: auto; }
+  .nav-item { padding: 12px 12px; white-space: nowrap; }
+}
+</style>
+</head>
+<body>
+
+<!-- NOTIFICATION -->
+<div id="notif"></div>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <h1>Marcena<span>Rio</span></h1>
+      <p>Portal do cliente · Móveis planejados</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup')">Criar conta</button>
+    </div>
+    <div id="login-form">
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="login-pass" placeholder="Sua senha" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-main" onclick="doLogin()" id="btn-login">Entrar</button>
+      <p class="auth-msg" id="login-msg"></p>
+    </div>
+    <div id="signup-form" style="display:none">
+      <div class="form-group">
+        <label>Nome completo</label>
+        <input type="text" id="signup-nome" placeholder="Seu nome">
+      </div>
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="signup-email" placeholder="seu@email.com">
+      </div>
+      <div class="form-group">
+        <label>Telefone / WhatsApp</label>
+        <input type="text" id="signup-tel" placeholder="(21) 99999-0000">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="signup-pass" placeholder="Mínimo 6 caracteres">
+      </div>
+      <button class="btn-main" onclick="doSignup()" id="btn-signup">Criar conta</button>
+      <p class="auth-msg" id="signup-msg"></p>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="topbar-logo">Marcena<span>Rio</span></div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="topbar-email"></span>
+      <button class="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+  <div class="nav-bar" id="nav-bar">
+    <button class="nav-item active" onclick="showSection('solicitar', this)">Solicitar orçamento</button>
+    <button class="nav-item" onclick="showSection('projetos', this)">Meus projetos</button>
+    <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin', this)">Painel admin</button>
+  </div>
+  <div class="main-content">
+
+    <!-- SOLICITAR ORÇAMENTO -->
+    <div id="solicitar" class="section active">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Nova solicitação de orçamento</div>
+            <div class="card-sub">Preencha as informações para iniciarmos seu projeto</div>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label>Nome completo</label>
+            <input type="text" id="orc-nome" placeholder="Seu nome completo">
+          </div>
+          <div class="form-row">
+            <label>Telefone / WhatsApp</label>
+            <input type="text" id="orc-tel" placeholder="(21) 99999-0000">
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label>Tipo de ambiente</label>
+            <select id="orc-ambiente">
+              <option value="">Selecione...</option>
+              <option>Cozinha</option>
+              <option>Dormitório</option>
+              <option>Sala</option>
+              <option>Escritório</option>
+              <option>Banheiro / Lavabo</option>
+              <option>Área de serviço</option>
+              <option>Múltiplos ambientes</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Prazo desejado</label>
+            <select id="orc-prazo">
+              <option value="">Selecione...</option>
+              <option>Até 1 mês</option>
+              <option>1 a 3 meses</option>
+              <option>3 a 6 meses</option>
+              <option>Sem pressa</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Descrição do projeto</label>
+          <textarea id="orc-desc" placeholder="Descreva o que você precisa: estilo, cores, referências, medidas aproximadas..."></textarea>
+        </div>
+        <div id="orc-alert"></div>
+        <button class="btn-submit" onclick="enviarOrcamento()" id="btn-orc">Enviar solicitação</button>
+      </div>
+    </div>
+
+    <!-- MEUS PROJETOS -->
+    <div id="projetos" class="section">
+      <div id="projetos-content"><div class="loader">Carregando projetos...</div></div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="admin" class="section">
+      <div class="rd-banner" id="rd-banner">
+        <div class="rd-banner-title">Integração RD Station — aguardando configuração</div>
+        <div class="rd-banner-sub">Cole seu token de API para sincronizar leads automaticamente.</div>
+        <div class="rd-row">
+          <input type="password" id="rd-key-input" placeholder="Cole seu token de API aqui...">
+          <button class="btn-rd" onclick="saveRDKey()">Conectar</button>
+        </div>
+        <div id="rd-status-msg" style="font-size:12px;margin-top:6px;"></div>
+      </div>
+      <div class="stats-grid" id="admin-stats">
+        <div class="stat-card"><div class="stat-num" id="stat-ativos">—</div><div class="stat-label">Projetos ativos</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-pendentes">—</div><div class="stat-label">Aguardando ação</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-concluidos">—</div><div class="stat-label">Concluídos</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Todos os projetos</div></div>
+        <div id="admin-projetos"><div class="loader">Carregando...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://gnjykqkqtcqqdadhyvcw.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImduanlrcWtxdGNxcWRhZGh5dmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NzY3ODAsImV4cCI6MjA5MjA1Mjc4MH0.w34JaXnu_7cEJ_tNYfjkd0rC_kG0sf5fIunqy2s3sWk';
+const ADMIN_EMAIL = 'contato@marcenario.com.br';
+
+const ETAPAS = [
+  'Briefing / Envio de planta',
+  'Elaboração do projeto',
+  'Apresentação do projeto',
+  'Orçamento',
+  'Negociação e fechamento',
+  'Conferência de medidas',
+  'Elaboração do projeto executivo',
+  'Apresentação do projeto executivo',
+  'Produção',
+  'Entrega',
+  'Montagem'
+];
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let currentUser = null;
+let isAdmin = false;
+let rdKey = localStorage.getItem('mr_rd_key') || '';
+
+function notify(msg, type='success') {
+  const n = document.getElementById('notif');
+  n.textContent = msg;
+  n.style.background = type === 'error' ? '#8a1a1a' : type === 'info' ? '#1a4a8a' : '#1a1a2e';
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 3000);
+}
+
+function setAlert(id, msg, type='info') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = msg ? `<div class="alert alert-${type}">${msg}</div>` : '';
+}
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='signup')));
+  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const btn = document.getElementById('btn-login');
+  const msg = document.getElementById('login-msg');
+  if (!email || !pass) { msg.textContent = 'Preencha e-mail e senha.'; msg.className = 'auth-msg error'; return; }
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if (error) { msg.textContent = 'E-mail ou senha incorretos.'; msg.className = 'auth-msg error'; return; }
+  msg.textContent = '';
+  onLogin(data.user);
+}
+
+async function doSignup() {
+  const nome = document.getElementById('signup-nome').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const tel = document.getElementById('signup-tel').value.trim();
+  const pass = document.getElementById('signup-pass').value;
+  const btn = document.getElementById('btn-signup');
+  const msg = document.getElementById('signup-msg');
+  if (!nome || !email || !pass) { msg.textContent = 'Preencha todos os campos obrigatórios.'; msg.className = 'auth-msg error'; return; }
+  if (pass.length < 6) { msg.textContent = 'A senha deve ter pelo menos 6 caracteres.'; msg.className = 'auth-msg error'; return; }
+  btn.disabled = true; btn.textContent = 'Criando conta...';
+  const { data, error } = await db.auth.signUp({ email, password: pass, options: { data: { nome, telefone: tel } } });
+  btn.disabled = false; btn.textContent = 'Criar conta';
+  if (error) { msg.textContent = error.message; msg.className = 'auth-msg error'; return; }
+  msg.textContent = 'Conta criada! Verifique seu e-mail para confirmar.';
+  msg.className = 'auth-msg success';
+}
+
+async function doLogout() {
+  await db.auth.signOut();
+  currentUser = null; isAdmin = false;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+function onLogin(user) {
+  currentUser = user;
+  isAdmin = user.email === ADMIN_EMAIL;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('topbar-email').textContent = user.email;
+  document.getElementById('nav-admin').style.display = isAdmin ? 'block' : 'none';
+  if (rdKey) showRDConnected();
+  showSection('solicitar', document.querySelector('.nav-item'));
+  prefillOrcamento();
+}
+
+function prefillOrcamento() {
+  if (!currentUser) return;
+  const meta = currentUser.user_metadata || {};
+  if (meta.nome) document.getElementById('orc-nome').value = meta.nome;
+  if (meta.telefone) document.getElementById('orc-tel').value = meta.telefone;
+}
+
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'projetos') loadMeusProjetos();
+  if (id === 'admin') loadAdmin();
+}
+
+async function enviarOrcamento() {
+  const nome = document.getElementById('orc-nome').value.trim();
+  const tel = document.getElementById('orc-tel').value.trim();
+  const ambiente = document.getElementById('orc-ambiente').value;
+  const prazo = document.getElementById('orc-prazo').value;
+  const desc = document.getElementById('orc-desc').value.trim();
+  if (!nome || !ambiente) { setAlert('orc-alert', 'Preencha pelo menos o nome e o tipo de ambiente.', 'error'); return; }
+  const btn = document.getElementById('btn-orc');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  setAlert('orc-alert', '', '');
+  const { data: proj, error } = await db.from('projetos').insert({
+    titulo: ambiente + (desc ? ' — ' + desc.substring(0, 40) : ''),
+    ambiente,
+    descricao: desc,
+    prazo_desejado: prazo,
+    etapa_atual: 1,
+    cliente_email: currentUser.email,
+    cliente_nome: nome,
+    cliente_tel: tel,
+    user_id: currentUser.id
+  }).select().single();
+  btn.disabled = false; btn.textContent = 'Enviar solicitação';
+  if (error) { setAlert('orc-alert', 'Erro ao enviar. Tente novamente.', 'error'); return; }
+  if (rdKey) await enviarRDStation(nome, currentUser.email, tel, ambiente, desc);
+  setAlert('orc-alert', 'Solicitação enviada com sucesso! Acompanhe o andamento em "Meus projetos".', 'success');
+  document.getElementById('orc-nome').value = '';
+  document.getElementById('orc-tel').value = '';
+  document.getElementById('orc-ambiente').value = '';
+  document.getElementById('orc-prazo').value = '';
+  document.getElementById('orc-desc').value = '';
+  prefillOrcamento();
+  notify('Solicitação enviada!');
+}
+
+async function loadMeusProjetos() {
+  const cont = document.getElementById('projetos-content');
+  cont.innerHTML = '<div class="loader">Carregando projetos...</div>';
+  const query = isAdmin
+    ? db.from('projetos').select('*').order('created_at', { ascending: false })
+    : db.from('projetos').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const { data, error } = await query;
+  if (error || !data || data.length === 0) {
+    cont.innerHTML = '<div class="empty-state"><p>Nenhum projeto encontrado.</p><p style="margin-top:4px;font-size:13px;">Solicite seu primeiro orçamento na aba ao lado.</p></div>';
+    return;
+  }
+  cont.innerHTML = data.map(p => renderProjeto(p)).join('');
+}
+
+function renderProjeto(p) {
+  const etapaIdx = (p.etapa_atual || 1) - 1;
+  const pct = Math.round(((p.etapa_atual || 1) / 11) * 100);
+  const concluido = p.etapa_atual >= 11;
+  const badgeClass = concluido ? 'badge-green' : p.etapa_atual >= 5 ? 'badge-amber' : 'badge-blue';
+  const badgeText = concluido ? 'Concluído' : 'Em andamento';
+  const tl = ETAPAS.map((nome, i) => {
+    const st = i < etapaIdx ? 'done' : i === etapaIdx ? 'active' : 'pending';
+    const statusLabel = st === 'done' ? 'Concluído' : st === 'active' ? 'Em andamento' : 'Aguardando';
+    const isLast = i === ETAPAS.length - 1;
+    return `<div class="tl-item"><div class="tl-left"><div class="tl-dot ${st}">${i+1}</div>${!isLast ? '<div class="tl-line"></div>' : ''}</div><div class="tl-content"><div class="tl-name ${st}">${nome}</div><div class="tl-status ${st}">${statusLabel}</div></div></div>`;
+  }).join('');
+  const adminControls = isAdmin ? `
+    <div class="step-control">
+      <button class="btn-step-back" onclick="avancarEtapa('${p.id}', ${(p.etapa_atual||1)-1})" ${(p.etapa_atual||1) <= 1 ? 'disabled' : ''}>← Voltar etapa</button>
+      <button class="btn-step" onclick="avancarEtapa('${p.id}', ${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1) >= 11 ? 'disabled' : ''}>Avançar etapa →</button>
+    </div>` : '';
+  const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
+  return `<div class="card" id="proj-${p.id}">
+    <div class="card-header">
+      <div><div class="card-title">${p.titulo || p.ambiente}</div><div class="card-sub">${p.cliente_nome || ''} · Solicitado em ${dataStr}</div></div>
+      <span class="badge ${badgeClass}">${badgeText}</span>
+    </div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Etapa atual: <strong style="color:var(--text)">${ETAPAS[etapaIdx]}</strong></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:1rem">${p.etapa_atual || 1} de 11 etapas · ${pct}% concluído</div>
+    ${adminControls}
+    <div style="margin-top:${isAdmin?'16px':'0'};border-top:1px solid var(--border);padding-top:14px">
+      <div class="timeline">${tl}</div>
+    </div>
+  </div>`;
+}
+
+async function avancarEtapa(id, novaEtapa) {
+  if (novaEtapa < 1 || novaEtapa > 11) return;
+  const { error } = await db.from('projetos').update({ etapa_atual: novaEtapa }).eq('id', id);
+  if (error) { notify('Erro ao atualizar etapa.', 'error'); return; }
+  notify(`Etapa atualizada: ${ETAPAS[novaEtapa-1]}`);
+  const sec = document.getElementById('admin').classList.contains('active') ? 'admin' : 'projetos';
+  if (sec === 'admin') loadAdmin(); else loadMeusProjetos();
+}
+
+async function loadAdmin() {
+  const { data, error } = await db.from('projetos').select('*').order('created_at', { ascending: false });
+  if (error || !data) return;
+  const ativos = data.filter(p => p.etapa_atual < 11 && p.etapa_atual > 1).length;
+  const pendentes = data.filter(p => p.etapa_atual === 1).length;
+  const concluidos = data.filter(p => p.etapa_atual >= 11).length;
+  document.getElementById('stat-ativos').textContent = ativos;
+  document.getElementById('stat-pendentes').textContent = pendentes;
+  document.getElementById('stat-concluidos').textContent = concluidos;
+  const cont = document.getElementById('admin-projetos');
+  if (!data.length) { cont.innerHTML = '<div class="empty-state"><p>Nenhum projeto ainda.</p></div>'; return; }
+  cont.innerHTML = data.map(p => {
+    const etapaIdx = (p.etapa_atual || 1) - 1;
+    const pct = Math.round(((p.etapa_atual || 1) / 11) * 100);
+    const concluido = p.etapa_atual >= 11;
+    const badgeClass = concluido ? 'badge-green' : p.etapa_atual === 1 ? 'badge-accent' : 'badge-blue';
+    const badgeText = concluido ? 'Concluído' : p.etapa_atual === 1 ? 'Novo' : 'Em andamento';
+    const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
+    return `<div class="proj-row" onclick="abrirProjetoAdmin('${p.id}')">
+      <div>
+        <div class="proj-name">${p.cliente_nome || p.cliente_email} — ${p.ambiente || p.titulo}</div>
+        <div class="proj-meta">${ETAPAS[etapaIdx]} · ${dataStr}</div>
+        <div class="progress-bar" style="max-width:200px;margin-top:6px"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>
+      <span class="badge ${badgeClass}">${badgeText}</span>
+    </div>`;
+  }).join('');
+}
+
+function abrirProjetoAdmin(id) {
+  showSection('projetos', document.querySelectorAll('.nav-item')[1]);
+  loadMeusProjetos();
+}
+
+function saveRDKey() {
+  const key = document.getElementById('rd-key-input').value.trim();
+  const msg = document.getElementById('rd-status-msg');
+  if (!key || key.length < 8) { msg.textContent = 'Token inválido.'; msg.style.color = 'var(--red)'; return; }
+  rdKey = key;
+  localStorage.setItem('mr_rd_key', key);
+  showRDConnected();
+  notify('RD Station conectado!');
+}
+
+function showRDConnected() {
+  const banner = document.getElementById('rd-banner');
+  banner.classList.add('connected');
+  banner.querySelector('.rd-banner-title').textContent = 'RD Station conectado';
+  banner.querySelector('.rd-banner-sub').textContent = 'Novos orçamentos serão enviados automaticamente como leads.';
+  const row = banner.querySelector('.rd-row');
+  if (row) row.style.display = 'none';
+}
+
+async function enviarRDStation(nome, email, telefone, ambiente, descricao) {
+  try {
+    await fetch(`https://api.rd.services/platform/contacts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${rdKey}` },
+      body: JSON.stringify({
+        contact: {
+          name: nome,
+          email: email,
+          mobile_phone: telefone,
+          cf_ambiente: ambiente,
+          cf_descricao: descricao,
+          tags: ['marcena-rio-app', 'orcamento-solicitado']
+        }
+      })
+    });
+  } catch(e) { console.warn('RD Station:', e); }
+}
+
+db.auth.onAuthStateChange((event, session) => {
+  if (session && session.user) onLogin(session.user);
+});
+
+db.auth.getSession().then(({ data }) => {
+  if (data.session) onLogin(data.session.user);
+});
+</script>
+</body>
+</html>
