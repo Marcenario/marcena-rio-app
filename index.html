@@ -137,7 +137,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 <div id="auth-screen">
   <div class="auth-box">
     <div class="auth-logo">
-      <h1>Marcena<span>Rio</span></h1>
+      <img src="/logo_basic__1_.png" alt="Marcena Rio" style="width:180px;margin-bottom:12px;">
       <p>Portal do cliente · Móveis planejados</p>
     </div>
     <div class="auth-tabs">
@@ -241,18 +241,24 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <div class="card">
           <div class="card-title" style="margin-bottom:1rem;">Registrar chegada de pedido</div>
           <div class="form-grid">
-            <div class="form-row"><label>Nome do cliente</label><input type="text" id="mt-cliente" placeholder="Nome completo"></div>
+            <div class="form-row"><label>Número do contrato</label><input type="text" id="mt-contrato" placeholder="Ex: CT-2026-001"></div>
             <div class="form-row"><label>Data de chegada</label><input type="date" id="mt-data"></div>
           </div>
-          <div class="form-row"><label>Notas fiscais (separadas por vírgula)</label><input type="text" id="mt-nf" placeholder="Ex: 1234, 5678"></div>
+          <div class="form-row"><label>Nome do cliente</label><input type="text" id="mt-cliente" placeholder="Nome completo"></div>
           <div class="divider"></div>
           <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores de contrato</div>
-          <div class="info-box">Adicione cada ambiente. O app distribui automaticamente para a equipe mais produtiva disponível.</div>
+          <div class="info-box">Adicione cada ambiente com seu número de pedido, nota fiscal e valor. O app distribui automaticamente para a equipe mais produtiva.</div>
           <div id="mt-amb-list"></div>
-          <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
-            <input type="text" id="mt-amb-nome" placeholder="Ambiente (ex: Cozinha)" style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
-            <input type="text" id="mt-amb-valor" placeholder="Valor R$" style="max-width:140px;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
-            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;" onclick="addAmbMt()">+ Adicionar</button>
+          <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do pedido</label><input type="text" id="mt-amb-pedido" placeholder="Ex: 00123" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nota fiscal</label><input type="text" id="mt-amb-nf" placeholder="Ex: 9876" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nome do ambiente</label><input type="text" id="mt-amb-nome" placeholder="Ex: Cozinha" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Valor do contrato (R$)</label><input type="text" id="mt-amb-valor" placeholder="Ex: 15000" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;width:100%;" onclick="addAmbMt()">+ Adicionar ambiente</button>
           </div>
           <div class="divider"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
@@ -558,19 +564,36 @@ async function enviarRD(nome,email,telefone,ambiente,descricao,investimento){
 
 /* MONTAGEM */
 function addAmbMt(){
+  const pedido=document.getElementById('mt-amb-pedido').value.trim();
+  const nf=document.getElementById('mt-amb-nf').value.trim();
   const nome=document.getElementById('mt-amb-nome').value.trim();
   const valor=parseMoney(document.getElementById('mt-amb-valor').value);
-  if(!nome||!valor){notify('Preencha nome e valor.','error');return}
-  ambsMt.push({nome,valor});
-  document.getElementById('mt-amb-nome').value='';document.getElementById('mt-amb-valor').value='';
+  if(!nome||!valor){notify('Preencha pelo menos o nome e o valor do ambiente.','error');return}
+  ambsMt.push({pedido,nf,nome,valor});
+  document.getElementById('mt-amb-pedido').value='';
+  document.getElementById('mt-amb-nf').value='';
+  document.getElementById('mt-amb-nome').value='';
+  document.getElementById('mt-amb-valor').value='';
   renderAmbsMt();
 }
-function removeAmbMt(i){ambsMt.splice(i,1);renderAmbsMt()}
 function renderAmbsMt(){
   const total=ambsMt.reduce((s,a)=>s+a.valor,0);
   document.getElementById('mt-total').textContent=fmt(total);
-  document.getElementById('mt-amb-list').innerHTML=ambsMt.map((a,i)=>`<div class="amb-list-item"><span>${a.nome}</span><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:500;">${fmt(a.valor)}</span><button class="btn-red-sm" onclick="removeAmbMt(${i})">✕</button></div></div>`).join('');
-}
+  document.getElementById('mt-amb-list').innerHTML=ambsMt.length?`
+    <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.3px;">
+        <span>Nº Pedido</span><span>NF</span><span>Ambiente</span><span>Valor</span><span></span>
+      </div>
+      ${ambsMt.map((a,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;padding:10px 12px;border-top:1px solid var(--border);font-size:13px;align-items:center;">
+        <span style="color:var(--text2);">${a.pedido||'—'}</span>
+        <span style="color:var(--text2);">${a.nf||'—'}</span>
+        <span style="font-weight:500;">${a.nome}</span>
+        <span style="font-weight:500;color:var(--accent);">${fmt(a.valor)}</span>
+        <button class="btn-red-sm" onclick="removeAmbMt(${i})">✕</button>
+      </div>`).join('')}
+    </div>`:''
+;}
+function removeAmbMt(i){ambsMt.splice(i,1);renderAmbsMt()}
 
 async function distribuirEquipe(valorTotal){
   const {data:eqs}=await db.from('equipes_montagem').select('*').order('produtividade_atual',{ascending:false});
@@ -578,14 +601,23 @@ async function distribuirEquipe(valorTotal){
   const {data:ativos}=await db.from('pedidos_montagem').select('*').eq('status','em_montagem');
   const carga={};eqs.forEach(e=>carga[e.id]=0);
   if(ativos)ativos.forEach(p=>{if(carga[p.equipe_id]!==undefined)carga[p.equipe_id]+=p.valor_total});
-  const sorted=[...eqs].sort((a,b)=>(carga[a.id]/a.produtividade_atual)-(carga[b.id]/b.produtividade_atual));
-  return valorTotal>=eqs[0].produtividade_atual*2?eqs[0]:sorted[0];
+  // Calcula dias acumulados por equipe: carga total / produtividade = dias de trabalho pendentes
+  // A equipe com MENOS dias acumulados recebe o próximo pedido — garante equilíbrio
+  // Entre equipes empatadas em dias, a mais produtiva leva pedidos maiores naturalmente
+  const sorted=[...eqs].sort((a,b)=>{
+    const diasA=carga[a.id]/a.produtividade_atual;
+    const diasB=carga[b.id]/b.produtividade_atual;
+    if(Math.abs(diasA-diasB)<0.5)return b.produtividade_atual-a.produtividade_atual;
+    return diasA-diasB;
+  });
+  return sorted[0];
 }
 
 async function salvarPedidoMt(){
+  const contrato=document.getElementById('mt-contrato').value.trim();
   const cliente=document.getElementById('mt-cliente').value.trim();
   const data=document.getElementById('mt-data').value;
-  const nf=document.getElementById('mt-nf').value.trim();
+  if(!contrato){setAlert('mt-novo-alert','Preencha o número do contrato.','error');return}
   if(!cliente){setAlert('mt-novo-alert','Preencha o nome do cliente.','error');return}
   if(!ambsMt.length){setAlert('mt-novo-alert','Adicione pelo menos um ambiente.','error');return}
   const valorTotal=ambsMt.reduce((s,a)=>s+a.valor,0);
@@ -593,12 +625,13 @@ async function salvarPedidoMt(){
   const btn=document.getElementById('btn-mt-novo');btn.disabled=true;btn.textContent='Salvando...';
   const equipe=await distribuirEquipe(valorTotal);
   if(!equipe){setAlert('mt-novo-alert','Cadastre pelo menos uma equipe antes.','error');btn.disabled=false;btn.textContent='Registrar e distribuir para equipe';return}
-  const {error}=await db.from('pedidos_montagem').insert({cliente_nome:cliente,data_chegada:data,notas_fiscais:nf,valor_total:valorTotal,ambientes:JSON.stringify(ambsMt),equipe_id:equipe.id,equipe_nome:equipe.nome,status:'em_montagem'});
+  const {error}=await db.from('pedidos_montagem').insert({cliente_nome:cliente,numero_contrato:contrato,data_chegada:data,valor_total:valorTotal,ambientes:JSON.stringify(ambsMt),equipe_id:equipe.id,equipe_nome:equipe.nome,status:'em_montagem'});
   btn.disabled=false;btn.textContent='Registrar e distribuir para equipe';
   if(error){setAlert('mt-novo-alert','Erro ao salvar.','error');return}
   setAlert('mt-novo-alert',`Distribuído para ${equipe.nome}!`,'success');
   ambsMt=[];renderAmbsMt();
-  document.getElementById('mt-cliente').value='';document.getElementById('mt-nf').value='';
+  document.getElementById('mt-contrato').value='';
+  document.getElementById('mt-cliente').value='';
   document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
   notify(`Distribuído para ${equipe.nome}!`);
 }
@@ -631,10 +664,20 @@ function renderPedidoMt(p){
   const btnE=p.status!=='concluido'?`<button style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;" onclick="excluirPedidoMt('${p.id}')">Excluir</button>`:'';
   return `<div class="pedido-item">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div><div style="font-size:14px;font-weight:500;">${p.cliente_nome}</div><div style="font-size:12px;color:var(--text2);">Chegada: ${dataStr} · NF: ${p.notas_fiscais||'—'} · <strong>${p.equipe_nome||'—'}</strong></div></div>
+      <div><div style="font-size:14px;font-weight:500;">${p.cliente_nome}</div><div style="font-size:12px;color:var(--text2);">Contrato: <strong>${p.numero_contrato||'—'}</strong> · Chegada: ${dataStr} · <strong>${p.equipe_nome||'—'}</strong></div></div>
       <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:15px;font-weight:500;color:var(--accent);">${fmt(p.valor_total)}</span><span class="badge ${badgeClass}">${badgeText}</span></div>
     </div>
-    <div style="border-top:1px solid var(--border);padding-top:8px;">${ambs.map(a=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border);"><span style="color:var(--text2)">${a.nome}</span><span style="font-weight:500;">${fmt(a.valor)}</span></div>`).join('')}</div>
+    <div style="border-top:1px solid var(--border);padding-top:8px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:var(--bg);padding:6px 8px;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;border-radius:4px;margin-bottom:4px;">
+        <span>Nº Pedido</span><span>NF</span><span>Ambiente</span><span style="text-align:right">Valor</span>
+      </div>
+      ${ambs.map(a=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:5px 8px;border-bottom:1px solid var(--border);font-size:12px;align-items:center;">
+        <span style="color:var(--text2)">${a.pedido||'—'}</span>
+        <span style="color:var(--text2)">${a.nf||'—'}</span>
+        <span>${a.nome}</span>
+        <span style="font-weight:500;text-align:right;">${fmt(a.valor)}</span>
+      </div>`).join('')}
+    </div>
     <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">${btnC}${btnE}</div>
   </div>`;
 }
