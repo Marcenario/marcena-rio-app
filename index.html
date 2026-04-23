@@ -507,6 +507,27 @@ h1,h2,h3 { font-family: 'DM Serif Display', serif; font-weight: 400; }
           <label>Descrição do projeto</label>
           <textarea id="orc-desc" placeholder="Descreva o que você precisa: estilo, cores, referências, medidas aproximadas..."></textarea>
         </div>
+        <div class="form-row">
+          <label>Planta ou referências (opcional)</label>
+          <div id="upload-area" style="border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;background:var(--bg);transition:all 0.15s;" onclick="document.getElementById('orc-arquivo').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="handleDrop(event)">
+            <input type="file" id="orc-arquivo" accept=".pdf,.jpg,.jpeg,.png,.dwg" style="display:none" onchange="showFile(this)">
+            <div id="upload-label">
+              <div style="font-size:22px;margin-bottom:6px;color:var(--text3)">&#128206;</div>
+              <div style="font-size:13px;color:var(--text2);font-weight:500;">Clique para anexar ou arraste o arquivo aqui</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">PDF, JPG, PNG ou DWG · máx. 10MB</div>
+            </div>
+          </div>
+          <div id="file-preview" style="display:none;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:none;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:16px;">&#128206;</span>
+              <div>
+                <div id="file-name" style="font-size:13px;font-weight:500;color:var(--text)"></div>
+                <div id="file-size" style="font-size:11px;color:var(--text3)"></div>
+              </div>
+            </div>
+            <button onclick="removeFile()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;">&#10005;</button>
+          </div>
+        </div>
         <div id="orc-alert"></div>
         <button class="btn-submit" onclick="enviarOrcamento()" id="btn-orc">Enviar solicitação</button>
       </div>
@@ -568,7 +589,45 @@ let currentUser = null;
 let isAdmin = false;
 let rdKey = localStorage.getItem('mr_rd_key') || '';
 
-function notify(msg, type='success') {
+function showFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('upload-label').style.display = 'none';
+  const preview = document.getElementById('file-preview');
+  preview.style.display = 'flex';
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('file-size').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+function removeFile() {
+  document.getElementById('orc-arquivo').value = '';
+  document.getElementById('upload-label').style.display = 'block';
+  document.getElementById('file-preview').style.display = 'none';
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  document.getElementById('upload-area').style.borderColor = 'var(--border2)';
+  const file = event.dataTransfer.files[0];
+  if (!file) return;
+  const input = document.getElementById('orc-arquivo');
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  showFile(input);
+}
+
+async function uploadArquivo(projetoId) {
+  const input = document.getElementById('orc-arquivo');
+  if (!input.files || !input.files[0]) return null;
+  const file = input.files[0];
+  const ext = file.name.split('.').pop();
+  const path = `plantas/${projetoId}.${ext}`;
+  const { data, error } = await db.storage.from('plantas').upload(path, file, { upsert: true });
+  if (error) { console.warn('Upload:', error); return null; }
+  const { data: urlData } = db.storage.from('plantas').getPublicUrl(path);
+  return urlData.publicUrl;
+}
   const n = document.getElementById('notif');
   n.textContent = msg;
   n.style.background = type === 'error' ? '#8a1a1a' : type === 'info' ? '#1a4a8a' : '#1a1a2e';
@@ -677,6 +736,7 @@ async function enviarOrcamento() {
   }).select().single();
   btn.disabled = false; btn.textContent = 'Enviar solicitação';
   if (error) { setAlert('orc-alert', 'Erro ao enviar. Tente novamente.', 'error'); return; }
+  await uploadArquivo(proj.id);
   await enviarRDStation(nome, currentUser.email, tel, ambiente, desc, investimento);
   setAlert('orc-alert', 'Solicitação enviada com sucesso! Acompanhe o andamento em "Meus projetos".', 'success');
   document.getElementById('orc-nome').value = '';
@@ -684,6 +744,7 @@ async function enviarOrcamento() {
   document.getElementById('orc-ambiente').value = '';
   document.getElementById('orc-prazo').value = '';
   document.getElementById('orc-desc').value = '';
+  removeFile();
   prefillOrcamento();
   notify('Solicitação enviada!');
 }
