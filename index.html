@@ -808,23 +808,19 @@ function showRDConnected() {
 
 async function enviarRDStation(nome, email, telefone, ambiente, descricao, investimento) {
   try {
-    await fetch('https://api.rd.services/platform/conversions?api_key=4e0542b477a910cc438dcad16032df37', {
+    const formId = 'form-lp-marcenario-com-br-moveis-planejados-b80e2a13717dd14da369';
+    const params = new URLSearchParams();
+    params.append('email', email);
+    params.append('name', nome);
+    params.append('mobile_phone', telefone);
+    params.append('cf_pra_qual_ambiente_deseja_um_orcamento', ambiente);
+    params.append('cf_valor_de_investimento_previsto', investimento);
+    params.append('cf_descricao_do_projeto', descricao);
+    params.append('_rd_experiment_content_id', formId);
+    await fetch(`https://app.rdstation.com.br/api/1.3/conversions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_type: 'CONVERSION',
-        event_family: 'CDP',
-        payload: {
-          conversion_identifier: 'Solicitação de Orçamento - Marcena Rio',
-          name: nome,
-          email: email,
-          mobile_phone: telefone,
-          cf_pra_qual_ambiente_deseja_um_orcamento: ambiente,
-          cf_valor_de_investimento_previsto: investimento,
-          cf_descricao_do_projeto: descricao,
-          tags: ['marcena-rio-app', 'orcamento-solicitado']
-        }
-      })
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
     });
   } catch(e) { console.warn('RD Station:', e); }
 }
