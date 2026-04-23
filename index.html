@@ -628,6 +628,8 @@ async function uploadArquivo(projetoId) {
   const { data: urlData } = db.storage.from('plantas').getPublicUrl(path);
   return urlData.publicUrl;
 }
+
+function notify(msg, type='success') {
   const n = document.getElementById('notif');
   n.textContent = msg;
   n.style.background = type === 'error' ? '#8a1a1a' : type === 'info' ? '#1a4a8a' : '#1a1a2e';
