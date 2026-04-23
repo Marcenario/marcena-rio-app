@@ -13,405 +13,127 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root {
-  --brand: #1a1a2e;
-  --brand-mid: #2d2d4e;
-  --accent: #c8a96e;
-  --accent-light: #f0e6d3;
-  --bg: #f8f6f2;
-  --bg2: #ffffff;
-  --text: #1a1a2e;
-  --text2: #6b6880;
-  --text3: #9b98a8;
-  --border: rgba(26,26,46,0.10);
-  --border2: rgba(26,26,46,0.18);
-  --green: #2d7a4f;
-  --green-bg: #eaf5ee;
-  --amber: #8a5c1a;
-  --amber-bg: #fdf3e3;
-  --blue: #1a4a8a;
-  --blue-bg: #e8f0fc;
-  --red: #8a1a1a;
-  --red-bg: #fce8e8;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 2px 12px rgba(26,26,46,0.08);
-  --shadow-lg: 0 8px 32px rgba(26,26,46,0.12);
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-h1,h2,h3 { font-family: 'DM Serif Display', serif; font-weight: 400; }
-
-/* AUTH SCREEN */
-#auth-screen {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--brand);
-  padding: 2rem;
-}
-.auth-box {
-  background: var(--bg2);
-  border-radius: 20px;
-  padding: 2.5rem;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: var(--shadow-lg);
-}
-.auth-logo {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-.auth-logo h1 {
-  font-size: 32px;
-  color: var(--brand);
-  letter-spacing: -0.5px;
-}
-.auth-logo span {
-  color: var(--accent);
-  font-style: italic;
-}
-.auth-logo p {
-  font-size: 13px;
-  color: var(--text2);
-  margin-top: 4px;
-}
-.auth-tabs {
-  display: flex;
-  background: var(--bg);
-  border-radius: var(--radius-sm);
-  padding: 3px;
-  margin-bottom: 1.5rem;
-}
-.auth-tab {
-  flex: 1;
-  padding: 8px;
-  text-align: center;
-  font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--text2);
-  font-weight: 400;
-  transition: all 0.15s;
-}
-.auth-tab.active {
-  background: var(--bg2);
-  color: var(--text);
-  font-weight: 500;
-  box-shadow: var(--shadow);
-}
-.form-group { margin-bottom: 1rem; }
-.form-group label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; letter-spacing: 0.3px; }
-.form-group input {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  transition: border-color 0.15s;
-  outline: none;
-}
-.form-group input:focus { border-color: var(--accent); background: var(--bg2); }
-.btn-main {
-  width: 100%;
-  padding: 11px;
-  background: var(--brand);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  transition: background 0.15s;
-  letter-spacing: 0.2px;
-}
-.btn-main:hover { background: var(--brand-mid); }
-.btn-main:disabled { opacity: 0.6; cursor: not-allowed; }
-.auth-msg { font-size: 13px; text-align: center; margin-top: 10px; min-height: 18px; }
-.auth-msg.error { color: var(--red); }
-.auth-msg.success { color: var(--green); }
-
-/* APP SHELL */
-#app-screen { display: none; min-height: 100vh; }
-.topbar {
-  background: var(--brand);
-  color: #fff;
-  padding: 0 2rem;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.topbar-logo { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -0.3px; }
-.topbar-logo span { color: var(--accent); font-style: italic; }
-.topbar-right { display: flex; align-items: center; gap: 16px; }
-.topbar-user { font-size: 13px; opacity: 0.7; }
-.btn-logout {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #fff;
-  border-radius: 6px;
-  padding: 5px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  transition: background 0.15s;
-}
-.btn-logout:hover { background: rgba(255,255,255,0.2); }
-
-.nav-bar {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 0 2rem;
-  display: flex;
-  gap: 0;
-}
-.nav-item {
-  padding: 14px 18px;
-  font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text2);
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
-  font-weight: 400;
-}
-.nav-item.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 500; }
-.nav-item:hover:not(.active) { color: var(--text); }
-
-.main-content { max-width: 860px; margin: 0 auto; padding: 2rem; }
-.section { display: none; }
-.section.active { display: block; }
-
-/* CARDS */
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1rem;
-  box-shadow: var(--shadow);
-}
-.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-.card-title { font-size: 16px; font-weight: 500; color: var(--text); }
-.card-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
-
-/* BADGES */
-.badge {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 10px;
-  border-radius: 20px;
-  letter-spacing: 0.2px;
-}
-.badge-blue { background: var(--blue-bg); color: var(--blue); }
-.badge-green { background: var(--green-bg); color: var(--green); }
-.badge-amber { background: var(--amber-bg); color: var(--amber); }
-.badge-accent { background: var(--accent-light); color: #7a5c2a; }
-
-/* TIMELINE */
-.timeline { position: relative; }
-.tl-item { display: flex; gap: 14px; }
-.tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
-.tl-dot {
-  width: 30px; height: 30px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 600;
-  flex-shrink: 0;
-}
-.tl-dot.done { background: var(--green-bg); color: var(--green); }
-.tl-dot.active { background: var(--accent-light); color: #7a5c2a; border: 2px solid var(--accent); }
-.tl-dot.pending { background: var(--bg); color: var(--text3); border: 1px solid var(--border2); }
-.tl-line { width: 1px; flex: 1; min-height: 14px; background: var(--border2); }
-.tl-content { padding-bottom: 18px; flex: 1; padding-top: 5px; }
-.tl-name { font-size: 14px; font-weight: 500; }
-.tl-name.done { color: var(--text2); }
-.tl-name.active { color: var(--text); }
-.tl-name.pending { color: var(--text3); }
-.tl-status { font-size: 12px; margin-top: 2px; }
-.tl-status.done { color: var(--green); }
-.tl-status.active { color: #7a5c2a; }
-.tl-status.pending { color: var(--text3); }
-.tl-date { font-size: 11px; color: var(--text3); margin-top: 2px; }
-
-/* PROGRESS */
-.progress-bar { height: 4px; background: var(--bg); border-radius: 2px; margin: 8px 0 4px; }
-.progress-fill { height: 4px; background: var(--accent); border-radius: 2px; transition: width 0.4s; }
-
-/* FORM */
-.form-row { margin-bottom: 0.85rem; }
-.form-row label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
-.form-row input, .form-row select, .form-row textarea {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  outline: none;
-  transition: border-color 0.15s;
-}
-.form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); background: var(--bg2); }
-.form-row textarea { height: 80px; resize: vertical; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.btn-submit {
-  background: var(--brand);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 11px 24px;
-  font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  transition: background 0.15s;
-}
-.btn-submit:hover { background: var(--brand-mid); }
-.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-
-/* STATS */
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.25rem; }
-.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; box-shadow: var(--shadow); }
-.stat-num { font-size: 28px; font-family: 'DM Serif Display', serif; color: var(--text); }
-.stat-label { font-size: 12px; color: var(--text2); margin-top: 2px; }
-
-/* ADMIN STEP CONTROL */
-.step-control {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-.btn-step {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 7px 16px;
-  font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.btn-step:hover { opacity: 0.85; }
-.btn-step:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-step-back {
-  background: var(--bg);
-  color: var(--text2);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.btn-step-back:hover { background: var(--border); }
-
-/* RD CONFIG */
-.rd-banner {
-  background: var(--amber-bg);
-  border: 1px solid #e8c87a;
-  border-radius: var(--radius);
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
-}
-.rd-banner.connected {
-  background: var(--green-bg);
-  border-color: #7acc9e;
-}
-.rd-banner-title { font-size: 14px; font-weight: 500; color: var(--amber); margin-bottom: 4px; }
-.rd-banner.connected .rd-banner-title { color: var(--green); }
-.rd-banner-sub { font-size: 12px; color: #a07830; }
-.rd-banner.connected .rd-banner-sub { color: #3a7a50; }
-.rd-row { display: flex; gap: 8px; margin-top: 10px; }
-.rd-row input { flex: 1; padding: 8px 12px; border: 1px solid #e8c87a; border-radius: 6px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: #fff; outline: none; }
-.btn-rd { background: var(--brand); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; }
-
-/* ALERT */
-.alert { border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin: 8px 0; }
-.alert-success { background: var(--green-bg); color: var(--green); border: 1px solid #a8dfc0; }
-.alert-error { background: var(--red-bg); color: var(--red); border: 1px solid #f0a8a8; }
-.alert-info { background: var(--blue-bg); color: var(--blue); border: 1px solid #a8c4f0; }
-
-/* PROJECT LIST */
-.proj-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.1s;
-}
-.proj-row:last-child { border-bottom: none; }
-.proj-row:hover .proj-name { color: var(--accent); }
-.proj-name { font-size: 14px; font-weight: 500; }
-.proj-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
-
-/* EMPTY STATE */
-.empty-state { text-align: center; padding: 3rem 1rem; color: var(--text3); }
-.empty-state p { font-size: 14px; margin-top: 8px; }
-
-/* LOADER */
-.loader { text-align: center; padding: 2rem; color: var(--text2); font-size: 14px; }
-
-/* NOTIFICATION */
-#notif {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: var(--brand);
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  z-index: 9999;
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: all 0.25s;
-  pointer-events: none;
-  max-width: 300px;
-}
-#notif.show { opacity: 1; transform: translateY(0); }
-
-@media (max-width: 600px) {
-  .main-content { padding: 1rem; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
-  .topbar { padding: 0 1rem; }
-  .nav-bar { padding: 0 0.5rem; overflow-x: auto; }
-  .nav-item { padding: 12px 12px; white-space: nowrap; }
-}
+:root{--brand:#1a1a2e;--brand-mid:#2d2d4e;--accent:#c8a96e;--accent-light:#f0e6d3;--bg:#f8f6f2;--bg2:#ffffff;--text:#1a1a2e;--text2:#6b6880;--text3:#9b98a8;--border:rgba(26,26,46,0.10);--border2:rgba(26,26,46,0.18);--green:#2d7a4f;--green-bg:#eaf5ee;--amber:#8a5c1a;--amber-bg:#fdf3e3;--blue:#1a4a8a;--blue-bg:#e8f0fc;--red:#8a1a1a;--red-bg:#fce8e8;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(26,26,46,0.08);--shadow-lg:0 8px 32px rgba(26,26,46,0.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--brand);padding:2rem}
+.auth-box{background:var(--bg2);border-radius:20px;padding:2.5rem;width:100%;max-width:400px;box-shadow:var(--shadow-lg)}
+.auth-logo{text-align:center;margin-bottom:2rem}
+.auth-logo h1{font-size:32px;color:var(--brand);letter-spacing:-0.5px}
+.auth-logo span{color:var(--accent);font-style:italic}
+.auth-logo p{font-size:13px;color:var(--text2);margin-top:4px}
+.auth-tabs{display:flex;background:var(--bg);border-radius:var(--radius-sm);padding:3px;margin-bottom:1.5rem}
+.auth-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-family:'DM Sans',sans-serif;border:none;background:transparent;border-radius:6px;cursor:pointer;color:var(--text2);transition:all 0.15s}
+.auth-tab.active{background:var(--bg2);color:var(--text);font-weight:500;box-shadow:var(--shadow)}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.form-group input{width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:border-color 0.15s}
+.form-group input:focus{border-color:var(--accent);background:var(--bg2)}
+.btn-main{width:100%;padding:11px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;margin-top:0.5rem;transition:background 0.15s}
+.btn-main:hover{background:var(--brand-mid)}
+.btn-main:disabled{opacity:0.6;cursor:not-allowed}
+.auth-msg{font-size:13px;text-align:center;margin-top:10px;min-height:18px}
+.auth-msg.error{color:var(--red)}
+.auth-msg.success{color:var(--green)}
+#app-screen{display:none;min-height:100vh}
+.topbar{background:var(--brand);color:#fff;padding:0 2rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-logo{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:-0.3px}
+.topbar-logo span{color:var(--accent);font-style:italic}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.topbar-user{font-size:13px;opacity:0.7}
+.topbar-nivel{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:500}
+.nivel-admin{background:var(--accent);color:#fff}
+.nivel-funcionario{background:#534AB7;color:#fff}
+.nivel-cliente{background:rgba(255,255,255,0.15);color:#fff}
+.btn-logout{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.nav-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;overflow-x:auto}
+.nav-item{padding:14px 16px;font-size:13px;font-family:'DM Sans',sans-serif;border:none;background:transparent;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap}
+.nav-item.active{color:var(--text);border-bottom-color:var(--accent);font-weight:500}
+.main-content{max-width:900px;margin:0 auto;padding:2rem}
+.section{display:none}
+.section.active{display:block}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.card-title{font-size:16px;font-weight:500;color:var(--text)}
+.card-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-accent{background:var(--accent-light);color:#7a5c2a}
+.tl-item{display:flex;gap:14px}
+.tl-left{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.tl-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.tl-dot.done{background:var(--green-bg);color:var(--green)}
+.tl-dot.active{background:var(--accent-light);color:#7a5c2a;border:2px solid var(--accent)}
+.tl-dot.pending{background:var(--bg);color:var(--text3);border:1px solid var(--border2)}
+.tl-line{width:1px;flex:1;min-height:14px;background:var(--border2)}
+.tl-content{padding-bottom:18px;flex:1;padding-top:5px}
+.tl-name{font-size:14px;font-weight:500}
+.tl-name.done{color:var(--text2)}
+.tl-name.active{color:var(--text)}
+.tl-name.pending{color:var(--text3)}
+.tl-status{font-size:12px;margin-top:2px}
+.tl-status.done{color:var(--green)}
+.tl-status.active{color:#7a5c2a}
+.tl-status.pending{color:var(--text3)}
+.progress-bar{height:4px;background:var(--bg);border-radius:2px;margin:8px 0 4px}
+.progress-fill{height:4px;background:var(--accent);border-radius:2px;transition:width 0.4s}
+.form-row{margin-bottom:0.85rem}
+.form-row label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:border-color 0.15s}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--accent);background:var(--bg2)}
+.form-row textarea{height:80px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-submit{background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:11px 24px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;margin-top:0.5rem}
+.btn-submit:hover{background:var(--brand-mid)}
+.btn-submit:disabled{opacity:0.6;cursor:not-allowed}
+.btn-step{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer}
+.btn-step:disabled{opacity:0.4;cursor:not-allowed}
+.btn-step-back{background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.step-control{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.25rem}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow)}
+.stat-num{font-size:28px;font-family:'DM Serif Display',serif;color:var(--text)}
+.stat-label{font-size:12px;color:var(--text2);margin-top:2px}
+.proj-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.proj-row:last-child{border-bottom:none}
+.proj-row:hover .proj-name{color:var(--accent)}
+.proj-name{font-size:14px;font-weight:500}
+.proj-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.rd-banner{background:var(--amber-bg);border:1px solid #e8c87a;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem}
+.rd-banner.connected{background:var(--green-bg);border-color:#7acc9e}
+.rd-banner-title{font-size:14px;font-weight:500;color:var(--amber);margin-bottom:4px}
+.rd-banner.connected .rd-banner-title{color:var(--green)}
+.rd-banner-sub{font-size:12px;color:#a07830}
+.rd-banner.connected .rd-banner-sub{color:#3a7a50}
+.rd-row{display:flex;gap:8px;margin-top:10px}
+.rd-row input{flex:1;padding:8px 12px;border:1px solid #e8c87a;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;outline:none}
+.btn-rd{background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
+.alert{border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin:8px 0}
+.alert-success{background:var(--green-bg);color:var(--green);border:1px solid #a8dfc0}
+.alert-error{background:var(--red-bg);color:var(--red);border:1px solid #f0a8a8}
+.alert-info{background:var(--blue-bg);color:var(--blue);border:1px solid #a8c4f0}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text3)}
+.loader{text-align:center;padding:2rem;color:var(--text2);font-size:14px}
+#notif{position:fixed;top:20px;right:20px;background:var(--brand);color:#fff;padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:9999;opacity:0;transform:translateY(-8px);transition:all 0.25s;pointer-events:none;max-width:300px}
+#notif.show{opacity:1;transform:translateY(0)}
+.divider{height:1px;background:var(--border);margin:1rem 0}
+.team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+.team-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;box-shadow:var(--shadow)}
+.amb-list-item{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:13px}
+.btn-red-sm{background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer}
+.btn-green{background:var(--green);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer}
+.pedido-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:10px;box-shadow:var(--shadow)}
+.info-box{background:var(--blue-bg);border:1px solid #b5d4f4;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:1rem}
+.sub-nav{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;padding:0 0.5rem;display:flex;overflow-x:auto}
+@media(max-width:600px){.main-content{padding:1rem}.stats-grid{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.team-grid{grid-template-columns:1fr}.nav-bar{padding:0 0.5rem}.nav-item{padding:12px 10px}}
 </style>
 </head>
 <body>
-
-<!-- NOTIFICATION -->
 <div id="notif"></div>
 
-<!-- AUTH SCREEN -->
 <div id="auth-screen">
   <div class="auth-box">
     <div class="auth-logo">
@@ -423,115 +145,69 @@ h1,h2,h3 { font-family: 'DM Serif Display', serif; font-weight: 400; }
       <button class="auth-tab" onclick="switchAuthTab('signup')">Criar conta</button>
     </div>
     <div id="login-form">
-      <div class="form-group">
-        <label>E-mail</label>
-        <input type="email" id="login-email" placeholder="seu@email.com">
-      </div>
-      <div class="form-group">
-        <label>Senha</label>
-        <input type="password" id="login-pass" placeholder="Sua senha" onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com"></div>
+      <div class="form-group"><label>Senha</label><input type="password" id="login-pass" placeholder="Sua senha" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="btn-main" onclick="doLogin()" id="btn-login">Entrar</button>
       <p class="auth-msg" id="login-msg"></p>
     </div>
     <div id="signup-form" style="display:none">
-      <div class="form-group">
-        <label>Nome completo</label>
-        <input type="text" id="signup-nome" placeholder="Seu nome">
-      </div>
-      <div class="form-group">
-        <label>E-mail</label>
-        <input type="email" id="signup-email" placeholder="seu@email.com">
-      </div>
-      <div class="form-group">
-        <label>Telefone / WhatsApp</label>
-        <input type="text" id="signup-tel" placeholder="(21) 99999-0000">
-      </div>
-      <div class="form-group">
-        <label>Senha</label>
-        <input type="password" id="signup-pass" placeholder="Mínimo 6 caracteres">
-      </div>
+      <div class="form-group"><label>Nome completo</label><input type="text" id="signup-nome" placeholder="Seu nome"></div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="signup-email" placeholder="seu@email.com"></div>
+      <div class="form-group"><label>Telefone / WhatsApp</label><input type="text" id="signup-tel" placeholder="(21) 99999-0000"></div>
+      <div class="form-group"><label>Senha</label><input type="password" id="signup-pass" placeholder="Mínimo 6 caracteres"></div>
       <button class="btn-main" onclick="doSignup()" id="btn-signup">Criar conta</button>
       <p class="auth-msg" id="signup-msg"></p>
     </div>
   </div>
 </div>
 
-<!-- APP SCREEN -->
 <div id="app-screen">
   <div class="topbar">
     <div class="topbar-logo">Marcena<span>Rio</span></div>
     <div class="topbar-right">
+      <span class="topbar-nivel" id="topbar-nivel"></span>
       <span class="topbar-user" id="topbar-email"></span>
       <button class="btn-logout" onclick="doLogout()">Sair</button>
     </div>
   </div>
-  <div class="nav-bar" id="nav-bar">
-    <button class="nav-item active" onclick="showSection('solicitar', this)">Solicitar orçamento</button>
-    <button class="nav-item" onclick="showSection('projetos', this)">Meus projetos</button>
-    <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin', this)">Painel admin</button>
+  <div class="nav-bar">
+    <button class="nav-item active" id="nav-solicitar" onclick="showSection('solicitar',this)">Solicitar orçamento</button>
+    <button class="nav-item" id="nav-projetos" onclick="showSection('projetos',this)">Meus projetos</button>
+    <button class="nav-item" id="nav-montagem" style="display:none" onclick="showSection('montagem',this)">Montagem</button>
+    <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin',this)">Painel admin</button>
+    <button class="nav-item" id="nav-usuarios" style="display:none" onclick="showSection('usuarios',this)">Usuários</button>
   </div>
   <div class="main-content">
 
     <!-- SOLICITAR ORÇAMENTO -->
     <div id="solicitar" class="section active">
       <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Nova solicitação de orçamento</div>
-            <div class="card-sub">Preencha as informações para iniciarmos seu projeto</div>
-          </div>
+        <div class="card-header"><div><div class="card-title">Nova solicitação de orçamento</div><div class="card-sub">Preencha as informações para iniciarmos seu projeto</div></div></div>
+        <div class="form-grid">
+          <div class="form-row"><label>Nome completo</label><input type="text" id="orc-nome" placeholder="Seu nome completo"></div>
+          <div class="form-row"><label>Telefone / WhatsApp</label><input type="text" id="orc-tel" placeholder="(21) 99999-0000"></div>
         </div>
         <div class="form-grid">
-          <div class="form-row">
-            <label>Nome completo</label>
-            <input type="text" id="orc-nome" placeholder="Seu nome completo">
-          </div>
-          <div class="form-row">
-            <label>Telefone / WhatsApp</label>
-            <input type="text" id="orc-tel" placeholder="(21) 99999-0000">
-          </div>
-        </div>
-        <div class="form-grid">
-          <div class="form-row">
-            <label>Para qual ambiente deseja um orçamento?</label>
-            <input type="text" id="orc-ambiente" placeholder="Ex: Cozinha, dormitório, sala...">
-          </div>
-          <div class="form-row">
-            <label>Faixa de investimento</label>
+          <div class="form-row"><label>Para qual ambiente deseja um orçamento?</label><input type="text" id="orc-ambiente" placeholder="Ex: Cozinha, dormitório, sala..."></div>
+          <div class="form-row"><label>Faixa de investimento</label>
             <select id="orc-prazo">
               <option value="">Selecione...</option>
-              <option>0 a 15.000</option>
-              <option>15.000 a 30.000</option>
-              <option>30.000 a 50.000</option>
-              <option>50.000 a 100.000</option>
+              <option>0 a 15.000</option><option>15.000 a 30.000</option>
+              <option>30.000 a 50.000</option><option>50.000 a 100.000</option>
               <option>Acima de 100.000</option>
             </select>
           </div>
         </div>
-        <div class="form-row">
-          <label>Descrição do projeto</label>
-          <textarea id="orc-desc" placeholder="Descreva o que você precisa: estilo, cores, referências, medidas aproximadas..."></textarea>
-        </div>
+        <div class="form-row"><label>Descrição do projeto</label><textarea id="orc-desc" placeholder="Descreva o que você precisa: estilo, cores, referências, medidas aproximadas..."></textarea></div>
         <div class="form-row">
           <label>Planta ou referências (opcional)</label>
-          <div id="upload-area" style="border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;background:var(--bg);transition:all 0.15s;" onclick="document.getElementById('orc-arquivo').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="handleDrop(event)">
+          <div id="upload-area" style="border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;background:var(--bg);" onclick="document.getElementById('orc-arquivo').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="handleDrop(event)">
             <input type="file" id="orc-arquivo" accept=".pdf,.jpg,.jpeg,.png,.dwg" style="display:none" onchange="showFile(this)">
-            <div id="upload-label">
-              <div style="font-size:22px;margin-bottom:6px;color:var(--text3)">&#128206;</div>
-              <div style="font-size:13px;color:var(--text2);font-weight:500;">Clique para anexar ou arraste o arquivo aqui</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:4px;">PDF, JPG, PNG ou DWG · máx. 10MB</div>
-            </div>
+            <div id="upload-label"><div style="font-size:22px;margin-bottom:6px;color:var(--text3)">📄</div><div style="font-size:13px;color:var(--text2);font-weight:500;">Clique para anexar ou arraste o arquivo aqui</div><div style="font-size:11px;color:var(--text3);margin-top:4px;">PDF, JPG, PNG ou DWG · máx. 10MB</div></div>
           </div>
-          <div id="file-preview" style="display:none;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:none;align-items:center;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:16px;">&#128206;</span>
-              <div>
-                <div id="file-name" style="font-size:13px;font-weight:500;color:var(--text)"></div>
-                <div id="file-size" style="font-size:11px;color:var(--text3)"></div>
-              </div>
-            </div>
-            <button onclick="removeFile()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;">&#10005;</button>
+          <div id="file-preview" style="display:none;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;"><span>📄</span><div><div id="file-name" style="font-size:13px;font-weight:500;"></div><div id="file-size" style="font-size:11px;color:var(--text3)"></div></div></div>
+            <button onclick="removeFile()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;">✕</button>
           </div>
         </div>
         <div id="orc-alert"></div>
@@ -539,9 +215,69 @@ h1,h2,h3 { font-family: 'DM Serif Display', serif; font-weight: 400; }
       </div>
     </div>
 
-    <!-- MEUS PROJETOS -->
+    <!-- PROJETOS -->
     <div id="projetos" class="section">
       <div id="projetos-content"><div class="loader">Carregando projetos...</div></div>
+    </div>
+
+    <!-- MONTAGEM -->
+    <div id="montagem" class="section">
+      <div class="sub-nav">
+        <button class="nav-item active" id="mt-nav-fila" onclick="showSubMontagem('mt-fila',this)">Fila</button>
+        <button class="nav-item" id="mt-nav-novo" onclick="showSubMontagem('mt-novo',this)">Novo pedido</button>
+        <button class="nav-item" id="mt-nav-equipes" style="display:none" onclick="showSubMontagem('mt-equipes',this)">Equipes</button>
+        <button class="nav-item" id="mt-nav-relatorio" style="display:none" onclick="showSubMontagem('mt-relatorio',this)">Relatório</button>
+      </div>
+      <div id="mt-fila">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="stat-card"><div class="stat-num" id="mt-st-ag">—</div><div class="stat-label">Aguardando</div></div>
+          <div class="stat-card"><div class="stat-num" id="mt-st-em">—</div><div class="stat-label">Em montagem</div></div>
+          <div class="stat-card"><div class="stat-num" id="mt-st-co">—</div><div class="stat-label">Concluídos</div></div>
+          <div class="stat-card"><div class="stat-num" id="mt-st-vl">—</div><div class="stat-label">Valor em fila</div></div>
+        </div>
+        <div id="mt-fila-content"><div class="loader">Carregando...</div></div>
+      </div>
+      <div id="mt-novo" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Registrar chegada de pedido</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Nome do cliente</label><input type="text" id="mt-cliente" placeholder="Nome completo"></div>
+            <div class="form-row"><label>Data de chegada</label><input type="date" id="mt-data"></div>
+          </div>
+          <div class="form-row"><label>Notas fiscais (separadas por vírgula)</label><input type="text" id="mt-nf" placeholder="Ex: 1234, 5678"></div>
+          <div class="divider"></div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores de contrato</div>
+          <div class="info-box">Adicione cada ambiente. O app distribui automaticamente para a equipe mais produtiva disponível.</div>
+          <div id="mt-amb-list"></div>
+          <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+            <input type="text" id="mt-amb-nome" placeholder="Ambiente (ex: Cozinha)" style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+            <input type="text" id="mt-amb-valor" placeholder="Valor R$" style="max-width:140px;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;" onclick="addAmbMt()">+ Adicionar</button>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <span style="font-size:14px;color:var(--text2);">Total:</span>
+            <span style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;" id="mt-total">R$ 0,00</span>
+          </div>
+          <div id="mt-novo-alert"></div>
+          <button class="btn-submit" onclick="salvarPedidoMt()" id="btn-mt-novo">Registrar e distribuir para equipe</button>
+        </div>
+      </div>
+      <div id="mt-equipes" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Cadastrar nova equipe</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Nome da equipe</label><input type="text" id="mt-eq-nome" placeholder="Ex: Equipe Alpha"></div>
+            <div class="form-row"><label>Produtividade inicial (R$/dia)</label><input type="number" id="mt-eq-prod" placeholder="Ex: 3000"></div>
+          </div>
+          <button class="btn-submit" onclick="salvarEquipe()">Cadastrar equipe</button>
+        </div>
+        <div id="mt-equipes-content"><div class="loader">Carregando...</div></div>
+      </div>
+      <div id="mt-relatorio" style="display:none">
+        <div class="info-box">A produtividade média é recalculada automaticamente a cada 3 meses com base nas montagens concluídas.</div>
+        <div id="mt-rel-content"><div class="loader">Carregando...</div></div>
+      </div>
     </div>
 
     <!-- ADMIN -->
@@ -549,13 +285,10 @@ h1,h2,h3 { font-family: 'DM Serif Display', serif; font-weight: 400; }
       <div class="rd-banner" id="rd-banner">
         <div class="rd-banner-title">Integração RD Station — aguardando configuração</div>
         <div class="rd-banner-sub">Cole seu token de API para sincronizar leads automaticamente.</div>
-        <div class="rd-row">
-          <input type="password" id="rd-key-input" placeholder="Cole seu token de API aqui...">
-          <button class="btn-rd" onclick="saveRDKey()">Conectar</button>
-        </div>
+        <div class="rd-row"><input type="password" id="rd-key-input" placeholder="Cole seu token de API aqui..."><button class="btn-rd" onclick="saveRDKey()">Conectar</button></div>
         <div id="rd-status-msg" style="font-size:12px;margin-top:6px;"></div>
       </div>
-      <div class="stats-grid" id="admin-stats">
+      <div class="stats-grid">
         <div class="stat-card"><div class="stat-num" id="stat-ativos">—</div><div class="stat-label">Projetos ativos</div></div>
         <div class="stat-card"><div class="stat-num" id="stat-pendentes">—</div><div class="stat-label">Aguardando ação</div></div>
         <div class="stat-card"><div class="stat-num" id="stat-concluidos">—</div><div class="stat-label">Concluídos</div></div>
@@ -566,343 +299,462 @@ h1,h2,h3 { font-family: 'DM Serif Display', serif; font-weight: 400; }
       </div>
     </div>
 
+    <!-- USUÁRIOS -->
+    <div id="usuarios" class="section">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:0.75rem;">Gerenciar níveis de acesso</div>
+        <div class="info-box">Clientes veem apenas seus projetos. Funcionários acessam montagem e projetos. Admin acessa tudo.</div>
+        <div id="usuarios-content"><div class="loader">Carregando...</div></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
-const SUPABASE_URL = 'https://gnjykqkqtcqqdadhyvcw.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImduanlrcWtxdGNxcWRhZGh5dmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NzY3ODAsImV4cCI6MjA5MjA1Mjc4MH0.w34JaXnu_7cEJ_tNYfjkd0rC_kG0sf5fIunqy2s3sWk';
-const ADMIN_EMAIL = 'contato@marcenario.com.br';
+const SUPABASE_URL='https://gnjykqkqtcqqdadhyvcw.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImduanlrcWtxdGNxcWRhZGh5dmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NzY3ODAsImV4cCI6MjA5MjA1Mjc4MH0.w34JaXnu_7cEJ_tNYfjkd0rC_kG0sf5fIunqy2s3sWk';
+const ADMIN_EMAIL='contato@marcenario.com.br';
+const ETAPAS=['Briefing / Envio de planta','Elaboração do projeto','Apresentação do projeto','Orçamento','Negociação e fechamento','Conferência de medidas','Elaboração do projeto executivo','Apresentação do projeto executivo','Produção','Entrega','Montagem'];
+const {createClient}=supabase;
+const db=createClient(SUPABASE_URL,SUPABASE_ANON);
+let currentUser=null,userNivel='cliente',rdKey=localStorage.getItem('mr_rd_key')||'',ambsMt=[];
 
-const ETAPAS = [
-  'Briefing / Envio de planta',
-  'Elaboração do projeto',
-  'Apresentação do projeto',
-  'Orçamento',
-  'Negociação e fechamento',
-  'Conferência de medidas',
-  'Elaboração do projeto executivo',
-  'Apresentação do projeto executivo',
-  'Produção',
-  'Entrega',
-  'Montagem'
-];
+function notify(msg,type='success'){const n=document.getElementById('notif');n.textContent=msg;n.style.background=type==='error'?'#8a1a1a':type==='info'?'#1a4a8a':'#1a1a2e';n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3000)}
+function setAlert(id,msg,type='info'){const el=document.getElementById(id);if(el)el.innerHTML=msg?`<div class="alert alert-${type}">${msg}</div>`:''}
+function fmt(v){return'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function parseMoney(s){return parseFloat(String(s).replace(/[^\d,\.]/g,'').replace(',','.'))||0}
 
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON);
-
-let currentUser = null;
-let isAdmin = false;
-let rdKey = localStorage.getItem('mr_rd_key') || '';
-
-function showFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  document.getElementById('upload-label').style.display = 'none';
-  const preview = document.getElementById('file-preview');
-  preview.style.display = 'flex';
-  document.getElementById('file-name').textContent = file.name;
-  document.getElementById('file-size').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+function switchAuthTab(tab){
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='signup')));
+  document.getElementById('login-form').style.display=tab==='login'?'block':'none';
+  document.getElementById('signup-form').style.display=tab==='signup'?'block':'none';
 }
 
-function removeFile() {
-  document.getElementById('orc-arquivo').value = '';
-  document.getElementById('upload-label').style.display = 'block';
-  document.getElementById('file-preview').style.display = 'none';
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const btn=document.getElementById('btn-login');
+  const msg=document.getElementById('login-msg');
+  if(!email||!pass){msg.textContent='Preencha e-mail e senha.';msg.className='auth-msg error';return}
+  btn.disabled=true;btn.textContent='Entrando...';
+  const {data,error}=await db.auth.signInWithPassword({email,password:pass});
+  btn.disabled=false;btn.textContent='Entrar';
+  if(error){msg.textContent='E-mail ou senha incorretos.';msg.className='auth-msg error';return}
+  await onLogin(data.user);
 }
 
-function handleDrop(event) {
+async function doSignup(){
+  const nome=document.getElementById('signup-nome').value.trim();
+  const email=document.getElementById('signup-email').value.trim();
+  const tel=document.getElementById('signup-tel').value.trim();
+  const pass=document.getElementById('signup-pass').value;
+  const btn=document.getElementById('btn-signup');
+  const msg=document.getElementById('signup-msg');
+  if(!nome||!email||!pass){msg.textContent='Preencha todos os campos.';msg.className='auth-msg error';return}
+  if(pass.length<6){msg.textContent='Senha mínimo 6 caracteres.';msg.className='auth-msg error';return}
+  btn.disabled=true;btn.textContent='Criando...';
+  const {data,error}=await db.auth.signUp({email,password:pass,options:{data:{nome,telefone:tel}}});
+  btn.disabled=false;btn.textContent='Criar conta';
+  if(error){msg.textContent=error.message;msg.className='auth-msg error';return}
+  msg.textContent='Conta criada! Verifique seu e-mail.';msg.className='auth-msg success';
+}
+
+async function doLogout(){
+  await db.auth.signOut();
+  currentUser=null;userNivel='cliente';
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app-screen').style.display='none';
+}
+
+async function onLogin(user){
+  currentUser=user;
+  userNivel=user.email===ADMIN_EMAIL?'admin':'cliente';
+  try{
+    const {data:p}=await db.from('perfis').select('nivel').eq('id',user.id).single();
+    if(p&&p.nivel&&user.email!==ADMIN_EMAIL)userNivel=p.nivel;
+  }catch(e){}
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('topbar-email').textContent=user.email;
+  const nivelLabel=userNivel==='admin'?'Admin':userNivel==='funcionario'?'Funcionário':'Cliente';
+  const nivelClass=userNivel==='admin'?'nivel-admin':userNivel==='funcionario'?'nivel-funcionario':'nivel-cliente';
+  document.getElementById('topbar-nivel').textContent=nivelLabel;
+  document.getElementById('topbar-nivel').className='topbar-nivel '+nivelClass;
+  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  document.getElementById('nav-solicitar').style.display=isStaff?'none':'block';
+  document.getElementById('nav-projetos').textContent=isStaff?'Projetos':'Meus projetos';
+  document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
+  document.getElementById('nav-admin').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('nav-usuarios').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('mt-nav-equipes').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('mt-nav-relatorio').style.display=userNivel==='admin'?'block':'none';
+  if(rdKey)showRDConnected();
+  document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
+  if(isStaff){showSection('montagem',document.getElementById('nav-montagem'))}
+  else{showSection('solicitar',document.getElementById('nav-solicitar'));prefillOrcamento()}
+}
+
+function prefillOrcamento(){
+  if(!currentUser)return;
+  const meta=currentUser.user_metadata||{};
+  if(meta.nome)document.getElementById('orc-nome').value=meta.nome;
+  if(meta.telefone)document.getElementById('orc-tel').value=meta.telefone;
+}
+
+function showSection(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-bar>.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='projetos')loadProjetos();
+  if(id==='admin')loadAdmin();
+  if(id==='montagem')loadFilaMt();
+  if(id==='usuarios')loadUsuarios();
+}
+
+function showSubMontagem(id,btn){
+  ['mt-fila','mt-novo','mt-equipes','mt-relatorio'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none'});
+  document.querySelectorAll('.sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.style.display='block';
+  if(btn)btn.classList.add('active');
+  if(id==='mt-fila')loadFilaMt();
+  if(id==='mt-equipes')loadEquipes();
+  if(id==='mt-relatorio')loadRelatorio();
+}
+
+function showFile(input){
+  const file=input.files[0];if(!file)return;
+  document.getElementById('upload-label').style.display='none';
+  document.getElementById('file-preview').style.display='flex';
+  document.getElementById('file-name').textContent=file.name;
+  document.getElementById('file-size').textContent=(file.size/1024/1024).toFixed(2)+' MB';
+}
+function removeFile(){
+  document.getElementById('orc-arquivo').value='';
+  document.getElementById('upload-label').style.display='block';
+  document.getElementById('file-preview').style.display='none';
+}
+function handleDrop(event){
   event.preventDefault();
-  document.getElementById('upload-area').style.borderColor = 'var(--border2)';
-  const file = event.dataTransfer.files[0];
-  if (!file) return;
-  const input = document.getElementById('orc-arquivo');
-  const dt = new DataTransfer();
-  dt.items.add(file);
-  input.files = dt.files;
-  showFile(input);
+  document.getElementById('upload-area').style.borderColor='var(--border2)';
+  const file=event.dataTransfer.files[0];if(!file)return;
+  const input=document.getElementById('orc-arquivo');
+  const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;showFile(input);
 }
-
-async function uploadArquivo(projetoId) {
-  const input = document.getElementById('orc-arquivo');
-  if (!input.files || !input.files[0]) return null;
-  const file = input.files[0];
-  const ext = file.name.split('.').pop();
-  const path = `plantas/${projetoId}.${ext}`;
-  const { data, error } = await db.storage.from('plantas').upload(path, file, { upsert: true });
-  if (error) { console.warn('Upload:', error); return null; }
-  const { data: urlData } = db.storage.from('plantas').getPublicUrl(path);
+async function uploadArquivo(projetoId){
+  const input=document.getElementById('orc-arquivo');
+  if(!input.files||!input.files[0])return null;
+  const file=input.files[0];
+  const ext=file.name.split('.').pop();
+  const path=`plantas/${projetoId}.${ext}`;
+  const {error}=await db.storage.from('plantas').upload(path,file,{upsert:true});
+  if(error){console.warn('Upload:',error);return null}
+  const {data:urlData}=db.storage.from('plantas').getPublicUrl(path);
   return urlData.publicUrl;
 }
 
-function notify(msg, type='success') {
-  const n = document.getElementById('notif');
-  n.textContent = msg;
-  n.style.background = type === 'error' ? '#8a1a1a' : type === 'info' ? '#1a4a8a' : '#1a1a2e';
-  n.classList.add('show');
-  setTimeout(() => n.classList.remove('show'), 3000);
+async function enviarOrcamento(){
+  const nome=document.getElementById('orc-nome').value.trim();
+  const tel=document.getElementById('orc-tel').value.trim();
+  const ambiente=document.getElementById('orc-ambiente').value;
+  const investimento=document.getElementById('orc-prazo').value;
+  const desc=document.getElementById('orc-desc').value.trim();
+  if(!nome||!ambiente){setAlert('orc-alert','Preencha nome e ambiente.','error');return}
+  const btn=document.getElementById('btn-orc');btn.disabled=true;btn.textContent='Enviando...';
+  setAlert('orc-alert','','');
+  const {data:proj,error}=await db.from('projetos').insert({titulo:ambiente+(desc?' — '+desc.substring(0,40):''),ambiente,descricao:desc,prazo_desejado:investimento,etapa_atual:1,cliente_email:currentUser.email,cliente_nome:nome,cliente_tel:tel,user_id:currentUser.id}).select().single();
+  btn.disabled=false;btn.textContent='Enviar solicitação';
+  if(error){setAlert('orc-alert','Erro ao enviar. Tente novamente.','error');return}
+  const arquivoUrl=await uploadArquivo(proj.id);
+  if(arquivoUrl)await db.from('projetos').update({arquivo_url:arquivoUrl}).eq('id',proj.id);
+  await enviarRD(nome,currentUser.email,tel,ambiente,desc,investimento);
+  setAlert('orc-alert','Solicitação enviada! Acompanhe em "Meus projetos".','success');
+  document.getElementById('orc-nome').value='';document.getElementById('orc-tel').value='';
+  document.getElementById('orc-ambiente').value='';document.getElementById('orc-prazo').value='';
+  document.getElementById('orc-desc').value='';removeFile();prefillOrcamento();notify('Solicitação enviada!');
 }
 
-function setAlert(id, msg, type='info') {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = msg ? `<div class="alert alert-${type}">${msg}</div>` : '';
+async function loadProjetos(){
+  const cont=document.getElementById('projetos-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  const query=isStaff?db.from('projetos').select('*').order('created_at',{ascending:false}):db.from('projetos').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  const {data,error}=await query;
+  if(error||!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum projeto encontrado.</p></div>';return}
+  cont.innerHTML=data.map(p=>renderProjeto(p)).join('');
 }
 
-function switchAuthTab(tab) {
-  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='signup')));
-  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
-  document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
-}
-
-async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  const btn = document.getElementById('btn-login');
-  const msg = document.getElementById('login-msg');
-  if (!email || !pass) { msg.textContent = 'Preencha e-mail e senha.'; msg.className = 'auth-msg error'; return; }
-  btn.disabled = true; btn.textContent = 'Entrando...';
-  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
-  btn.disabled = false; btn.textContent = 'Entrar';
-  if (error) { msg.textContent = 'E-mail ou senha incorretos.'; msg.className = 'auth-msg error'; return; }
-  msg.textContent = '';
-  onLogin(data.user);
-}
-
-async function doSignup() {
-  const nome = document.getElementById('signup-nome').value.trim();
-  const email = document.getElementById('signup-email').value.trim();
-  const tel = document.getElementById('signup-tel').value.trim();
-  const pass = document.getElementById('signup-pass').value;
-  const btn = document.getElementById('btn-signup');
-  const msg = document.getElementById('signup-msg');
-  if (!nome || !email || !pass) { msg.textContent = 'Preencha todos os campos obrigatórios.'; msg.className = 'auth-msg error'; return; }
-  if (pass.length < 6) { msg.textContent = 'A senha deve ter pelo menos 6 caracteres.'; msg.className = 'auth-msg error'; return; }
-  btn.disabled = true; btn.textContent = 'Criando conta...';
-  const { data, error } = await db.auth.signUp({ email, password: pass, options: { data: { nome, telefone: tel } } });
-  btn.disabled = false; btn.textContent = 'Criar conta';
-  if (error) { msg.textContent = error.message; msg.className = 'auth-msg error'; return; }
-  msg.textContent = 'Conta criada! Verifique seu e-mail para confirmar.';
-  msg.className = 'auth-msg success';
-}
-
-async function doLogout() {
-  await db.auth.signOut();
-  currentUser = null; isAdmin = false;
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('app-screen').style.display = 'none';
-}
-
-function onLogin(user) {
-  currentUser = user;
-  isAdmin = user.email === ADMIN_EMAIL;
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
-  document.getElementById('topbar-email').textContent = user.email;
-  document.getElementById('nav-admin').style.display = isAdmin ? 'block' : 'none';
-  if (rdKey) showRDConnected();
-  showSection('solicitar', document.querySelector('.nav-item'));
-  prefillOrcamento();
-}
-
-function prefillOrcamento() {
-  if (!currentUser) return;
-  const meta = currentUser.user_metadata || {};
-  if (meta.nome) document.getElementById('orc-nome').value = meta.nome;
-  if (meta.telefone) document.getElementById('orc-tel').value = meta.telefone;
-}
-
-function showSection(id, btn) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  if (btn) btn.classList.add('active');
-  if (id === 'projetos') loadMeusProjetos();
-  if (id === 'admin') loadAdmin();
-}
-
-async function enviarOrcamento() {
-  const nome = document.getElementById('orc-nome').value.trim();
-  const tel = document.getElementById('orc-tel').value.trim();
-  const ambiente = document.getElementById('orc-ambiente').value;
-  const investimento = document.getElementById('orc-prazo').value;
-  const desc = document.getElementById('orc-desc').value.trim();
-  if (!nome || !ambiente) { setAlert('orc-alert', 'Preencha pelo menos o nome e o tipo de ambiente.', 'error'); return; }
-  const btn = document.getElementById('btn-orc');
-  btn.disabled = true; btn.textContent = 'Enviando...';
-  setAlert('orc-alert', '', '');
-  const { data: proj, error } = await db.from('projetos').insert({
-    titulo: ambiente + (desc ? ' — ' + desc.substring(0, 40) : ''),
-    ambiente,
-    descricao: desc,
-    prazo_desejado: investimento,
-    etapa_atual: 1,
-    cliente_email: currentUser.email,
-    cliente_nome: nome,
-    cliente_tel: tel,
-    user_id: currentUser.id
-  }).select().single();
-  btn.disabled = false; btn.textContent = 'Enviar solicitação';
-  if (error) { setAlert('orc-alert', 'Erro ao enviar. Tente novamente.', 'error'); return; }
-  const arquivoUrl = await uploadArquivo(proj.id);
-  if (arquivoUrl) {
-    await db.from('projetos').update({ arquivo_url: arquivoUrl }).eq('id', proj.id);
-  }
-  await enviarRDStation(nome, currentUser.email, tel, ambiente, desc, investimento);
-  setAlert('orc-alert', 'Solicitação enviada com sucesso! Acompanhe o andamento em "Meus projetos".', 'success');
-  document.getElementById('orc-nome').value = '';
-  document.getElementById('orc-tel').value = '';
-  document.getElementById('orc-ambiente').value = '';
-  document.getElementById('orc-prazo').value = '';
-  document.getElementById('orc-desc').value = '';
-  removeFile();
-  prefillOrcamento();
-  notify('Solicitação enviada!');
-}
-
-async function loadMeusProjetos() {
-  const cont = document.getElementById('projetos-content');
-  cont.innerHTML = '<div class="loader">Carregando projetos...</div>';
-  const query = isAdmin
-    ? db.from('projetos').select('*').order('created_at', { ascending: false })
-    : db.from('projetos').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-  const { data, error } = await query;
-  if (error || !data || data.length === 0) {
-    cont.innerHTML = '<div class="empty-state"><p>Nenhum projeto encontrado.</p><p style="margin-top:4px;font-size:13px;">Solicite seu primeiro orçamento na aba ao lado.</p></div>';
-    return;
-  }
-  cont.innerHTML = data.map(p => renderProjeto(p)).join('');
-}
-
-function renderProjeto(p) {
-  const etapaIdx = (p.etapa_atual || 1) - 1;
-  const pct = Math.round(((p.etapa_atual || 1) / 11) * 100);
-  const concluido = p.etapa_atual >= 11;
-  const badgeClass = concluido ? 'badge-green' : p.etapa_atual >= 5 ? 'badge-amber' : 'badge-blue';
-  const badgeText = concluido ? 'Concluído' : 'Em andamento';
-  const tl = ETAPAS.map((nome, i) => {
-    const st = i < etapaIdx ? 'done' : i === etapaIdx ? 'active' : 'pending';
-    const statusLabel = st === 'done' ? 'Concluído' : st === 'active' ? 'Em andamento' : 'Aguardando';
-    const isLast = i === ETAPAS.length - 1;
-    return `<div class="tl-item"><div class="tl-left"><div class="tl-dot ${st}">${i+1}</div>${!isLast ? '<div class="tl-line"></div>' : ''}</div><div class="tl-content"><div class="tl-name ${st}">${nome}</div><div class="tl-status ${st}">${statusLabel}</div></div></div>`;
+function renderProjeto(p){
+  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  const etapaIdx=(p.etapa_atual||1)-1;
+  const pct=Math.round(((p.etapa_atual||1)/11)*100);
+  const concluido=p.etapa_atual>=11;
+  const badgeClass=concluido?'badge-green':p.etapa_atual>=5?'badge-amber':'badge-blue';
+  const badgeText=concluido?'Concluído':'Em andamento';
+  const tl=ETAPAS.map((nome,i)=>{
+    const st=i<etapaIdx?'done':i===etapaIdx?'active':'pending';
+    const sl=st==='done'?'Concluído':st==='active'?'Em andamento':'Aguardando';
+    const isLast=i===ETAPAS.length-1;
+    return `<div class="tl-item"><div class="tl-left"><div class="tl-dot ${st}">${i+1}</div>${!isLast?'<div class="tl-line"></div>':''}</div><div class="tl-content"><div class="tl-name ${st}">${nome}</div><div class="tl-status ${st}">${sl}</div></div></div>`;
   }).join('');
-  const adminControls = isAdmin ? `
-    <div class="step-control">
-      <button class="btn-step-back" onclick="avancarEtapa('${p.id}', ${(p.etapa_atual||1)-1})" ${(p.etapa_atual||1) <= 1 ? 'disabled' : ''}>← Voltar etapa</button>
-      <button class="btn-step" onclick="avancarEtapa('${p.id}', ${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1) >= 11 ? 'disabled' : ''}>Avançar etapa →</button>
-      ${p.arquivo_url ? `<a href="${p.arquivo_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);color:#7a5c2a;border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;text-decoration:none;font-family:var(--font-sans);">&#128206; Ver planta</a>` : '<span style="font-size:12px;color:var(--text3);">Sem planta anexada</span>'}
-    </div>` : '<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe abaixo o andamento do seu projeto.</div>';
-  const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
-  return `<div class="card" id="proj-${p.id}">
-    <div class="card-header">
-      <div><div class="card-title">${p.titulo || p.ambiente}</div><div class="card-sub">${p.cliente_nome || ''} · Solicitado em ${dataStr}</div></div>
-      <span class="badge ${badgeClass}">${badgeText}</span>
-    </div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Etapa atual: <strong style="color:var(--text)">${ETAPAS[etapaIdx]}</strong></div>
+  const staffCtrl=isStaff?`<div class="step-control">
+    <button class="btn-step-back" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)-1})" ${(p.etapa_atual||1)<=1?'disabled':''}>← Voltar</button>
+    <button class="btn-step" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1)>=11?'disabled':''}>Avançar →</button>
+    ${p.arquivo_url?`<a href="${p.arquivo_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);color:#7a5c2a;border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;text-decoration:none;font-family:'DM Sans',sans-serif;">📄 Ver planta</a>`:'<span style="font-size:12px;color:var(--text3);">Sem planta</span>'}
+  </div>`:'<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe o andamento do seu projeto.</div>';
+  const dataStr=new Date(p.created_at).toLocaleDateString('pt-BR');
+  return `<div class="card"><div class="card-header"><div><div class="card-title">${p.titulo||p.ambiente}</div><div class="card-sub">${p.cliente_nome||''} · ${dataStr}</div></div><span class="badge ${badgeClass}">${badgeText}</span></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Etapa: <strong style="color:var(--text)">${ETAPAS[etapaIdx]}</strong></div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:1rem">${p.etapa_atual || 1} de 11 etapas · ${pct}% concluído</div>
-    ${adminControls}
-    <div style="margin-top:${isAdmin?'16px':'0'};border-top:1px solid var(--border);padding-top:14px">
-      <div class="timeline">${tl}</div>
-    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:1rem">${p.etapa_atual||1} de 11 · ${pct}%</div>
+    ${staffCtrl}
+    <div style="margin-top:${isStaff?'16px':'0'};border-top:1px solid var(--border);padding-top:14px">${tl}</div>
   </div>`;
 }
 
-async function avancarEtapa(id, novaEtapa) {
-  if (novaEtapa < 1 || novaEtapa > 11) return;
-  const { error } = await db.from('projetos').update({ etapa_atual: novaEtapa }).eq('id', id);
-  if (error) { notify('Erro ao atualizar etapa.', 'error'); return; }
-  notify(`Etapa atualizada: ${ETAPAS[novaEtapa-1]}`);
-  const sec = document.getElementById('admin').classList.contains('active') ? 'admin' : 'projetos';
-  if (sec === 'admin') loadAdmin(); else loadMeusProjetos();
+async function avancarEtapa(id,novaEtapa){
+  if(novaEtapa<1||novaEtapa>11)return;
+  const {error}=await db.from('projetos').update({etapa_atual:novaEtapa}).eq('id',id);
+  if(error){notify('Erro ao atualizar.','error');return}
+  notify(`Etapa: ${ETAPAS[novaEtapa-1]}`);loadProjetos();
 }
 
-async function loadAdmin() {
-  const { data, error } = await db.from('projetos').select('*').order('created_at', { ascending: false });
-  if (error || !data) return;
-  const ativos = data.filter(p => p.etapa_atual < 11 && p.etapa_atual > 1).length;
-  const pendentes = data.filter(p => p.etapa_atual === 1).length;
-  const concluidos = data.filter(p => p.etapa_atual >= 11).length;
-  document.getElementById('stat-ativos').textContent = ativos;
-  document.getElementById('stat-pendentes').textContent = pendentes;
-  document.getElementById('stat-concluidos').textContent = concluidos;
-  const cont = document.getElementById('admin-projetos');
-  if (!data.length) { cont.innerHTML = '<div class="empty-state"><p>Nenhum projeto ainda.</p></div>'; return; }
-  cont.innerHTML = data.map(p => {
-    const etapaIdx = (p.etapa_atual || 1) - 1;
-    const pct = Math.round(((p.etapa_atual || 1) / 11) * 100);
-    const concluido = p.etapa_atual >= 11;
-    const badgeClass = concluido ? 'badge-green' : p.etapa_atual === 1 ? 'badge-accent' : 'badge-blue';
-    const badgeText = concluido ? 'Concluído' : p.etapa_atual === 1 ? 'Novo' : 'Em andamento';
-    const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
-    return `<div class="proj-row" onclick="abrirProjetoAdmin('${p.id}')">
-      <div>
-        <div class="proj-name">${p.cliente_nome || p.cliente_email} — ${p.ambiente || p.titulo}</div>
-        <div class="proj-meta">${ETAPAS[etapaIdx]} · ${dataStr}</div>
-        <div class="progress-bar" style="max-width:200px;margin-top:6px"><div class="progress-fill" style="width:${pct}%"></div></div>
-      </div>
+async function loadAdmin(){
+  const {data}=await db.from('projetos').select('*').order('created_at',{ascending:false});
+  if(!data)return;
+  document.getElementById('stat-ativos').textContent=data.filter(p=>p.etapa_atual<11&&p.etapa_atual>1).length;
+  document.getElementById('stat-pendentes').textContent=data.filter(p=>p.etapa_atual===1).length;
+  document.getElementById('stat-concluidos').textContent=data.filter(p=>p.etapa_atual>=11).length;
+  const cont=document.getElementById('admin-projetos');
+  if(!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum projeto.</p></div>';return}
+  cont.innerHTML=data.map(p=>{
+    const etapaIdx=(p.etapa_atual||1)-1;
+    const pct=Math.round(((p.etapa_atual||1)/11)*100);
+    const badgeClass=p.etapa_atual>=11?'badge-green':p.etapa_atual===1?'badge-accent':'badge-blue';
+    const badgeText=p.etapa_atual>=11?'Concluído':p.etapa_atual===1?'Novo':'Em andamento';
+    const dataStr=new Date(p.created_at).toLocaleDateString('pt-BR');
+    return `<div class="proj-row" onclick="showSection('projetos',document.getElementById('nav-projetos'))">
+      <div><div class="proj-name">${p.cliente_nome||p.cliente_email} — ${p.ambiente||p.titulo}</div><div class="proj-meta">${ETAPAS[etapaIdx]} · ${dataStr}</div><div class="progress-bar" style="max-width:200px;margin-top:6px"><div class="progress-fill" style="width:${pct}%"></div></div></div>
       <span class="badge ${badgeClass}">${badgeText}</span>
     </div>`;
   }).join('');
 }
 
-function abrirProjetoAdmin(id) {
-  showSection('projetos', document.querySelectorAll('.nav-item')[1]);
-  loadMeusProjetos();
+function saveRDKey(){
+  const key=document.getElementById('rd-key-input').value.trim();
+  if(!key||key.length<8){document.getElementById('rd-status-msg').textContent='Token inválido.';return}
+  rdKey=key;localStorage.setItem('mr_rd_key',key);showRDConnected();notify('RD Station conectado!');
+}
+function showRDConnected(){
+  const b=document.getElementById('rd-banner');b.classList.add('connected');
+  b.querySelector('.rd-banner-title').textContent='RD Station conectado';
+  b.querySelector('.rd-banner-sub').textContent='Novos orçamentos sincronizados automaticamente.';
+  const r=b.querySelector('.rd-row');if(r)r.style.display='none';
+}
+async function enviarRD(nome,email,telefone,ambiente,descricao,investimento){
+  try{await fetch('https://api.rd.services/platform/conversions?api_key=4e0542b477a910cc438dcad16032df37',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'CONVERSION',event_family:'CDP',payload:{conversion_identifier:'Solicitação de Orçamento - Marcena Rio',name:nome,email,mobile_phone:telefone,cf_pra_qual_ambiente_deseja_um_orcamento:ambiente,cf_valor_de_investimento_previsto:investimento,cf_descricao_do_projeto:descricao}})})}catch(e){console.warn('RD:',e)}
 }
 
-function saveRDKey() {
-  const key = document.getElementById('rd-key-input').value.trim();
-  const msg = document.getElementById('rd-status-msg');
-  if (!key || key.length < 8) { msg.textContent = 'Token inválido.'; msg.style.color = 'var(--red)'; return; }
-  rdKey = key;
-  localStorage.setItem('mr_rd_key', key);
-  showRDConnected();
-  notify('RD Station conectado!');
+/* MONTAGEM */
+function addAmbMt(){
+  const nome=document.getElementById('mt-amb-nome').value.trim();
+  const valor=parseMoney(document.getElementById('mt-amb-valor').value);
+  if(!nome||!valor){notify('Preencha nome e valor.','error');return}
+  ambsMt.push({nome,valor});
+  document.getElementById('mt-amb-nome').value='';document.getElementById('mt-amb-valor').value='';
+  renderAmbsMt();
+}
+function removeAmbMt(i){ambsMt.splice(i,1);renderAmbsMt()}
+function renderAmbsMt(){
+  const total=ambsMt.reduce((s,a)=>s+a.valor,0);
+  document.getElementById('mt-total').textContent=fmt(total);
+  document.getElementById('mt-amb-list').innerHTML=ambsMt.map((a,i)=>`<div class="amb-list-item"><span>${a.nome}</span><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:500;">${fmt(a.valor)}</span><button class="btn-red-sm" onclick="removeAmbMt(${i})">✕</button></div></div>`).join('');
 }
 
-function showRDConnected() {
-  const banner = document.getElementById('rd-banner');
-  banner.classList.add('connected');
-  banner.querySelector('.rd-banner-title').textContent = 'RD Station conectado';
-  banner.querySelector('.rd-banner-sub').textContent = 'Novos orçamentos serão enviados automaticamente como leads.';
-  const row = banner.querySelector('.rd-row');
-  if (row) row.style.display = 'none';
+async function distribuirEquipe(valorTotal){
+  const {data:eqs}=await db.from('equipes_montagem').select('*').order('produtividade_atual',{ascending:false});
+  if(!eqs||!eqs.length)return null;
+  const {data:ativos}=await db.from('pedidos_montagem').select('*').eq('status','em_montagem');
+  const carga={};eqs.forEach(e=>carga[e.id]=0);
+  if(ativos)ativos.forEach(p=>{if(carga[p.equipe_id]!==undefined)carga[p.equipe_id]+=p.valor_total});
+  const sorted=[...eqs].sort((a,b)=>(carga[a.id]/a.produtividade_atual)-(carga[b.id]/b.produtividade_atual));
+  return valorTotal>=eqs[0].produtividade_atual*2?eqs[0]:sorted[0];
 }
 
-async function enviarRDStation(nome, email, telefone, ambiente, descricao, investimento) {
-  try {
-    await fetch('https://api.rd.services/platform/conversions?api_key=4e0542b477a910cc438dcad16032df37', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_type: 'CONVERSION',
-        event_family: 'CDP',
-        payload: {
-          conversion_identifier: 'Solicitação de Orçamento - Marcena Rio',
-          name: nome,
-          email: email,
-          mobile_phone: telefone,
-          cf_pra_qual_ambiente_deseja_um_orcamento: ambiente,
-          cf_valor_de_investimento_previsto: investimento,
-          cf_descricao_do_projeto: descricao
-        }
-      })
-    });
-  } catch(e) { console.warn('RD Station:', e); }
+async function salvarPedidoMt(){
+  const cliente=document.getElementById('mt-cliente').value.trim();
+  const data=document.getElementById('mt-data').value;
+  const nf=document.getElementById('mt-nf').value.trim();
+  if(!cliente){setAlert('mt-novo-alert','Preencha o nome do cliente.','error');return}
+  if(!ambsMt.length){setAlert('mt-novo-alert','Adicione pelo menos um ambiente.','error');return}
+  const valorTotal=ambsMt.reduce((s,a)=>s+a.valor,0);
+  if(!valorTotal){setAlert('mt-novo-alert','O valor total não pode ser zero.','error');return}
+  const btn=document.getElementById('btn-mt-novo');btn.disabled=true;btn.textContent='Salvando...';
+  const equipe=await distribuirEquipe(valorTotal);
+  if(!equipe){setAlert('mt-novo-alert','Cadastre pelo menos uma equipe antes.','error');btn.disabled=false;btn.textContent='Registrar e distribuir para equipe';return}
+  const {error}=await db.from('pedidos_montagem').insert({cliente_nome:cliente,data_chegada:data,notas_fiscais:nf,valor_total:valorTotal,ambientes:JSON.stringify(ambsMt),equipe_id:equipe.id,equipe_nome:equipe.nome,status:'em_montagem'});
+  btn.disabled=false;btn.textContent='Registrar e distribuir para equipe';
+  if(error){setAlert('mt-novo-alert','Erro ao salvar.','error');return}
+  setAlert('mt-novo-alert',`Distribuído para ${equipe.nome}!`,'success');
+  ambsMt=[];renderAmbsMt();
+  document.getElementById('mt-cliente').value='';document.getElementById('mt-nf').value='';
+  document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
+  notify(`Distribuído para ${equipe.nome}!`);
 }
 
-db.auth.onAuthStateChange((event, session) => {
-  if (session && session.user) onLogin(session.user);
-});
-
-db.auth.getSession().then(({ data }) => {
-  if (data.session) onLogin(data.session.user);
-});
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js');
+async function loadFilaMt(){
+  const cont=document.getElementById('mt-fila-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const {data}=await db.from('pedidos_montagem').select('*').order('created_at',{ascending:true});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum pedido na fila.</p></div>';
+    ['mt-st-ag','mt-st-em','mt-st-co','mt-st-vl'].forEach(id=>document.getElementById(id).textContent='0');return}
+  document.getElementById('mt-st-ag').textContent=data.filter(p=>p.status==='aguardando').length;
+  document.getElementById('mt-st-em').textContent=data.filter(p=>p.status==='em_montagem').length;
+  document.getElementById('mt-st-co').textContent=data.filter(p=>p.status==='concluido').length;
+  document.getElementById('mt-st-vl').textContent=fmt(data.filter(p=>p.status!=='concluido').reduce((s,p)=>s+p.valor_total,0));
+  const ativos=data.filter(p=>p.status!=='concluido');
+  const concl=data.filter(p=>p.status==='concluido');
+  let html='';
+  if(ativos.length)html+=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Em andamento (${ativos.length})</div>`+ativos.map(p=>renderPedidoMt(p)).join('');
+  if(concl.length)html+=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin:16px 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Concluídos (${concl.length})</div>`+concl.map(p=>renderPedidoMt(p)).join('');
+  cont.innerHTML=html;
 }
+
+function renderPedidoMt(p){
+  const ambs=typeof p.ambientes==='string'?JSON.parse(p.ambientes):p.ambientes||[];
+  const badgeClass=p.status==='concluido'?'badge-green':p.status==='em_montagem'?'badge-blue':'badge-amber';
+  const badgeText=p.status==='concluido'?'Concluído':p.status==='em_montagem'?'Em montagem':'Aguardando';
+  const dataStr=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  const dataConcl=p.data_conclusao?new Date(p.data_conclusao).toLocaleDateString('pt-BR'):null;
+  const btnC=p.status!=='concluido'?`<button class="btn-green" onclick="concluirPedidoMt('${p.id}')">✓ Concluir</button>`:`<span style="font-size:12px;color:var(--green);">Concluído em ${dataConcl}</span>`;
+  const btnE=p.status!=='concluido'?`<button style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;" onclick="excluirPedidoMt('${p.id}')">Excluir</button>`:'';
+  return `<div class="pedido-item">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div><div style="font-size:14px;font-weight:500;">${p.cliente_nome}</div><div style="font-size:12px;color:var(--text2);">Chegada: ${dataStr} · NF: ${p.notas_fiscais||'—'} · <strong>${p.equipe_nome||'—'}</strong></div></div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:15px;font-weight:500;color:var(--accent);">${fmt(p.valor_total)}</span><span class="badge ${badgeClass}">${badgeText}</span></div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:8px;">${ambs.map(a=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border);"><span style="color:var(--text2)">${a.nome}</span><span style="font-weight:500;">${fmt(a.valor)}</span></div>`).join('')}</div>
+    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">${btnC}${btnE}</div>
+  </div>`;
+}
+
+async function concluirPedidoMt(id){
+  const {data:p}=await db.from('pedidos_montagem').select('*').eq('id',id).single();
+  if(!p)return;
+  const chegada=new Date(p.data_chegada+'T12:00:00');
+  const conclusao=new Date();
+  const dias=Math.max(1,Math.round((conclusao-chegada)/(1000*60*60*24)));
+  await db.from('pedidos_montagem').update({status:'concluido',data_conclusao:conclusao.toISOString(),dias_montagem:dias,prod_dia_real:p.valor_total/dias}).eq('id',id);
+  await atualizarMediaEquipe(p.equipe_id);
+  notify('Montagem concluída!');loadFilaMt();
+}
+
+async function atualizarMediaEquipe(equipeId){
+  const tresMeses=new Date();tresMeses.setMonth(tresMeses.getMonth()-3);
+  const {data:pedidos}=await db.from('pedidos_montagem').select('prod_dia_real').eq('equipe_id',equipeId).eq('status','concluido').gte('data_conclusao',tresMeses.toISOString());
+  if(!pedidos||pedidos.length<2)return;
+  const media=pedidos.reduce((s,p)=>s+(p.prod_dia_real||0),0)/pedidos.length;
+  await db.from('equipes_montagem').update({produtividade_atual:Math.round(media),ultima_atualizacao:new Date().toISOString()}).eq('id',equipeId);
+}
+
+async function excluirPedidoMt(id){
+  if(!confirm('Excluir este pedido?'))return;
+  await db.from('pedidos_montagem').delete().eq('id',id);
+  notify('Pedido excluído.');loadFilaMt();
+}
+
+async function salvarEquipe(){
+  const nome=document.getElementById('mt-eq-nome').value.trim();
+  const prod=parseFloat(document.getElementById('mt-eq-prod').value)||0;
+  if(!nome||!prod){notify('Preencha nome e produtividade.','error');return}
+  const {error}=await db.from('equipes_montagem').insert({nome,produtividade_base:prod,produtividade_atual:prod});
+  if(error){notify('Erro ao salvar equipe.','error');return}
+  document.getElementById('mt-eq-nome').value='';document.getElementById('mt-eq-prod').value='';
+  notify('Equipe cadastrada!');loadEquipes();
+}
+
+async function loadEquipes(){
+  const cont=document.getElementById('mt-equipes-content');
+  const {data}=await db.from('equipes_montagem').select('*').order('produtividade_atual',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma equipe cadastrada.</p></div>';return}
+  const maxProd=Math.max(...data.map(e=>e.produtividade_atual));
+  cont.innerHTML=`<div class="team-grid">${data.map(e=>{
+    const pct=Math.round((e.produtividade_atual/maxProd)*100);
+    const ultima=e.ultima_atualizacao?new Date(e.ultima_atualizacao).toLocaleDateString('pt-BR'):'Não atualizada';
+    return `<div class="team-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div style="font-size:15px;font-weight:500;">${e.nome}</div>
+        <button style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;" onclick="excluirEquipe('${e.id}')">Excluir</button>
+      </div>
+      <div style="font-size:13px;color:var(--text2);">Produtividade: <strong>${fmt(e.produtividade_atual)}/dia</strong></div>
+      <div style="height:4px;background:var(--bg);border-radius:2px;margin:10px 0;"><div style="height:4px;border-radius:2px;background:var(--accent);width:${pct}%"></div></div>
+      <div style="font-size:11px;color:var(--text3);">Última atualização: ${ultima}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function excluirEquipe(id){
+  if(!confirm('Excluir esta equipe?'))return;
+  await db.from('equipes_montagem').delete().eq('id',id);
+  notify('Equipe excluída.');loadEquipes();
+}
+
+async function loadRelatorio(){
+  const cont=document.getElementById('mt-rel-content');
+  const {data:eqs}=await db.from('equipes_montagem').select('*').order('produtividade_atual',{ascending:false});
+  if(!eqs||!eqs.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma equipe.</p></div>';return}
+  let html='';
+  for(const eq of eqs){
+    const {data:pedidos}=await db.from('pedidos_montagem').select('*').eq('equipe_id',eq.id).eq('status','concluido').order('data_conclusao',{ascending:false});
+    const total=pedidos?pedidos.reduce((s,p)=>s+p.valor_total,0):0;
+    const media=pedidos&&pedidos.length?pedidos.reduce((s,p)=>s+(p.prod_dia_real||0),0)/pedidos.length:0;
+    html+=`<div class="card">
+      <div class="card-header"><div class="card-title" style="margin:0">${eq.nome}</div><span class="badge badge-amber">${fmt(eq.produtividade_atual)}/dia</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:1rem;">
+        <div><div style="font-size:11px;color:var(--text2);">Total montado</div><div style="font-size:16px;font-weight:500;">${fmt(total)}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Pedidos concluídos</div><div style="font-size:16px;font-weight:500;">${pedidos?pedidos.length:0}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Média real/dia</div><div style="font-size:16px;font-weight:500;">${media?fmt(media):'—'}</div></div>
+      </div>
+      ${pedidos&&pedidos.length?pedidos.slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>${p.cliente_nome}</span><span style="font-weight:500;">${fmt(p.valor_total)}</span></div>`).join(''):'<div style="font-size:13px;color:var(--text3);">Nenhum pedido concluído ainda.</div>'}
+    </div>`;
+  }
+  cont.innerHTML=html;
+}
+
+/* USUÁRIOS */
+async function loadUsuarios(){
+  const cont=document.getElementById('usuarios-content');
+  const {data}=await db.from('perfis').select('*').order('created_at',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum usuário.</p></div>';return}
+  cont.innerHTML=data.map(u=>{
+    const lbl=u.nivel==='admin'?'Admin':u.nivel==='funcionario'?'Funcionário':'Cliente';
+    const cls=u.nivel==='admin'?'badge-accent':u.nivel==='funcionario'?'badge-purple':'badge-blue';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:500;">${u.email}</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="badge ${cls}">${lbl}</span>
+        <select onchange="alterarNivel('${u.id}',this.value)" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+          <option value="">Alterar...</option>
+          <option value="cliente">Cliente</option>
+          <option value="funcionario">Funcionário</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function alterarNivel(userId,nivel){
+  if(!nivel)return;
+  const {error}=await db.from('perfis').update({nivel}).eq('id',userId);
+  if(error){notify('Erro ao alterar.','error');return}
+  notify('Nível atualizado!');loadUsuarios();
+}
+
+db.auth.onAuthStateChange((event,session)=>{if(session&&session.user)onLogin(session.user)});
+db.auth.getSession().then(({data})=>{if(data.session)onLogin(data.session.user)});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js');
 </script>
 </body>
 </html>
