@@ -667,7 +667,7 @@ async function enviarOrcamento() {
   const nome = document.getElementById('orc-nome').value.trim();
   const tel = document.getElementById('orc-tel').value.trim();
   const ambiente = document.getElementById('orc-ambiente').value;
-  const prazo = document.getElementById('orc-prazo').value;
+  const investimento = document.getElementById('orc-prazo').value;
   const desc = document.getElementById('orc-desc').value.trim();
   if (!nome || !ambiente) { setAlert('orc-alert', 'Preencha pelo menos o nome e o tipo de ambiente.', 'error'); return; }
   const btn = document.getElementById('btn-orc');
@@ -677,7 +677,7 @@ async function enviarOrcamento() {
     titulo: ambiente + (desc ? ' — ' + desc.substring(0, 40) : ''),
     ambiente,
     descricao: desc,
-    prazo_desejado: prazo,
+    prazo_desejado: investimento,
     etapa_atual: 1,
     cliente_email: currentUser.email,
     cliente_nome: nome,
@@ -686,7 +686,7 @@ async function enviarOrcamento() {
   }).select().single();
   btn.disabled = false; btn.textContent = 'Enviar solicitação';
   if (error) { setAlert('orc-alert', 'Erro ao enviar. Tente novamente.', 'error'); return; }
-  if (rdKey) await enviarRDStation(nome, currentUser.email, tel, ambiente, desc);
+  await enviarRDStation(nome, currentUser.email, tel, ambiente, desc, investimento);
   setAlert('orc-alert', 'Solicitação enviada com sucesso! Acompanhe o andamento em "Meus projetos".', 'success');
   document.getElementById('orc-nome').value = '';
   document.getElementById('orc-tel').value = '';
@@ -806,18 +806,22 @@ function showRDConnected() {
   if (row) row.style.display = 'none';
 }
 
-async function enviarRDStation(nome, email, telefone, ambiente, descricao) {
+async function enviarRDStation(nome, email, telefone, ambiente, descricao, investimento) {
   try {
-    await fetch(`https://api.rd.services/platform/contacts`, {
+    await fetch('https://api.rd.services/platform/conversions?api_key=4e0542b477a910cc438dcad16032df37', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${rdKey}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contact: {
+        event_type: 'CONVERSION',
+        event_family: 'CDP',
+        payload: {
+          conversion_identifier: 'Solicitação de Orçamento - Marcena Rio',
           name: nome,
           email: email,
           mobile_phone: telefone,
           cf_ambiente: ambiente,
-          cf_descricao: descricao,
+          cf_faixa_de_investimento: investimento,
+          cf_descricao_do_projeto: descricao,
           tags: ['marcena-rio-app', 'orcamento-solicitado']
         }
       })
