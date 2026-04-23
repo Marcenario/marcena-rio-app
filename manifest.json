@@ -8,17 +8,7 @@
   "theme_color": "#1a1a2e",
   "orientation": "portrait",
   "icons": [
-    {
-      "src": "/logo_basic__1_.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/logo_basic__1_.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    {"src":"/logo_basic (1).png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"/logo_basic (1).png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
   ]
 }
