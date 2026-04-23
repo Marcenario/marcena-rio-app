@@ -738,7 +738,10 @@ async function enviarOrcamento() {
   }).select().single();
   btn.disabled = false; btn.textContent = 'Enviar solicitação';
   if (error) { setAlert('orc-alert', 'Erro ao enviar. Tente novamente.', 'error'); return; }
-  await uploadArquivo(proj.id);
+  const arquivoUrl = await uploadArquivo(proj.id);
+  if (arquivoUrl) {
+    await db.from('projetos').update({ arquivo_url: arquivoUrl }).eq('id', proj.id);
+  }
   await enviarRDStation(nome, currentUser.email, tel, ambiente, desc, investimento);
   setAlert('orc-alert', 'Solicitação enviada com sucesso! Acompanhe o andamento em "Meus projetos".', 'success');
   document.getElementById('orc-nome').value = '';
@@ -781,6 +784,7 @@ function renderProjeto(p) {
     <div class="step-control">
       <button class="btn-step-back" onclick="avancarEtapa('${p.id}', ${(p.etapa_atual||1)-1})" ${(p.etapa_atual||1) <= 1 ? 'disabled' : ''}>← Voltar etapa</button>
       <button class="btn-step" onclick="avancarEtapa('${p.id}', ${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1) >= 11 ? 'disabled' : ''}>Avançar etapa →</button>
+      ${p.arquivo_url ? `<a href="${p.arquivo_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);color:#7a5c2a;border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;text-decoration:none;font-family:var(--font-sans);">&#128206; Ver planta</a>` : '<span style="font-size:12px;color:var(--text3);">Sem planta anexada</span>'}
     </div>` : '<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe abaixo o andamento do seu projeto.</div>';
   const dataStr = new Date(p.created_at).toLocaleDateString('pt-BR');
   return `<div class="card" id="proj-${p.id}">
