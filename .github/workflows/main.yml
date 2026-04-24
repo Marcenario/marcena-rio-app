@@ -9,12 +9,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ftp.marcenario.com.br
+          server: 191.252.83.224
           username: marcenario2
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
