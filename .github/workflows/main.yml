@@ -18,7 +18,7 @@ jobs:
           username: marcenario2
           password: ${{ secrets.FTP_PASS }}
           local-dir: ./
-          server-dir: /
+          server-dir: /public_html/app/
           exclude: |
             **/.git*
             **/.git*/**
