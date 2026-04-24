@@ -129,6 +129,43 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .info-box{background:var(--blue-bg);border:1px solid #b5d4f4;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:1rem}
 .sub-nav{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;padding:0 0.5rem;display:flex;overflow-x:auto}
 @media(max-width:600px){.main-content{padding:1rem}.stats-grid{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.team-grid{grid-template-columns:1fr}.nav-bar{padding:0 0.5rem}.nav-item{padding:12px 10px}}
+/* ── AUTOCOMPLETE CONTRATO ── */
+.ac-wrap{position:relative;}
+.ac-wrap input{width:100%;}
+.ac-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:300;max-height:260px;overflow-y:auto;display:none;}
+.ac-dropdown.open{display:block;}
+.ac-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover,.ac-item.ac-sel{background:var(--accent-light);}
+.ac-item-ct{font-size:13px;font-weight:600;color:var(--text);}
+.ac-item-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.ac-empty{padding:12px 14px;font-size:13px;color:var(--text3);text-align:center;}
+.ct-selecionado{background:var(--green-bg);border:1px solid #a8dfc0;border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;}
+.ct-selecionado .ct-num{font-weight:600;color:var(--green);font-size:15px;}
+.ct-selecionado .ct-cli{font-size:13px;color:var(--text2);margin-top:2px;}
+.btn-trocar{background:none;border:1px solid var(--border2);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.ct-pedidos{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:1rem;}
+.ct-pedidos-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;}
+.ct-ped-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:5px 0;border-top:1px solid var(--border);font-size:12px;align-items:center;cursor:pointer;}
+.ct-ped-row:hover{background:var(--accent-light);}
+.ct-ped-row span:first-child{color:var(--blue);text-decoration:underline;text-decoration-style:dotted;}
+
+/* ── MODAL EDIÇÃO ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,26,46,0.55);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto;}
+.modal-box{background:var(--bg2);border-radius:var(--radius);width:100%;max-width:720px;box-shadow:var(--shadow-lg);margin:auto;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);}
+.modal-title{font-size:16px;font-weight:500;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);padding:0;line-height:1;}
+.modal-body{padding:1.25rem 1.5rem;max-height:70vh;overflow-y:auto;}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.audit-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.audit-item:last-child{border-bottom:none;}
+.audit-campo{font-weight:600;color:var(--text);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;}
+.audit-who{color:var(--text2);margin-top:2px;}
+.audit-diff{margin-top:4px;display:flex;gap:8px;}
+.audit-antes{background:var(--red-bg);color:var(--red);padding:3px 8px;border-radius:4px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.audit-depois{background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:4px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.oc-edit-item{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
 </style>
 </head>
 <body>
@@ -175,6 +212,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <button class="nav-item active" id="nav-solicitar" onclick="showSection('solicitar',this)">Solicitar orçamento</button>
     <button class="nav-item" id="nav-projetos" onclick="showSection('projetos',this)">Meus projetos</button>
     <button class="nav-item" id="nav-montagem" style="display:none" onclick="showSection('montagem',this)">Montagem</button>
+    <button class="nav-item" id="nav-ocorrencias" style="display:none" onclick="showSection('ocorrencias',this)">Ocorrências</button>
+    <button class="nav-item" id="nav-vistoria" style="display:none" onclick="showSection('vistoria',this)">Vistoria Final</button>
     <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin',this)">Painel admin</button>
     <button class="nav-item" id="nav-usuarios" style="display:none" onclick="showSection('usuarios',this)">Usuários</button>
   </div>
@@ -315,6 +354,293 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       </div>
     </div>
 
+    <!-- OCORRÊNCIAS -->
+    <div id="ocorrencias" class="section">
+      <div class="sub-nav">
+        <button class="nav-item active" id="oc-nav-lista" onclick="showSubOc('oc-lista',this)">Registros</button>
+        <button class="nav-item" id="oc-nav-falta" onclick="showSubOc('oc-falta',this)">+ Falta de volume</button>
+        <button class="nav-item" id="oc-nav-ocorrencia" onclick="showSubOc('oc-ocorrencia',this)">+ Ocorrência</button>
+      </div>
+
+      <!-- Lista de ocorrências -->
+      <div id="oc-lista">
+        <div id="oc-lista-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- Registrar falta de volume -->
+      <div id="oc-falta" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:0.75rem;">Registrar falta de volume</div>
+          <div class="info-box">Registre cada peça faltante identificada na conferência da mercadoria.</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Pedido de montagem</label>
+              <select id="oc-falta-pedido">
+                <option value="">Selecione o pedido...</option>
+              </select>
+            </div>
+            <div class="form-row"><label>Data</label><input type="date" id="oc-falta-data"></div>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Peças faltantes</div>
+          <div id="oc-falta-list"></div>
+          <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+            <div class="form-grid" style="margin-bottom:8px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do pedido</label><input type="text" id="oc-f-nped" placeholder="Ex: 00123" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nota fiscal</label><input type="text" id="oc-f-nf" placeholder="Ex: 9876" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do volume</label><input type="text" id="oc-f-vol" placeholder="Ex: 03" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do item</label><input type="text" id="oc-f-item" placeholder="Ex: 05" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Quantidade</label><input type="number" id="oc-f-qtd" placeholder="1" min="1" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;width:100%;" onclick="addFaltaItem()">+ Adicionar peça</button>
+          </div>
+          <div class="divider"></div>
+          <div id="oc-falta-alert"></div>
+          <button class="btn-submit" onclick="salvarFalta()" id="btn-salvar-falta">Registrar falta</button>
+        </div>
+      </div>
+
+      <!-- Registrar ocorrência -->
+      <div id="oc-ocorrencia" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:0.75rem;">Registrar ocorrência</div>
+          <div class="info-box">Registre problemas identificados durante a montagem. Fotos da etiqueta e do problema são obrigatórias.</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Pedido de montagem</label>
+              <select id="oc-oc-pedido">
+                <option value="">Selecione o pedido...</option>
+              </select>
+            </div>
+            <div class="form-row"><label>Tipo de ocorrência</label>
+              <select id="oc-oc-tipo">
+                <option value="">Selecione...</option>
+                <option value="asteca_fabrica">Asteca de fábrica</option>
+                <option value="asteca_loja">Asteca de loja</option>
+                <option value="avaria_transporte">Avaria de transporte</option>
+                <option value="avaria_montagem">Avaria de montagem</option>
+              </select>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Peças com ocorrência</div>
+          <div id="oc-oc-list"></div>
+          <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+            <div class="form-grid" style="margin-bottom:8px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do pedido</label><input type="text" id="oc-o-nped" placeholder="Ex: 00123" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nota fiscal</label><input type="text" id="oc-o-nf" placeholder="Ex: 9876" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do volume</label><input type="text" id="oc-o-vol" placeholder="Ex: 03" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do item</label><input type="text" id="oc-o-item" placeholder="Ex: 05" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Quantidade</label><input type="number" id="oc-o-qtd" placeholder="1" min="1" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;width:100%;" onclick="addOcorrenciaItem()">+ Adicionar peça</button>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Fotos obrigatórias</div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>📷 Foto da etiqueta da peça</label>
+              <input type="file" id="oc-foto-etiqueta" accept="image/*" capture="environment" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);">
+            </div>
+            <div class="form-row">
+              <label>📷 Foto do problema</label>
+              <input type="file" id="oc-foto-problema" accept="image/*" capture="environment" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);">
+            </div>
+          </div>
+          <div class="form-row">
+            <label>📷 Fotos adicionais (opcional)</label>
+            <input type="file" id="oc-fotos-extras" accept="image/*" multiple style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);">
+          </div>
+          <div id="oc-oc-alert"></div>
+          <button class="btn-submit" onclick="salvarOcorrencia()" id="btn-salvar-oc">Registrar ocorrência</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTORIA FINAL -->
+    <div id="vistoria" class="section">
+      <div class="sub-nav">
+        <button class="nav-item active" id="vs-nav-lista" onclick="showSubVistoria('vs-lista',this)">Relatórios</button>
+        <button class="nav-item" id="vs-nav-novo" onclick="showSubVistoria('vs-novo',this)">+ Novo relatório</button>
+      </div>
+
+      <!-- Lista de relatórios -->
+      <div id="vs-lista">
+        <div id="vs-lista-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- Novo relatório -->
+      <div id="vs-novo" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:0.75rem;">Criar relatório de vistoria final</div>
+
+          <!-- Passo 1: Dados do cliente -->
+          <div style="font-size:13px;font-weight:500;color:var(--accent);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.5px;">Passo 1 — Buscar contrato</div>
+
+          <!-- Busca autocomplete -->
+          <div id="vs-busca-wrap">
+            <div class="form-row">
+              <label>Número do contrato ou nome do cliente</label>
+              <div class="ac-wrap" id="vs-ac-wrap">
+                <input type="text" id="vs-ac-input" placeholder="Digite o contrato ou nome..." autocomplete="off"
+                  oninput="vsAcInput(this.value)" onkeydown="vsAcKeydown(event)" onfocus="vsAcInput(this.value)">
+                <div class="ac-dropdown" id="vs-ac-dropdown"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contrato selecionado -->
+          <div id="vs-ct-selecionado" style="display:none;">
+            <div class="ct-selecionado">
+              <div>
+                <div class="ct-num" id="vs-ct-num">—</div>
+                <div class="ct-cli" id="vs-ct-cli">—</div>
+              </div>
+              <button class="btn-trocar" onclick="vsTrocarContrato()">Trocar contrato</button>
+            </div>
+            <div id="vs-ct-pedidos"></div>
+          </div>
+
+          <!-- Campo oculto para manter o pedido_id selecionado -->
+          <input type="hidden" id="vs-pedido" value="">
+
+          <div class="form-grid">
+            <div class="form-row"><label>Data da vistoria</label><input type="date" id="vs-data"></div>
+            <div class="form-row"><label>Número do contrato</label><input type="text" id="vs-contrato" placeholder="Preenchido automaticamente"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row"><label>Nome do cliente</label><input type="text" id="vs-cliente" placeholder="Preenchido automaticamente"></div>
+            <div class="form-row"><label>E-mail do cliente (para assinatura)</label><input type="email" id="vs-email" placeholder="cliente@email.com"></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Passo 2: Projeto executivo -->
+          <div style="font-size:13px;font-weight:500;color:var(--accent);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.5px;">Passo 2 — Projeto executivo</div>
+          <div class="form-row">
+            <label>Anexar projeto executivo (PDF)</label>
+            <div style="border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;background:var(--bg);" onclick="document.getElementById('vs-projeto-file').click()">
+              <input type="file" id="vs-projeto-file" accept=".pdf" style="display:none" onchange="showProjetoFile(this)">
+              <div id="vs-projeto-label"><div style="font-size:20px;margin-bottom:4px;">📋</div><div style="font-size:13px;color:var(--text2);font-weight:500;">Clique para anexar o PDF do projeto</div></div>
+              <div id="vs-projeto-preview" style="display:none;font-size:13px;color:var(--green);font-weight:500;"></div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Passo 3: Ocorrências -->
+          <div style="font-size:13px;font-weight:500;color:var(--accent);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.5px;">Passo 3 — Ocorrências registradas</div>
+          <div id="vs-ocorrencias-content"><div style="font-size:13px;color:var(--text3);">Selecione um pedido para carregar as ocorrências.</div></div>
+
+          <div style="margin-top:1rem;">
+            <div style="font-size:13px;font-weight:500;margin-bottom:0.5rem;">Adicionar nova ocorrência ao relatório</div>
+            <div class="form-grid" style="margin-bottom:8px;">
+              <div class="form-row"><label>Tipo</label>
+                <select id="vs-oc-tipo">
+                  <option value="">Selecione...</option>
+                  <option value="falta_volume">Falta de volume</option>
+                  <option value="asteca_fabrica">Asteca de fábrica</option>
+                  <option value="asteca_loja">Asteca de loja</option>
+                  <option value="avaria_transporte">Avaria de transporte</option>
+                  <option value="avaria_montagem">Avaria de montagem</option>
+                </select>
+              </div>
+              <div class="form-row"><label>Descrição</label><input type="text" id="vs-oc-desc" placeholder="Descreva o problema"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+              <input type="text" id="vs-oc-nped" placeholder="Nº Pedido" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+              <input type="text" id="vs-oc-nf" placeholder="Nota Fiscal" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+              <input type="text" id="vs-oc-item" placeholder="Nº Item" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+              <input type="number" id="vs-oc-qtd" placeholder="Qtd" min="1" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+            </div>
+            <div class="form-row"><label>📷 Foto (opcional)</label><input type="file" id="vs-oc-foto" accept="image/*" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);"></div>
+            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;" onclick="addOcVistoria()">+ Adicionar ao relatório</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Passo 4: Observação do cliente -->
+          <div style="font-size:13px;font-weight:500;color:var(--accent);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.5px;">Passo 4 — Observação do cliente (opcional)</div>
+          <div class="form-row"><textarea id="vs-obs" placeholder="Campo para o cliente registrar alguma observação durante a vistoria..." style="height:80px;"></textarea></div>
+
+          <div class="divider"></div>
+          <div id="vs-novo-alert"></div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn-submit" onclick="gerarRelatorio()" id="btn-gerar-rel">Gerar relatório de vistoria</button>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- MODAL EDIÇÃO DE RELATÓRIO -->
+<div id="modal-edicao" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalEdicao()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Editar relatório</div>
+      <button class="modal-close" onclick="fecharModalEdicao()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-rel-id">
+      <div class="form-grid">
+        <div class="form-row"><label>Nome do cliente</label><input type="text" id="edit-cliente"></div>
+        <div class="form-row"><label>E-mail do cliente</label><input type="email" id="edit-email"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row"><label>Número do contrato</label><input type="text" id="edit-contrato"></div>
+        <div class="form-row"><label>Data da vistoria</label><input type="date" id="edit-data"></div>
+      </div>
+      <div class="form-row"><label>Observação do cliente</label><textarea id="edit-obs" style="height:80px;resize:vertical;"></textarea></div>
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Ocorrências</div>
+      <div id="edit-ocs-lista"></div>
+      <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;margin-bottom:8px;">+ Adicionar ocorrência</div>
+        <div class="form-grid" style="margin-bottom:8px;">
+          <div class="form-row" style="margin-bottom:0;"><label>Tipo</label>
+            <select id="edit-oc-tipo">
+              <option value="">Selecione...</option>
+              <option value="falta_volume">Falta de volume</option>
+              <option value="asteca_fabrica">Asteca de fábrica</option>
+              <option value="asteca_loja">Asteca de loja</option>
+              <option value="avaria_transporte">Avaria de transporte</option>
+              <option value="avaria_montagem">Avaria de montagem</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin-bottom:0;"><label>Descrição</label><input type="text" id="edit-oc-desc" placeholder="Descreva o problema"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+          <input type="text" id="edit-oc-nped" placeholder="Nº Pedido" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+          <input type="text" id="edit-oc-nf" placeholder="NF" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+          <input type="text" id="edit-oc-item" placeholder="Nº Item" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+          <input type="number" id="edit-oc-qtd" placeholder="Qtd" min="1" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+        </div>
+        <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;" onclick="editAdicionarOc()">+ Adicionar</button>
+      </div>
+      <div id="edit-alert" style="margin-top:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-step-back" onclick="fecharModalEdicao()">Cancelar</button>
+      <button class="btn-submit" style="margin-top:0;" onclick="salvarEdicaoRelatorio()" id="btn-salvar-edicao">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AUDITORIA -->
+<div id="modal-auditoria" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalAuditoria()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">🔍 Histórico de alterações</div>
+      <button class="modal-close" onclick="fecharModalAuditoria()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="audit-content"><div class="loader">Carregando...</div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-step-back" onclick="fecharModalAuditoria()">Fechar</button>
+    </div>
   </div>
 </div>
 
@@ -392,6 +718,8 @@ async function onLogin(user){
   document.getElementById('nav-solicitar').style.display=isStaff?'none':'block';
   document.getElementById('nav-projetos').textContent=isStaff?'Projetos':'Meus projetos';
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
+  document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
+  document.getElementById('nav-vistoria').style.display=userNivel==='admin'||userNivel==='funcionario'?'block':'none';
   document.getElementById('nav-admin').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-usuarios').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('mt-nav-equipes').style.display=userNivel==='admin'?'block':'none';
@@ -418,6 +746,8 @@ function showSection(id,btn){
   if(id==='admin')loadAdmin();
   if(id==='montagem')loadFilaMt();
   if(id==='usuarios')loadUsuarios();
+  if(id==='ocorrencias'){loadOcorrencias();carregarPedidosSelect()}
+  if(id==='vistoria'){loadVistorias();carregarPedidosSelectVistoria()}
 }
 
 function showSubMontagem(id,btn){
@@ -799,6 +1129,788 @@ async function alterarNivel(userId,nivel){
 db.auth.onAuthStateChange((event,session)=>{if(session&&session.user)onLogin(session.user)});
 db.auth.getSession().then(({data})=>{if(data.session)onLogin(data.session.user)});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js');
+
+/* ===== OCORRÊNCIAS ===== */
+let faltaItens=[];
+let ocorrenciaItens=[];
+let vsOcorrencias=[];
+
+function showSubOc(id,btn){
+  ['oc-lista','oc-falta','oc-ocorrencia'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none'});
+  document.querySelectorAll('#ocorrencias .sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.style.display='block';
+  if(btn)btn.classList.add('active');
+  if(id==='oc-lista')loadOcorrencias();
+}
+
+function showSubVistoria(id,btn){
+  ['vs-lista','vs-novo'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none'});
+  document.querySelectorAll('#vistoria .sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.style.display='block';
+  if(btn)btn.classList.add('active');
+  if(id==='vs-lista')loadVistorias();
+}
+
+async function carregarPedidosSelect(){
+  const {data}=await db.from('pedidos_montagem').select('id,cliente_nome,numero_contrato').order('created_at',{ascending:false});
+  if(!data)return;
+  ['oc-falta-pedido','oc-oc-pedido'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.innerHTML='<option value="">Selecione o pedido...</option>'+data.map(p=>`<option value="${p.id}">${p.cliente_nome}${p.numero_contrato?' — CT: '+p.numero_contrato:''}</option>`).join('');
+  });
+  document.getElementById('oc-falta-data').value=new Date().toISOString().split('T')[0];
+}
+
+/* ── AUTOCOMPLETE VISTORIA ── */
+let vsContratos=[];
+let vsAcIdx=-1;
+
+async function carregarPedidosSelectVistoria(){
+  const {data}=await db.from('pedidos_montagem')
+    .select('id,cliente_nome,numero_contrato,ambientes,valor_total,status')
+    .order('created_at',{ascending:false});
+  vsContratos=data||[];
+  document.getElementById('vs-data').value=new Date().toISOString().split('T')[0];
+}
+
+function vsAcInput(val){
+  const dd=document.getElementById('vs-ac-dropdown');
+  const q=val.trim().toLowerCase();
+  if(!q){dd.classList.remove('open');dd.innerHTML='';vsAcIdx=-1;return}
+  const hits=vsContratos.filter(c=>
+    (c.numero_contrato||'').toLowerCase().includes(q)||
+    (c.cliente_nome||'').toLowerCase().includes(q)
+  ).slice(0,8);
+  if(!hits.length){
+    dd.innerHTML='<div class="ac-empty">Nenhum contrato encontrado</div>';
+    dd.classList.add('open');vsAcIdx=-1;return;
+  }
+  vsAcIdx=-1;
+  dd._hits=hits;
+  dd.innerHTML=hits.map((c,i)=>{
+    const ambs=typeof c.ambientes==='string'?JSON.parse(c.ambientes||'[]'):c.ambientes||[];
+    return `<div class="ac-item" data-i="${i}" onmousedown="vsAcSelecionar('${c.id}')">
+      <div class="ac-item-ct">${c.numero_contrato||'Sem contrato'}</div>
+      <div class="ac-item-sub">${c.cliente_nome||'—'} · ${ambs.length} pedido${ambs.length!==1?'s':''} · ${fmt(c.valor_total)}</div>
+    </div>`;
+  }).join('');
+  dd.classList.add('open');
+}
+
+function vsAcKeydown(e){
+  const dd=document.getElementById('vs-ac-dropdown');
+  const items=dd.querySelectorAll('.ac-item');
+  if(!dd.classList.contains('open')||!items.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();vsAcIdx=Math.min(vsAcIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('ac-sel',i===vsAcIdx));}
+  else if(e.key==='ArrowUp'){e.preventDefault();vsAcIdx=Math.max(vsAcIdx-1,0);items.forEach((el,i)=>el.classList.toggle('ac-sel',i===vsAcIdx));}
+  else if(e.key==='Enter'&&vsAcIdx>=0){e.preventDefault();const h=dd._hits;if(h&&h[vsAcIdx])vsAcSelecionar(h[vsAcIdx].id);}
+  else if(e.key==='Escape'){dd.classList.remove('open');}
+}
+
+async function vsAcSelecionar(contratoId){
+  const ct=vsContratos.find(c=>c.id===contratoId);
+  if(!ct)return;
+  const dd=document.getElementById('vs-ac-dropdown');
+  dd.classList.remove('open');
+  document.getElementById('vs-ac-input').value=ct.numero_contrato||'';
+  // Preenche campos
+  document.getElementById('vs-pedido').value=ct.id;
+  document.getElementById('vs-contrato').value=ct.numero_contrato||'';
+  document.getElementById('vs-cliente').value=ct.cliente_nome||'';
+  // Mostra card de contrato selecionado
+  document.getElementById('vs-ct-num').textContent=ct.numero_contrato||'—';
+  document.getElementById('vs-ct-cli').textContent=ct.cliente_nome||'—';
+  // Pedidos vinculados
+  const ambs=typeof ct.ambientes==='string'?JSON.parse(ct.ambientes||'[]'):ct.ambientes||[];
+  let pedHtml='';
+  if(ambs.length){
+    pedHtml=`<div class="ct-pedidos">
+      <div class="ct-pedidos-title">Pedidos deste contrato — clique no nº para preencher a ocorrência</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:var(--bg2);padding:5px 0;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px;">
+        <span>Nº Pedido</span><span>NF</span><span>Ambiente</span><span style="text-align:right">Valor</span>
+      </div>
+      ${ambs.map(a=>`<div class="ct-ped-row" onclick="vsPreencherNped('${a.pedido||''}','${a.nf||''}')">
+        <span>${a.pedido||'—'}</span>
+        <span style="color:var(--text2)">${a.nf||'—'}</span>
+        <span>${a.nome||'—'}</span>
+        <span style="text-align:right;font-weight:500;">${fmt(a.valor)}</span>
+      </div>`).join('')}
+    </div>
+    <div class="info-box" style="margin-bottom:0;">Clique em um pedido acima para preenchê-lo automaticamente na ocorrência.</div>`;
+  }
+  document.getElementById('vs-ct-pedidos').innerHTML=pedHtml;
+  document.getElementById('vs-busca-wrap').style.display='none';
+  document.getElementById('vs-ct-selecionado').style.display='block';
+  // Carrega ocorrências existentes do contrato
+  const {data}=await db.from('ocorrencias_montagem').select('*').eq('pedido_id',ct.id).order('created_at',{ascending:true});
+  vsOcorrencias=data?data.map(o=>({...o,fonte:'sistema'})):[];
+  renderVsOcorrencias();
+}
+
+function vsPreencherNped(nped,nf){
+  if(nped)document.getElementById('vs-oc-nped').value=nped;
+  if(nf)document.getElementById('vs-oc-nf').value=nf;
+  notify('Pedido preenchido!','info');
+}
+
+function vsTrocarContrato(){
+  document.getElementById('vs-pedido').value='';
+  document.getElementById('vs-contrato').value='';
+  document.getElementById('vs-cliente').value='';
+  document.getElementById('vs-email').value='';
+  document.getElementById('vs-ac-input').value='';
+  document.getElementById('vs-ct-selecionado').style.display='none';
+  document.getElementById('vs-busca-wrap').style.display='block';
+  vsOcorrencias=[];renderVsOcorrencias();
+}
+
+// Fechar dropdown ao clicar fora
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('vs-ac-wrap');
+  if(wrap&&!wrap.contains(e.target)){
+    const dd=document.getElementById('vs-ac-dropdown');if(dd)dd.classList.remove('open');
+  }
+});
+
+async function carregarDadosVistoria(){
+  // mantido por compatibilidade — não é mais chamado pelo HTML
+}
+
+function tipoLabel(tipo){
+  const map={falta_volume:'Falta de volume',asteca_fabrica:'Asteca de fábrica',asteca_loja:'Asteca de loja',avaria_transporte:'Avaria de transporte',avaria_montagem:'Avaria de montagem'};
+  return map[tipo]||tipo;
+}
+
+function tipoBadgeClass(tipo){
+  if(tipo==='falta_volume')return'badge-amber';
+  if(tipo==='asteca_fabrica'||tipo==='asteca_loja')return'badge-blue';
+  return'badge-red';
+}
+
+/* FALTAS */
+function addFaltaItem(){
+  const nped=document.getElementById('oc-f-nped').value.trim();
+  const nf=document.getElementById('oc-f-nf').value.trim();
+  const vol=document.getElementById('oc-f-vol').value.trim();
+  const item=document.getElementById('oc-f-item').value.trim();
+  const qtd=parseInt(document.getElementById('oc-f-qtd').value)||1;
+  if(!nped&&!nf&&!item){notify('Preencha pelo menos um campo de identificação.','error');return}
+  faltaItens.push({nped,nf,vol,item,qtd});
+  document.getElementById('oc-f-nped').value='';document.getElementById('oc-f-nf').value='';
+  document.getElementById('oc-f-vol').value='';document.getElementById('oc-f-item').value='';
+  document.getElementById('oc-f-qtd').value='';
+  renderFaltaItens();
+}
+function removeFaltaItem(i){faltaItens.splice(i,1);renderFaltaItens()}
+function renderFaltaItens(){
+  const el=document.getElementById('oc-falta-list');
+  el.innerHTML=faltaItens.length?`<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;">
+      <span>Nº Ped.</span><span>NF</span><span>Volume</span><span>Item</span><span>Qtd</span><span></span>
+    </div>
+    ${faltaItens.map((f,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:12px;align-items:center;">
+      <span>${f.nped||'—'}</span><span>${f.nf||'—'}</span><span>${f.vol||'—'}</span><span>${f.item||'—'}</span><span>${f.qtd}</span>
+      <button class="btn-red-sm" onclick="removeFaltaItem(${i})">✕</button>
+    </div>`).join('')}
+  </div>`:''
+}
+
+async function salvarFalta(){
+  const pedidoId=document.getElementById('oc-falta-pedido').value;
+  const data=document.getElementById('oc-falta-data').value;
+  if(!pedidoId){setAlert('oc-falta-alert','Selecione o pedido.','error');return}
+  if(!faltaItens.length){setAlert('oc-falta-alert','Adicione pelo menos uma peça faltante.','error');return}
+  const btn=document.getElementById('btn-salvar-falta');btn.disabled=true;btn.textContent='Salvando...';
+  const {error}=await db.from('ocorrencias_montagem').insert({
+    pedido_id:pedidoId,tipo:'falta_volume',
+    descricao:`Falta de volume registrada em ${data}`,
+    itens:JSON.stringify(faltaItens),
+    registrado_por:currentUser.id
+  });
+  btn.disabled=false;btn.textContent='Registrar falta';
+  if(error){setAlert('oc-falta-alert','Erro ao salvar.','error');return}
+  faltaItens=[];renderFaltaItens();
+  document.getElementById('oc-falta-pedido').value='';
+  setAlert('oc-falta-alert','Falta registrada com sucesso!','success');
+  notify('Falta registrada!');
+}
+
+/* OCORRÊNCIAS */
+function addOcorrenciaItem(){
+  const nped=document.getElementById('oc-o-nped').value.trim();
+  const nf=document.getElementById('oc-o-nf').value.trim();
+  const vol=document.getElementById('oc-o-vol').value.trim();
+  const item=document.getElementById('oc-o-item').value.trim();
+  const qtd=parseInt(document.getElementById('oc-o-qtd').value)||1;
+  if(!nped&&!nf&&!item){notify('Preencha pelo menos um campo de identificação.','error');return}
+  ocorrenciaItens.push({nped,nf,vol,item,qtd});
+  document.getElementById('oc-o-nped').value='';document.getElementById('oc-o-nf').value='';
+  document.getElementById('oc-o-vol').value='';document.getElementById('oc-o-item').value='';
+  document.getElementById('oc-o-qtd').value='';
+  renderOcorrenciaItens();
+}
+function removeOcorrenciaItem(i){ocorrenciaItens.splice(i,1);renderOcorrenciaItens()}
+function renderOcorrenciaItens(){
+  const el=document.getElementById('oc-oc-list');
+  el.innerHTML=ocorrenciaItens.length?`<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;">
+      <span>Nº Ped.</span><span>NF</span><span>Volume</span><span>Item</span><span>Qtd</span><span></span>
+    </div>
+    ${ocorrenciaItens.map((o,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:12px;align-items:center;">
+      <span>${o.nped||'—'}</span><span>${o.nf||'—'}</span><span>${o.vol||'—'}</span><span>${o.item||'—'}</span><span>${o.qtd}</span>
+      <button class="btn-red-sm" onclick="removeOcorrenciaItem(${i})">✕</button>
+    </div>`).join('')}
+  </div>`:''
+}
+
+async function salvarOcorrencia(){
+  const pedidoId=document.getElementById('oc-oc-pedido').value;
+  const tipo=document.getElementById('oc-oc-tipo').value;
+  const fotoEtiqueta=document.getElementById('oc-foto-etiqueta').files[0];
+  const fotoProblema=document.getElementById('oc-foto-problema').files[0];
+  if(!pedidoId){setAlert('oc-oc-alert','Selecione o pedido.','error');return}
+  if(!tipo){setAlert('oc-oc-alert','Selecione o tipo de ocorrência.','error');return}
+  if(!ocorrenciaItens.length){setAlert('oc-oc-alert','Adicione pelo menos uma peça.','error');return}
+  if(!fotoEtiqueta){setAlert('oc-oc-alert','Foto da etiqueta é obrigatória.','error');return}
+  if(!fotoProblema){setAlert('oc-oc-alert','Foto do problema é obrigatória.','error');return}
+  const btn=document.getElementById('btn-salvar-oc');btn.disabled=true;btn.textContent='Salvando...';
+  const ts=Date.now();
+  const fotos=[];
+  const uploadFoto=async(file,nome)=>{
+    const ext=file.name.split('.').pop();
+    const path=`${pedidoId}/${ts}_${nome}.${ext}`;
+    const {error}=await db.storage.from('ocorrencias').upload(path,file,{upsert:true});
+    if(!error){const {data:u}=db.storage.from('ocorrencias').getPublicUrl(path);fotos.push({nome,url:u.publicUrl})}
+  };
+  await uploadFoto(fotoEtiqueta,'etiqueta');
+  await uploadFoto(fotoProblema,'problema');
+  const extras=document.getElementById('oc-fotos-extras').files;
+  for(let i=0;i<extras.length;i++)await uploadFoto(extras[i],`extra_${i+1}`);
+  const {error}=await db.from('ocorrencias_montagem').insert({
+    pedido_id:pedidoId,tipo,
+    itens:JSON.stringify(ocorrenciaItens),
+    fotos:JSON.stringify(fotos),
+    registrado_por:currentUser.id
+  });
+  btn.disabled=false;btn.textContent='Registrar ocorrência';
+  if(error){setAlert('oc-oc-alert','Erro ao salvar.','error');return}
+  ocorrenciaItens=[];renderOcorrenciaItens();
+  document.getElementById('oc-oc-pedido').value='';document.getElementById('oc-oc-tipo').value='';
+  document.getElementById('oc-foto-etiqueta').value='';document.getElementById('oc-foto-problema').value='';
+  document.getElementById('oc-fotos-extras').value='';
+  setAlert('oc-oc-alert','Ocorrência registrada com sucesso!','success');
+  notify('Ocorrência registrada!');
+}
+
+async function loadOcorrencias(){
+  const cont=document.getElementById('oc-lista-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const {data}=await db.from('ocorrencias_montagem').select('*,pedidos_montagem(cliente_nome,numero_contrato)').order('created_at',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma ocorrência registrada.</p></div>';return}
+  cont.innerHTML=data.map(o=>{
+    const itens=o.itens?JSON.parse(o.itens):[];
+    const fotos=o.fotos?JSON.parse(o.fotos):[];
+    const dataStr=new Date(o.created_at).toLocaleDateString('pt-BR');
+    const cliente=o.pedidos_montagem?.cliente_nome||'—';
+    const contrato=o.pedidos_montagem?.numero_contrato||'';
+    return `<div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div><div style="font-size:14px;font-weight:500;">${cliente}${contrato?' — CT: '+contrato:''}</div><div style="font-size:12px;color:var(--text2);">${dataStr}</div></div>
+        <span class="badge ${tipoBadgeClass(o.tipo)}">${tipoLabel(o.tipo)}</span>
+      </div>
+      ${itens.length?`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;background:var(--bg);padding:6px 10px;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;"><span>Nº Ped.</span><span>NF</span><span>Volume</span><span>Item</span><span>Qtd</span></div>
+        ${itens.map(i=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;padding:6px 10px;border-top:1px solid var(--border);font-size:12px;"><span>${i.nped||'—'}</span><span>${i.nf||'—'}</span><span>${i.vol||'—'}</span><span>${i.item||'—'}</span><span>${i.qtd}</span></div>`).join('')}
+      </div>`:''}
+      ${fotos.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;">${fotos.map(f=>`<a href="${f.url}" target="_blank" style="display:inline-block;"><img src="${f.url}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" title="${f.nome}"></a>`).join('')}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* VISTORIA FINAL */
+function showProjetoFile(input){
+  const file=input.files[0];if(!file)return;
+  document.getElementById('vs-projeto-label').style.display='none';
+  document.getElementById('vs-projeto-preview').style.display='block';
+  document.getElementById('vs-projeto-preview').textContent='✅ '+file.name;
+}
+
+function addOcVistoria(){
+  const tipo=document.getElementById('vs-oc-tipo').value;
+  const desc=document.getElementById('vs-oc-desc').value.trim();
+  const nped=document.getElementById('vs-oc-nped').value.trim();
+  const nf=document.getElementById('vs-oc-nf').value.trim();
+  const item=document.getElementById('vs-oc-item').value.trim();
+  const qtd=parseInt(document.getElementById('vs-oc-qtd').value)||1;
+  const foto=document.getElementById('vs-oc-foto').files[0];
+  if(!tipo){notify('Selecione o tipo de ocorrência.','error');return}
+  vsOcorrencias.push({tipo,descricao:desc,nped,nf,item,qtd,foto,fonte:'supervisor'});
+  document.getElementById('vs-oc-tipo').value='';document.getElementById('vs-oc-desc').value='';
+  document.getElementById('vs-oc-nped').value='';document.getElementById('vs-oc-nf').value='';
+  document.getElementById('vs-oc-item').value='';document.getElementById('vs-oc-qtd').value='';
+  document.getElementById('vs-oc-foto').value='';
+  renderVsOcorrencias();
+  notify('Ocorrência adicionada ao relatório!');
+}
+
+function removeVsOc(i){vsOcorrencias.splice(i,1);renderVsOcorrencias()}
+
+function renderVsOcorrencias(){
+  const cont=document.getElementById('vs-ocorrencias-content');
+  if(!vsOcorrencias.length){cont.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhuma ocorrência registrada para este pedido.</div>';return}
+  const grupos={falta_volume:[],asteca_fabrica:[],asteca_loja:[],avaria_transporte:[],avaria_montagem:[]};
+  vsOcorrencias.forEach((o,i)=>{if(grupos[o.tipo])grupos[o.tipo].push({...o,idx:i})});
+  let html='';
+  Object.entries(grupos).forEach(([tipo,itens])=>{
+    if(!itens.length)return;
+    html+=`<div style="margin-bottom:12px;"><div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;">${tipoLabel(tipo)} (${itens.length})</div>`;
+    itens.forEach(o=>{
+      const isSistema=o.fonte==='sistema';
+      const fotos=o.fotos?JSON.parse(o.fotos):[];
+      html+=`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <span class="badge ${tipoBadgeClass(tipo)}">${tipoLabel(tipo)}</span>
+          ${isSistema?'<span style="font-size:11px;color:var(--green);margin-left:6px;">● do montador</span>':'<span style="font-size:11px;color:var(--blue);margin-left:6px;">● adicionado agora</span>'}
+          ${o.descricao?`<div style="font-size:12px;color:var(--text2);margin-top:4px;">${o.descricao}</div>`:''}
+          ${o.itens?JSON.parse(o.itens).map(i=>`<div style="font-size:11px;color:var(--text3);">Ped: ${i.nped||'—'} · NF: ${i.nf||'—'} · Item: ${i.item||'—'} · Qtd: ${i.qtd}</div>`).join(''):''}
+          ${fotos.length?`<div style="display:flex;gap:4px;margin-top:4px;">${fotos.map(f=>`<img src="${f.url}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">`).join('')}</div>`:''}
+        </div>
+        ${!isSistema?`<button class="btn-red-sm" onclick="removeVsOc(${o.idx})">✕</button>`:''}
+      </div>`;
+    });
+    html+='</div>';
+  });
+  cont.innerHTML=html;
+}
+
+async function gerarRelatorio(){
+  const pedidoId=document.getElementById('vs-pedido').value;
+  const cliente=document.getElementById('vs-cliente').value.trim();
+  const email=document.getElementById('vs-email').value.trim();
+  const contrato=document.getElementById('vs-contrato').value.trim();
+  const data=document.getElementById('vs-data').value;
+  const obs=document.getElementById('vs-obs').value.trim();
+  const projetoFile=document.getElementById('vs-projeto-file').files[0];
+  if(!pedidoId||!cliente||!email){setAlert('vs-novo-alert','Preencha todos os dados do cliente.','error');return}
+  const btn=document.getElementById('btn-gerar-rel');btn.disabled=true;btn.textContent='Gerando...';
+  let projetoUrl='';
+  if(projetoFile){
+    const ext=projetoFile.name.split('.').pop();
+    const path=`${pedidoId}/${Date.now()}.${ext}`;
+    const {error}=await db.storage.from('projetos').upload(path,projetoFile,{upsert:true});
+    if(!error){const {data:u}=db.storage.from('projetos').getPublicUrl(path);projetoUrl=u.publicUrl}
+  }
+  // Upload fotos de ocorrências adicionadas pelo supervisor
+  const ocParaSalvar=[];
+  for(const o of vsOcorrencias){
+    if(o.fonte==='supervisor'&&o.foto){
+      const ext=o.foto.name.split('.').pop();
+      const path=`${pedidoId}/vs_${Date.now()}.${ext}`;
+      const {error}=await db.storage.from('ocorrencias').upload(path,o.foto,{upsert:true});
+      let fotoUrl='';
+      if(!error){const {data:u}=db.storage.from('ocorrencias').getPublicUrl(path);fotoUrl=u.publicUrl}
+      ocParaSalvar.push({...o,fotoUrl,foto:undefined});
+    } else {
+      ocParaSalvar.push({...o,foto:undefined});
+    }
+  }
+  const {data:rel,error}=await db.from('relatorios_vistoria').insert({
+    pedido_id:pedidoId,cliente_nome:cliente,cliente_email:email,
+    numero_contrato:contrato,data_vistoria:data,
+    projeto_executivo_url:projetoUrl,
+    ocorrencias:JSON.stringify(ocParaSalvar),
+    observacao_cliente:obs,
+    status:'gerado',
+    criado_por:currentUser.id
+  }).select().single();
+  btn.disabled=false;btn.textContent='Gerar relatório de vistoria';
+  if(error){setAlert('vs-novo-alert','Erro ao gerar relatório.','error');return}
+  setAlert('vs-novo-alert',`Relatório gerado com sucesso! <a href="#" onclick="abrirRelatorio('${rel.id}')" style="color:var(--green);font-weight:500;">Visualizar relatório</a>`,'success');
+  notify('Relatório gerado!');
+  vsOcorrencias=[];
+  vsTrocarContrato();
+  setTimeout(()=>{showSubVistoria('vs-lista',document.getElementById('vs-nav-lista'));loadVistorias()},1500);
+}
+
+async function loadVistorias(){
+  const cont=document.getElementById('vs-lista-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const {data}=await db.from('relatorios_vistoria').select('*').order('created_at',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum relatório gerado ainda.</p></div>';return}
+  cont.innerHTML=data.map(r=>{
+    const dataStr=r.data_vistoria?new Date(r.data_vistoria+'T12:00:00').toLocaleDateString('pt-BR'):new Date(r.created_at).toLocaleDateString('pt-BR');
+    const badgeClass=r.status==='assinado'?'badge-green':r.status==='enviado'?'badge-blue':'badge-amber';
+    const badgeText=r.status==='assinado'?'Assinado':r.status==='enviado'?'Enviado para assinatura':'Gerado';
+    return `<div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div>
+          <div style="font-size:14px;font-weight:500;">${r.cliente_nome}</div>
+          <div style="font-size:12px;color:var(--text2);">${r.numero_contrato||''} · ${dataStr}</div>
+        </div>
+        <span class="badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <button onclick="abrirRelatorio('${r.id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">📄 Visualizar</button>
+        <button onclick="abrirModalEdicao('${r.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✏️ Editar</button>
+        <button onclick="abrirModalAuditoria('${r.id}')" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔍 Histórico</button>
+        ${r.projeto_executivo_url?`<a href="${r.projeto_executivo_url}" target="_blank" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;text-decoration:none;font-family:'DM Sans',sans-serif;">📋 Projeto</a>`:''}
+        ${r.status==='gerado'?`<button onclick="enviarRelatorioEmail('${r.id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✉️ Enviar e-mail</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function abrirRelatorio(id){
+  const {data:r}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
+  if(!r)return;
+
+  const ocs=r.ocorrencias?JSON.parse(r.ocorrencias):[];
+  const dataStr=r.data_vistoria?new Date(r.data_vistoria+'T12:00:00').toLocaleDateString('pt-BR'):'';
+
+  // Normaliza todas as ocorrências (sistema e supervisor) para formato único
+  // Formato unificado: { tipo, linhas:[{nped,nf,vol,item,qtd,desc}], fotos:[{url,meta}] }
+  const grupos={falta_volume:[],asteca_fabrica:[],asteca_loja:[],avaria_transporte:[],avaria_montagem:[]};
+
+  ocs.forEach(o=>{
+    if(!grupos[o.tipo])return;
+    const desc=o.descricao||o.desc||'';
+
+    // Linhas da tabela — suporta fonte 'sistema' (itens:[]) e 'supervisor' (campos diretos)
+    let linhas=[];
+    if(o.itens){
+      // ocorrência do montador: itens é array de peças
+      const its=typeof o.itens==='string'?JSON.parse(o.itens):o.itens;
+      linhas=its.map(i=>({nped:i.nped||'—',nf:i.nf||'—',vol:i.vol||'—',item:i.item||'—',qtd:i.qtd||1,desc}));
+    } else {
+      // ocorrência do supervisor: campos diretos nped/nf/item/qtd
+      linhas=[{nped:o.nped||o.num_pedido||'—',nf:o.nf||o.nota_fiscal||'—',vol:o.vol||'—',item:o.item||o.num_item||'—',qtd:o.qtd||o.quantidade||1,desc}];
+    }
+
+    // Fotos — suporta fotos:[], fotoUrl:'', foto_url:''
+    let fotos=[];
+    if(o.fotos){
+      const fs=typeof o.fotos==='string'?JSON.parse(o.fotos):o.fotos;
+      fotos=fs.filter(f=>f&&f.url).map(f=>({url:f.url,meta:gerarMetaFoto(linhas,desc,tipoLabel(o.tipo))}));
+    } else if(o.fotoUrl){
+      fotos=[{url:o.fotoUrl,meta:gerarMetaFoto(linhas,desc,tipoLabel(o.tipo))}];
+    } else if(o.foto_url){
+      fotos=[{url:o.foto_url,meta:gerarMetaFoto(linhas,desc,tipoLabel(o.tipo))}];
+    }
+
+    grupos[o.tipo].push({linhas,fotos,desc});
+  });
+
+  const win=window.open('','_blank');
+  let html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Relatório de Vistoria — ${r.cliente_nome}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Arial',sans-serif;color:#1a1a2e;background:#fff}
+    .page{max-width:800px;margin:0 auto;padding:40px}
+    .header{border-bottom:3px solid #1a1a2e;padding-bottom:16px;margin-bottom:28px}
+    .titulo-doc{font-size:18px;font-weight:700;text-align:center;margin:16px 0 0;text-transform:uppercase;letter-spacing:1px;color:#1a1a2e}
+    .dados-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #1a1a2e;margin-bottom:24px}
+    .dado{padding:10px 14px;border-bottom:1px solid #ccc}
+    .dado:nth-child(odd){border-right:1px solid #1a1a2e}
+    .dado label{font-size:10px;font-weight:700;text-transform:uppercase;color:#6b6880;display:block;margin-bottom:2px}
+    .dado span{font-size:13px;font-weight:600;color:#1a1a2e}
+    .secao-titulo{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#1a1a2e;padding:8px 14px;margin:24px 0 12px}
+    .tabela{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px}
+    .tabela th{background:#f0e6d3;color:#1a1a2e;font-weight:700;padding:8px;text-align:left;border:1px solid #ccc}
+    .tabela td{padding:8px;border:1px solid #ccc;color:#1a1a2e}
+    .tabela tr:nth-child(even) td{background:#f8f6f2}
+    /* Fotos: 2 por linha, info abaixo de cada uma */
+    .foto-grade{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;page-break-inside:avoid;}
+    .foto-par{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;page-break-inside:avoid;break-inside:avoid;}
+    .foto-item{border:1px solid #1a1a2e;break-inside:avoid;page-break-inside:avoid}
+    .foto-item img{width:100%;height:200px;object-fit:cover;display:block}
+    .foto-info{padding:8px 10px;background:#f8f6f2;border-top:1px solid #ccc}
+    .foto-info .fi-tipo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#1a1a2e;margin-bottom:4px}
+    .foto-info .fi-det{font-size:11px;color:#555;line-height:1.5}
+    .foto-vazio{background:#f8f6f2;min-height:240px}
+    .obs-box{border:1px solid #1a1a2e;padding:14px;min-height:80px;margin-bottom:20px;font-size:13px}
+    .assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px}
+    .assinatura{text-align:center}
+    .assinatura-linha{border-top:1px solid #1a1a2e;padding-top:8px;margin-top:48px;font-size:12px}
+    .rodape{text-align:center;margin-top:28px;font-size:10px;color:#9b98a8}
+    @media print{
+      body{padding:0}
+      .page{padding:20px}
+      .no-print{display:none}
+      .foto-grade{page-break-inside:avoid}
+    }
+  </style></head><body><div class="page">
+
+  <div class="header">
+    <div class="titulo-doc">Relatório de Supervisão de Montagem</div>
+  </div>
+
+  <div class="dados-grid">
+    <div class="dado"><label>Cliente</label><span>${r.cliente_nome}</span></div>
+    <div class="dado"><label>Contrato</label><span>${r.numero_contrato||'—'}</span></div>
+    <div class="dado"><label>Data da vistoria</label><span>${dataStr}</span></div>
+    <div class="dado"><label>E-mail</label><span>${r.cliente_email||'—'}</span></div>
+  </div>`;
+
+  const tiposOrdem=['falta_volume','asteca_fabrica','asteca_loja','avaria_transporte','avaria_montagem'];
+
+  tiposOrdem.forEach(tipo=>{
+    const grupo=grupos[tipo];
+    if(!grupo.length)return;
+
+    html+=`<div class="secao-titulo">${tipoLabel(tipo)}</div>`;
+
+    // Tabela com todas as linhas deste tipo
+    const todasLinhas=grupo.flatMap(g=>g.linhas);
+    if(todasLinhas.length){
+      html+=`<table class="tabela"><thead><tr>
+        <th>Nº Pedido</th><th>NF</th><th>Volume</th><th>Item</th><th>Qtd</th><th>Descrição</th>
+      </tr></thead><tbody>
+      ${todasLinhas.map(l=>`<tr>
+        <td>${l.nped}</td><td>${l.nf}</td><td>${l.vol}</td><td>${l.item}</td><td>${l.qtd}</td><td>${l.desc||'—'}</td>
+      </tr>`).join('')}
+      </tbody></table>`;
+    }
+
+    // Grade de fotos — 2 por linha, info abaixo de cada foto
+    const todasFotos=grupo.flatMap(g=>g.fotos);
+    if(todasFotos.length){
+      // Agrupa em pares de 2 para garantir exatamente 2 por linha
+      for(let i=0;i<todasFotos.length;i+=2){
+        const f1=todasFotos[i];
+        const f2=todasFotos[i+1]||null;
+        html+='<div class="foto-par">';
+        html+=`<div class="foto-item">
+          <img src="${f1.url}" alt="${tipoLabel(tipo)}">
+          <div class="foto-info">
+            <div class="fi-tipo">${tipoLabel(tipo)}</div>
+            <div class="fi-det">${f1.meta}</div>
+          </div>
+        </div>`;
+        if(f2){
+          html+=`<div class="foto-item">
+            <img src="${f2.url}" alt="${tipoLabel(tipo)}">
+            <div class="foto-info">
+              <div class="fi-tipo">${tipoLabel(tipo)}</div>
+              <div class="fi-det">${f2.meta}</div>
+            </div>
+          </div>`;
+        } else {
+          html+='<div class="foto-item foto-vazio"></div>';
+        }
+        html+='</div>';
+      }
+    }
+  });
+
+  html+=`
+  <div class="secao-titulo">Observações do cliente</div>
+  <div class="obs-box">${r.observacao_cliente||''}</div>
+
+  <div class="assinaturas">
+    <div class="assinatura"><div class="assinatura-linha">Responsável pela vistoria</div></div>
+    <div class="assinatura"><div class="assinatura-linha">${r.cliente_nome} — Cliente</div></div>
+  </div>
+
+  <div class="rodape">Data: ${dataStr}</div>
+  </div>
+
+  <div class="no-print" style="text-align:center;padding:20px;">
+    <button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:14px;cursor:pointer;font-family:Arial,sans-serif;">🖨️ Imprimir / Salvar PDF</button>
+  </div>
+  </body></html>`;
+
+  win.document.write(html);win.document.close();
+}
+
+// Gera texto de legenda para foto: "Ped: X · NF: Y · Item: Z · Qtd: N · Desc"
+function gerarMetaFoto(linhas,desc,tipo){
+  if(!linhas||!linhas.length)return desc||tipo;
+  const l=linhas[0];
+  const partes=[];
+  if(l.nped&&l.nped!=='—')partes.push('Ped: '+l.nped);
+  if(l.nf&&l.nf!=='—')partes.push('NF: '+l.nf);
+  if(l.item&&l.item!=='—')partes.push('Item: '+l.item);
+  if(l.qtd&&l.qtd!==1)partes.push('Qtd: '+l.qtd);
+  if(desc)partes.push(desc);
+  return partes.join(' · ')||tipo;
+}
+
+async function enviarRelatorioEmail(id){
+  const {data:r}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
+  if(!r){notify('Relatório não encontrado.','error');return}
+  if(!r.cliente_email){notify('E-mail do cliente não cadastrado.','error');return}
+  notify('Enviando e-mail...','info');
+  try{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/enviar-relatorio`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({relatorio_id:id})
+    });
+    if(!res.ok)throw new Error(await res.text());
+    notify('E-mail enviado com sucesso!');
+    await db.from('relatorios_vistoria').update({status:'enviado'}).eq('id',id);
+    loadVistorias();
+  }catch(e){
+    console.error(e);
+    notify('Erro ao enviar e-mail. Verifique a Edge Function.','error');
+  }
+}
+
+/* ══════════════════════════════════════════
+   EDIÇÃO DE RELATÓRIO
+══════════════════════════════════════════ */
+let editOcsAtual=[];
+
+async function abrirModalEdicao(id){
+  const {data:r}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
+  if(!r)return;
+  document.getElementById('edit-rel-id').value=id;
+  document.getElementById('edit-cliente').value=r.cliente_nome||'';
+  document.getElementById('edit-email').value=r.cliente_email||'';
+  document.getElementById('edit-contrato').value=r.numero_contrato||'';
+  document.getElementById('edit-data').value=r.data_vistoria||'';
+  document.getElementById('edit-obs').value=r.observacao_cliente||'';
+  editOcsAtual=r.ocorrencias?JSON.parse(r.ocorrencias):[];
+  renderEditOcs();
+  setAlert('edit-alert','','');
+  document.getElementById('modal-edicao').style.display='flex';
+}
+
+function fecharModalEdicao(){
+  document.getElementById('modal-edicao').style.display='none';
+}
+
+function renderEditOcs(){
+  const cont=document.getElementById('edit-ocs-lista');
+  if(!editOcsAtual.length){
+    cont.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhuma ocorrência registrada.</div>';return;
+  }
+  cont.innerHTML=editOcsAtual.map((o,i)=>{
+    const desc=o.descricao||o.desc||'';
+    const nped=o.nped||o.num_pedido||'—';
+    const nf=o.nf||o.nota_fiscal||'—';
+    const item=o.item||o.num_item||'—';
+    const qtd=o.qtd||o.quantidade||1;
+    return `<div class="oc-edit-item">
+      <div style="flex:1;">
+        <div style="font-size:11px;font-weight:600;color:var(--brand);text-transform:uppercase;margin-bottom:3px;">${tipoLabel(o.tipo)}</div>
+        <div style="font-size:12px;color:var(--text);">${desc||'—'}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;">Ped: ${nped} · NF: ${nf} · Item: ${item} · Qtd: ${qtd}</div>
+      </div>
+      <button class="btn-red-sm" onclick="editRemoverOc(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function editAdicionarOc(){
+  const tipo=document.getElementById('edit-oc-tipo').value;
+  const desc=document.getElementById('edit-oc-desc').value.trim();
+  const nped=document.getElementById('edit-oc-nped').value.trim();
+  const nf=document.getElementById('edit-oc-nf').value.trim();
+  const item=document.getElementById('edit-oc-item').value.trim();
+  const qtd=parseInt(document.getElementById('edit-oc-qtd').value)||1;
+  if(!tipo){notify('Selecione o tipo.','error');return}
+  editOcsAtual.push({tipo,descricao:desc,nped,nf,item,qtd,fonte:'edicao'});
+  document.getElementById('edit-oc-tipo').value='';
+  document.getElementById('edit-oc-desc').value='';
+  document.getElementById('edit-oc-nped').value='';
+  document.getElementById('edit-oc-nf').value='';
+  document.getElementById('edit-oc-item').value='';
+  document.getElementById('edit-oc-qtd').value='';
+  renderEditOcs();
+}
+
+function editRemoverOc(i){editOcsAtual.splice(i,1);renderEditOcs();}
+
+async function salvarEdicaoRelatorio(){
+  const id=document.getElementById('edit-rel-id').value;
+  if(!id)return;
+  const btn=document.getElementById('btn-salvar-edicao');
+  btn.disabled=true;btn.textContent='Salvando...';
+
+  // Busca valores anteriores para auditoria
+  const {data:anterior}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
+  if(!anterior){btn.disabled=false;btn.textContent='Salvar alterações';return}
+
+  const novos={
+    cliente_nome:document.getElementById('edit-cliente').value.trim(),
+    cliente_email:document.getElementById('edit-email').value.trim(),
+    numero_contrato:document.getElementById('edit-contrato').value.trim(),
+    data_vistoria:document.getElementById('edit-data').value,
+    observacao_cliente:document.getElementById('edit-obs').value.trim(),
+    ocorrencias:JSON.stringify(editOcsAtual)
+  };
+
+  const {error}=await db.from('relatorios_vistoria').update(novos).eq('id',id);
+  btn.disabled=false;btn.textContent='Salvar alterações';
+  if(error){setAlert('edit-alert','Erro ao salvar. Tente novamente.','error');return}
+
+  // Registra auditoria para cada campo alterado
+  const camposAuditados=[
+    {campo:'cliente_nome',label:'Nome do cliente'},
+    {campo:'cliente_email',label:'E-mail'},
+    {campo:'numero_contrato',label:'Contrato'},
+    {campo:'data_vistoria',label:'Data da vistoria'},
+    {campo:'observacao_cliente',label:'Observação do cliente'},
+    {campo:'ocorrencias',label:'Ocorrências'}
+  ];
+  const registros=[];
+  for(const {campo,label} of camposAuditados){
+    const vAntes=String(anterior[campo]||'');
+    const vDepois=String(novos[campo]||'');
+    if(vAntes!==vDepois){
+      registros.push({
+        relatorio_id:id,
+        alterado_por:currentUser.id,
+        alterado_por_email:currentUser.email,
+        campo_alterado:label,
+        valor_anterior:campo==='ocorrencias'?`${JSON.parse(vAntes||'[]').length} ocorrência(s)`:vAntes,
+        valor_novo:campo==='ocorrencias'?`${editOcsAtual.length} ocorrência(s)`:vDepois
+      });
+    }
+  }
+  if(registros.length)await db.from('relatorios_vistoria_audit').insert(registros);
+
+  notify('Relatório atualizado!');
+  fecharModalEdicao();
+  loadVistorias();
+}
+
+/* ══════════════════════════════════════════
+   AUDITORIA
+══════════════════════════════════════════ */
+async function abrirModalAuditoria(id){
+  document.getElementById('modal-auditoria').style.display='flex';
+  document.getElementById('audit-content').innerHTML='<div class="loader">Carregando...</div>';
+  const {data,error}=await db.from('relatorios_vistoria_audit')
+    .select('*')
+    .eq('relatorio_id',id)
+    .order('created_at',{ascending:false});
+  if(error||!data||!data.length){
+    document.getElementById('audit-content').innerHTML='<div class="empty-state"><p>Nenhuma alteração registrada para este relatório.</p></div>';return;
+  }
+  document.getElementById('audit-content').innerHTML=data.map(a=>{
+    const dataStr=new Date(a.created_at).toLocaleString('pt-BR');
+    return `<div class="audit-item">
+      <div class="audit-campo">${a.campo_alterado}</div>
+      <div class="audit-who">Por <strong>${a.alterado_por_email}</strong> em ${dataStr}</div>
+      <div class="audit-diff">
+        <span class="audit-antes" title="${a.valor_anterior||'vazio'}">− ${a.valor_anterior||'(vazio)'}</span>
+        <span class="audit-depois" title="${a.valor_novo||'vazio'}">+ ${a.valor_novo||'(vazio)'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function fecharModalAuditoria(){
+  document.getElementById('modal-auditoria').style.display='none';
+}
+
+async function enviarParaAssinatura(id){
+  notify('Use o botão "Enviar e-mail" para enviar o relatório ao cliente.','info');
+}
 </script>
 </body>
 </html>
