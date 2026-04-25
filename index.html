@@ -1484,6 +1484,7 @@ function showSubOc(id,btn){
   const el=document.getElementById(id);if(el)el.style.display='block';
   if(btn)btn.classList.add('active');
   if(id==='oc-lista')loadOcorrencias();
+  if(id==='oc-falta'||id==='oc-ocorrencia')carregarPedidosSelect();
 }
 
 function showSubVistoria(id,btn){
@@ -1492,11 +1493,12 @@ function showSubVistoria(id,btn){
   const el=document.getElementById(id);if(el)el.style.display='block';
   if(btn)btn.classList.add('active');
   if(id==='vs-lista')loadVistorias();
+  if(id==='vs-novo')carregarPedidosSelectVistoria();
 }
 
 async function carregarPedidosSelect(){
-  // Garante que o cache acContratos está carregado
-  if(!acContratos.length) await acCarregarTodos();
+  // Sempre recarrega o cache para garantir dados frescos
+  await acCarregarTodos();
   document.getElementById('oc-falta-data').value=new Date().toISOString().split('T')[0];
 }
 
@@ -1509,6 +1511,7 @@ async function carregarPedidosSelectVistoria(){
     .select('id,cliente_nome,numero_contrato,ambientes,valor_total,status')
     .order('created_at',{ascending:false});
   vsContratos=data||[];
+  acContratos=data||[];
   document.getElementById('vs-data').value=new Date().toISOString().split('T')[0];
 }
 
