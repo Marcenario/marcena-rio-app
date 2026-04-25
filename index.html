@@ -416,9 +416,16 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div class="info-box">Registre cada peça faltante identificada na conferência da mercadoria.</div>
           <div class="form-grid">
             <div class="form-row"><label>Pedido de montagem</label>
-              <select id="oc-falta-pedido">
-                <option value="">Selecione o pedido...</option>
-              </select>
+              <div class="ac-wrap" id="oc-falta-ac-wrap">
+                <input type="text" id="oc-falta-ac-input" placeholder="Digite o contrato ou nome do cliente..." autocomplete="off"
+                  oninput="ocAcInput(this.value,'falta')" onkeydown="ocAcKeydown(event,'falta')" onfocus="ocAcInput(this.value,'falta')">
+                <div class="ac-dropdown" id="oc-falta-ac-dropdown"></div>
+              </div>
+              <input type="hidden" id="oc-falta-pedido">
+              <div id="oc-falta-pedido-info" style="display:none;margin-top:6px;background:var(--green-bg);border:1px solid #a8dfc0;border-radius:6px;padding:8px 12px;font-size:12px;display:flex;align-items:center;justify-content:space-between;">
+                <span id="oc-falta-pedido-label" style="color:var(--green);font-weight:500;"></span>
+                <button onclick="ocLimparPedido('falta')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;">✕</button>
+              </div>
             </div>
             <div class="form-row"><label>Data</label><input type="date" id="oc-falta-data"></div>
           </div>
@@ -450,9 +457,16 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div class="info-box">Registre problemas identificados durante a montagem. Fotos da etiqueta e do problema são obrigatórias.</div>
           <div class="form-grid">
             <div class="form-row"><label>Pedido de montagem</label>
-              <select id="oc-oc-pedido">
-                <option value="">Selecione o pedido...</option>
-              </select>
+              <div class="ac-wrap" id="oc-oc-ac-wrap">
+                <input type="text" id="oc-oc-ac-input" placeholder="Digite o contrato ou nome do cliente..." autocomplete="off"
+                  oninput="ocAcInput(this.value,'oc')" onkeydown="ocAcKeydown(event,'oc')" onfocus="ocAcInput(this.value,'oc')">
+                <div class="ac-dropdown" id="oc-oc-ac-dropdown"></div>
+              </div>
+              <input type="hidden" id="oc-oc-pedido">
+              <div id="oc-oc-pedido-info" style="display:none;margin-top:6px;background:var(--green-bg);border:1px solid #a8dfc0;border-radius:6px;padding:8px 12px;font-size:12px;display:flex;align-items:center;justify-content:space-between;">
+                <span id="oc-oc-pedido-label" style="color:var(--green);font-weight:500;"></span>
+                <button onclick="ocLimparPedido('oc')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;">✕</button>
+              </div>
             </div>
             <div class="form-row"><label>Tipo de ocorrência</label>
               <select id="oc-oc-tipo">
@@ -1400,6 +1414,70 @@ let faltaItens=[];
 let ocorrenciaItens=[];
 let vsOcorrencias=[];
 
+/* ── AUTOCOMPLETE OCORRÊNCIAS ── */
+let ocAcIdx={falta:-1,oc:-1};
+
+function ocAcInput(val,tipo){
+  const dd=document.getElementById(`oc-${tipo}-ac-dropdown`);
+  const q=val.trim().toLowerCase();
+  if(!q){dd.classList.remove('open');dd.innerHTML='';ocAcIdx[tipo]=-1;return}
+  const hits=acContratos.filter(c=>
+    (c.numero_contrato||'').toLowerCase().includes(q)||
+    (c.cliente_nome||'').toLowerCase().includes(q)
+  ).slice(0,8);
+  if(!hits.length){
+    dd.innerHTML='<div class="ac-empty">Nenhum contrato encontrado</div>';
+    dd.classList.add('open');ocAcIdx[tipo]=-1;return;
+  }
+  ocAcIdx[tipo]=-1;
+  dd._hits=hits;
+  dd.innerHTML=hits.map((c,i)=>`<div class="ac-item" data-i="${i}" onmousedown="ocAcSelecionar('${c.id}','${tipo}')">
+    <div class="ac-item-ct">${c.numero_contrato||'Sem contrato'}</div>
+    <div class="ac-item-sub">${c.cliente_nome||'—'} · ${fmt(c.valor_total)}</div>
+  </div>`).join('');
+  dd.classList.add('open');
+}
+
+function ocAcKeydown(e,tipo){
+  const dd=document.getElementById(`oc-${tipo}-ac-dropdown`);
+  const items=dd.querySelectorAll('.ac-item');
+  if(!dd.classList.contains('open')||!items.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();ocAcIdx[tipo]=Math.min(ocAcIdx[tipo]+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('ac-sel',i===ocAcIdx[tipo]));}
+  else if(e.key==='ArrowUp'){e.preventDefault();ocAcIdx[tipo]=Math.max(ocAcIdx[tipo]-1,0);items.forEach((el,i)=>el.classList.toggle('ac-sel',i===ocAcIdx[tipo]));}
+  else if(e.key==='Enter'&&ocAcIdx[tipo]>=0){e.preventDefault();const h=dd._hits;if(h&&h[ocAcIdx[tipo]])ocAcSelecionar(h[ocAcIdx[tipo]].id,tipo);}
+  else if(e.key==='Escape'){dd.classList.remove('open');}
+}
+
+function ocAcSelecionar(contratoId,tipo){
+  const ct=acContratos.find(c=>c.id===contratoId);
+  if(!ct)return;
+  const dd=document.getElementById(`oc-${tipo}-ac-dropdown`);
+  dd.classList.remove('open');
+  document.getElementById(`oc-${tipo}-ac-input`).value=ct.numero_contrato||'';
+  document.getElementById(`oc-${tipo}-pedido`).value=ct.id;
+  const info=document.getElementById(`oc-${tipo}-pedido-info`);
+  const label=document.getElementById(`oc-${tipo}-pedido-label`);
+  label.textContent=`${ct.cliente_nome} — CT: ${ct.numero_contrato||'—'} · ${fmt(ct.valor_total)}`;
+  info.style.display='flex';
+}
+
+function ocLimparPedido(tipo){
+  document.getElementById(`oc-${tipo}-ac-input`).value='';
+  document.getElementById(`oc-${tipo}-pedido`).value='';
+  document.getElementById(`oc-${tipo}-pedido-info`).style.display='none';
+}
+
+// Fechar dropdowns ao clicar fora
+document.addEventListener('click',function(e){
+  ['falta','oc'].forEach(tipo=>{
+    const wrap=document.getElementById(`oc-${tipo}-ac-wrap`);
+    if(wrap&&!wrap.contains(e.target)){
+      const dd=document.getElementById(`oc-${tipo}-ac-dropdown`);
+      if(dd)dd.classList.remove('open');
+    }
+  });
+});
+
 function showSubOc(id,btn){
   ['oc-lista','oc-falta','oc-ocorrencia'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none'});
   document.querySelectorAll('#ocorrencias .sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
@@ -1417,13 +1495,8 @@ function showSubVistoria(id,btn){
 }
 
 async function carregarPedidosSelect(){
-  const {data}=await db.from('pedidos_montagem').select('id,cliente_nome,numero_contrato').order('created_at',{ascending:false});
-  if(!data)return;
-  ['oc-falta-pedido','oc-oc-pedido'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el)return;
-    el.innerHTML='<option value="">Selecione o pedido...</option>'+data.map(p=>`<option value="${p.id}">${p.cliente_nome}${p.numero_contrato?' — CT: '+p.numero_contrato:''}</option>`).join('');
-  });
+  // Garante que o cache acContratos está carregado
+  if(!acContratos.length) await acCarregarTodos();
   document.getElementById('oc-falta-data').value=new Date().toISOString().split('T')[0];
 }
 
