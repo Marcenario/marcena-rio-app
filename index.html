@@ -436,6 +436,11 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <div class="form-row"><label>E-mail</label><input type="email" id="at-email" placeholder="cliente@email.com"></div>
             <div class="form-row"><label>Ambiente desejado</label><input type="text" id="at-ambiente" placeholder="Ex: Cozinha, quarto..."></div>
           </div>
+          <div class="form-row">
+            <label>Estimativa de orçamento (R$)</label>
+            <input type="text" id="at-estimativa" placeholder="Ex: 25000" style="max-width:260px;">
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">Usado para distribuir o atendimento ao vendedor mais disponível.</div>
+          </div>
 
           <div class="divider"></div>
           <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores</div>
@@ -1597,7 +1602,7 @@ async function loadVendedores(){
         <div style="font-size:15px;font-weight:500;">${v.nome}</div>
         <button style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;" onclick="excluirVendedor('${v.id}')">Excluir</button>
       </div>
-      <div style="font-size:13px;color:var(--text2);">Produtividade: <strong>${v.produtividade_atual} atend./mês</strong></div>
+      <div style="font-size:13px;color:var(--text2);">Capacidade: <strong>${fmt(v.produtividade_atual)}/mês</strong></div>
       <div style="height:4px;background:var(--bg);border-radius:2px;margin:10px 0;"><div style="height:4px;border-radius:2px;background:var(--accent);width:${pct}%"></div></div>
       <div style="font-size:11px;color:var(--text3);">Última atualização: ${ultima}</div>
     </div>`;
@@ -1614,12 +1619,15 @@ async function distribuirVendedor(){
   const {data:vds}=await db.from('vendedores').select('*').order('produtividade_atual',{ascending:false});
   if(!vds||!vds.length)return null;
   const mesAtual=new Date().toISOString().slice(0,7);
-  const {data:ativos}=await db.from('atendimentos').select('vendedor_id').eq('mes_ref',mesAtual).neq('status','concluido_perdido');
+  // Busca atendimentos ativos do mês com estimativa
+  const {data:ativos}=await db.from('atendimentos').select('vendedor_id,estimativa').eq('mes_ref',mesAtual).neq('status','concluido_perdido');
   const carga={};vds.forEach(v=>carga[v.id]=0);
-  if(ativos)ativos.forEach(a=>{if(carga[a.vendedor_id]!==undefined)carga[a.vendedor_id]++});
+  // Carga = soma das estimativas de orçamento em carteira
+  if(ativos)ativos.forEach(a=>{if(carga[a.vendedor_id]!==undefined)carga[a.vendedor_id]+=(a.estimativa||0);});
   const sorted=[...vds].sort((a,b)=>{
-    const ratioA=carga[a.id]/a.produtividade_atual;
-    const ratioB=carga[b.id]/b.produtividade_atual;
+    // Ratio = valor em carteira / capacidade mensal do vendedor
+    const ratioA=carga[a.id]/(a.produtividade_atual||1);
+    const ratioB=carga[b.id]/(b.produtividade_atual||1);
     if(Math.abs(ratioA-ratioB)<0.05)return b.produtividade_atual-a.produtividade_atual;
     return ratioA-ratioB;
   });
@@ -1665,7 +1673,9 @@ async function salvarAtendimento(){
   const tel=document.getElementById('at-tel').value.trim();
   const email=document.getElementById('at-email').value.trim();
   const ambiente=document.getElementById('at-ambiente').value.trim();
+  const estimativa=parseMoney(document.getElementById('at-estimativa').value);
   if(!nome){setAlert('at-novo-alert','Preencha o nome do cliente.','error');return}
+  if(!estimativa){setAlert('at-novo-alert','Informe a estimativa de orçamento para distribuir corretamente.','error');return}
   const btn=document.getElementById('btn-at-novo');btn.disabled=true;btn.textContent='Salvando...';
   const vendedor=await distribuirVendedor();
   if(!vendedor){setAlert('at-novo-alert','Cadastre pelo menos um vendedor antes.','error');btn.disabled=false;btn.textContent='Registrar e distribuir para vendedor';return}
@@ -1674,6 +1684,7 @@ async function salvarAtendimento(){
     tipo:atTipo,
     cliente_nome:nome,cliente_tel:tel,cliente_email:email,
     ambiente_desejado:ambiente,
+    estimativa:estimativa,
     ambientes:JSON.stringify(atAmbs),
     vendedor_id:vendedor.id,vendedor_nome:vendedor.nome,
     etapa:'entrada',status:'em_andamento',
@@ -1687,6 +1698,7 @@ async function salvarAtendimento(){
   atAmbs=[];renderAmbsAt();
   document.getElementById('at-nome').value='';document.getElementById('at-tel').value='';
   document.getElementById('at-email').value='';document.getElementById('at-ambiente').value='';
+  document.getElementById('at-estimativa').value='';
 }
 
 /* ── FUNIL ── */
@@ -1892,12 +1904,31 @@ async function concluirAt(id,resultado){
 }
 
 async function atualizarProdutividadeVendedor(vendedorId){
-  const mesPassado=new Date();mesPassado.setMonth(mesPassado.getMonth()-1);
-  const mesRef=mesPassado.toISOString().slice(0,7);
-  const {data:ats}=await db.from('atendimentos').select('*').eq('vendedor_id',vendedorId).eq('mes_ref',mesRef);
-  if(!ats||ats.length<3)return;
-  const media=ats.length;
-  await db.from('vendedores').update({produtividade_atual:media,ultima_atualizacao:new Date().toISOString()}).eq('id',vendedorId);
+  // Usa os últimos 3 meses para calcular a média de valor real projetado
+  const hoje=new Date();
+  const meses=[];
+  for(let i=1;i<=3;i++){
+    const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1);
+    meses.push(d.toISOString().slice(0,7));
+  }
+  const {data:ats}=await db.from('atendimentos')
+    .select('ambientes')
+    .eq('vendedor_id',vendedorId)
+    .in('mes_ref',meses)
+    .neq('status','concluido_perdido');
+  if(!ats||ats.length<2)return;
+  // Média mensal do valor real dos ambientes projetados
+  const totalVal=ats.reduce((s,a)=>{
+    const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+    return s+ambs.reduce((ss,am)=>ss+(am.valor||0),0);
+  },0);
+  const mediaValMensal=Math.round(totalVal/3);
+  if(mediaValMensal>0){
+    await db.from('vendedores').update({
+      produtividade_atual:mediaValMensal,
+      ultima_atualizacao:new Date().toISOString()
+    }).eq('id',vendedorId);
+  }
 }
 
 function fecharModalAt(){document.getElementById('modal-at').style.display='none';}
@@ -1927,7 +1958,7 @@ async function loadRelatorioAt(){
     html+=`<div class="card">
       <div class="card-header" style="margin-bottom:0.75rem;">
         <div class="card-title">${v.nome}</div>
-        <span class="badge badge-amber">${v.produtividade_atual} atend./mês</span>
+        <span class="badge badge-amber">${fmt(v.produtividade_atual)}/mês</span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:0.75rem;">
         <div><div style="font-size:11px;color:var(--text2);">Atendimentos</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;">${todos.length}</div></div>
