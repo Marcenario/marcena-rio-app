@@ -1203,17 +1203,23 @@ async function loadUsuarios(){
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum usuário.</p></div>';return}
   cont.innerHTML=data.map(u=>{
     const lbl=u.nivel==='admin'?'Admin':u.nivel==='funcionario'?'Funcionário':'Cliente';
-    const cls=u.nivel==='admin'?'badge-accent':u.nivel==='funcionario'?'badge-purple':'badge-blue';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
-      <div style="font-size:14px;font-weight:500;">${u.email}</div>
-      <div style="display:flex;align-items:center;gap:10px;">
+    const cls=u.nivel==='admin'?'badge-accent':u.nivel==='funcionario'?'badge-blue':'badge-blue';
+    const isMe=u.id===currentUser.id;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-size:14px;font-weight:500;">${u.email}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Criado em ${new Date(u.created_at).toLocaleDateString('pt-BR')}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="badge ${cls}">${lbl}</span>
         <select onchange="alterarNivel('${u.id}',this.value)" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
-          <option value="">Alterar...</option>
+          <option value="">Alterar nível...</option>
           <option value="cliente">Cliente</option>
           <option value="funcionario">Funcionário</option>
           <option value="admin">Admin</option>
         </select>
+        <button onclick="resetarSenha('${u.id}','${u.email}')" style="background:var(--amber-bg);color:var(--amber);border:1px solid #e8c87a;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔑 Resetar senha</button>
+        ${!isMe?`<button onclick="excluirUsuario('${u.id}','${u.email}')" style="background:var(--red-bg);color:var(--red);border:1px solid #f0a8a8;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑 Excluir</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1224,6 +1230,32 @@ async function alterarNivel(userId,nivel){
   const {error}=await db.from('perfis').update({nivel}).eq('id',userId);
   if(error){notify('Erro ao alterar.','error');return}
   notify('Nível atualizado!');loadUsuarios();
+}
+
+async function resetarSenha(userId,email){
+  if(!confirm(`Enviar e-mail de redefinição de senha para ${email}?`))return;
+  const {error}=await db.auth.resetPasswordForEmail(email,{
+    redirectTo:`${window.location.origin}`
+  });
+  if(error){notify('Erro ao enviar e-mail: '+error.message,'error');return}
+  notify(`E-mail de redefinição enviado para ${email}!`);
+}
+
+async function excluirUsuario(userId,email){
+  if(!confirm(`Excluir permanentemente o usuário ${email}?\n\nEsta ação não pode ser desfeita.`))return;
+  try{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/admin-excluir-usuario`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({user_id:userId})
+    });
+    const json=await res.json();
+    if(!res.ok)throw new Error(json.error||'Erro desconhecido');
+    notify(`Usuário ${email} excluído!`);
+    loadUsuarios();
+  }catch(e){
+    notify('Erro ao excluir: '+e.message,'error');
+  }
 }
 
 /* ══════════════════════════════════════════
