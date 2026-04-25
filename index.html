@@ -1,96 +1,2202 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marcena Rio</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MarcenaRio">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--brand:#1a1a2e;--brand-mid:#2d2d4e;--accent:#c8a96e;--accent-light:#f0e6d3;--bg:#f8f6f2;--bg2:#ffffff;--text:#1a1a2e;--text2:#6b6880;--text3:#9b98a8;--border:rgba(26,26,46,0.10);--border2:rgba(26,26,46,0.18);--green:#2d7a4f;--green-bg:#eaf5ee;--amber:#8a5c1a;--amber-bg:#fdf3e3;--blue:#1a4a8a;--blue-bg:#e8f0fc;--red:#8a1a1a;--red-bg:#fce8e8;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(26,26,46,0.08);--shadow-lg:0 8px 32px rgba(26,26,46,0.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--brand);padding:2rem}
+.auth-box{background:var(--bg2);border-radius:20px;padding:2.5rem;width:100%;max-width:400px;box-shadow:var(--shadow-lg)}
+.auth-logo{text-align:center;margin-bottom:2rem}
+.auth-logo h1{font-size:32px;color:var(--brand);letter-spacing:-0.5px}
+.auth-logo span{color:var(--accent);font-style:italic}
+.auth-logo p{font-size:13px;color:var(--text2);margin-top:4px}
+.auth-tabs{display:flex;background:var(--bg);border-radius:var(--radius-sm);padding:3px;margin-bottom:1.5rem}
+.auth-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-family:'DM Sans',sans-serif;border:none;background:transparent;border-radius:6px;cursor:pointer;color:var(--text2);transition:all 0.15s}
+.auth-tab.active{background:var(--bg2);color:var(--text);font-weight:500;box-shadow:var(--shadow)}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.form-group input{width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:border-color 0.15s}
+.form-group input:focus{border-color:var(--accent);background:var(--bg2)}
+.btn-main{width:100%;padding:11px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;margin-top:0.5rem;transition:background 0.15s}
+.btn-main:hover{background:var(--brand-mid)}
+.btn-main:disabled{opacity:0.6;cursor:not-allowed}
+.auth-msg{font-size:13px;text-align:center;margin-top:10px;min-height:18px}
+.auth-msg.error{color:var(--red)}
+.auth-msg.success{color:var(--green)}
+#app-screen{display:none;min-height:100vh}
+.topbar{background:var(--brand);color:#fff;padding:0 2rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-logo{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:-0.3px}
+.topbar-logo span{color:var(--accent);font-style:italic}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.topbar-user{font-size:13px;opacity:0.7}
+.topbar-nivel{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:500}
+.nivel-admin{background:var(--accent);color:#fff}
+.nivel-funcionario{background:#534AB7;color:#fff}
+.nivel-cliente{background:rgba(255,255,255,0.15);color:#fff}
+.btn-logout{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.nav-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;overflow-x:auto}
+.nav-item{padding:14px 16px;font-size:13px;font-family:'DM Sans',sans-serif;border:none;background:transparent;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap}
+.nav-item.active{color:var(--text);border-bottom-color:var(--accent);font-weight:500}
+.main-content{max-width:900px;margin:0 auto;padding:2rem}
+.section{display:none}
+.section.active{display:block}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.card-title{font-size:16px;font-weight:500;color:var(--text)}
+.card-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-accent{background:var(--accent-light);color:#7a5c2a}
+.tl-item{display:flex;gap:14px}
+.tl-left{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.tl-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.tl-dot.done{background:var(--green-bg);color:var(--green)}
+.tl-dot.active{background:var(--accent-light);color:#7a5c2a;border:2px solid var(--accent)}
+.tl-dot.pending{background:var(--bg);color:var(--text3);border:1px solid var(--border2)}
+.tl-line{width:1px;flex:1;min-height:14px;background:var(--border2)}
+.tl-content{padding-bottom:18px;flex:1;padding-top:5px}
+.tl-name{font-size:14px;font-weight:500}
+.tl-name.done{color:var(--text2)}
+.tl-name.active{color:var(--text)}
+.tl-name.pending{color:var(--text3)}
+.tl-status{font-size:12px;margin-top:2px}
+.tl-status.done{color:var(--green)}
+.tl-status.active{color:#7a5c2a}
+.tl-status.pending{color:var(--text3)}
+.progress-bar{height:4px;background:var(--bg);border-radius:2px;margin:8px 0 4px}
+.progress-fill{height:4px;background:var(--accent);border-radius:2px;transition:width 0.4s}
+.form-row{margin-bottom:0.85rem}
+.form-row label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:border-color 0.15s}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--accent);background:var(--bg2)}
+.form-row textarea{height:80px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-submit{background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:11px 24px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;margin-top:0.5rem}
+.btn-submit:hover{background:var(--brand-mid)}
+.btn-submit:disabled{opacity:0.6;cursor:not-allowed}
+.btn-step{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer}
+.btn-step:disabled{opacity:0.4;cursor:not-allowed}
+.btn-step-back{background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.step-control{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.25rem}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow)}
+.stat-num{font-size:28px;font-family:'DM Serif Display',serif;color:var(--text)}
+.stat-label{font-size:12px;color:var(--text2);margin-top:2px}
+.proj-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.proj-row:last-child{border-bottom:none}
+.proj-row:hover .proj-name{color:var(--accent)}
+.proj-name{font-size:14px;font-weight:500}
+.proj-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.rd-banner{background:var(--amber-bg);border:1px solid #e8c87a;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem}
+.rd-banner.connected{background:var(--green-bg);border-color:#7acc9e}
+.rd-banner-title{font-size:14px;font-weight:500;color:var(--amber);margin-bottom:4px}
+.rd-banner.connected .rd-banner-title{color:var(--green)}
+.rd-banner-sub{font-size:12px;color:#a07830}
+.rd-banner.connected .rd-banner-sub{color:#3a7a50}
+.rd-row{display:flex;gap:8px;margin-top:10px}
+.rd-row input{flex:1;padding:8px 12px;border:1px solid #e8c87a;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;outline:none}
+.btn-rd{background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
+.alert{border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin:8px 0}
+.alert-success{background:var(--green-bg);color:var(--green);border:1px solid #a8dfc0}
+.alert-error{background:var(--red-bg);color:var(--red);border:1px solid #f0a8a8}
+.alert-info{background:var(--blue-bg);color:var(--blue);border:1px solid #a8c4f0}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text3)}
+.loader{text-align:center;padding:2rem;color:var(--text2);font-size:14px}
+#notif{position:fixed;top:20px;right:20px;background:var(--brand);color:#fff;padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:9999;opacity:0;transform:translateY(-8px);transition:all 0.25s;pointer-events:none;max-width:300px}
+#notif.show{opacity:1;transform:translateY(0)}
+.divider{height:1px;background:var(--border);margin:1rem 0}
+.team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+.team-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;box-shadow:var(--shadow)}
+.amb-list-item{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:13px}
+.btn-red-sm{background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer}
+.btn-green{background:var(--green);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer}
+.pedido-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:10px;box-shadow:var(--shadow)}
+.info-box{background:var(--blue-bg);border:1px solid #b5d4f4;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:1rem}
+.sub-nav{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;padding:0 0.5rem;display:flex;overflow-x:auto}
+@media(max-width:600px){.main-content{padding:1rem}.stats-grid{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.team-grid{grid-template-columns:1fr}.nav-bar{padding:0 0.5rem}.nav-item{padding:12px 10px}}
+/* ── AUTOCOMPLETE CONTRATO ── */
+.ac-wrap{position:relative;}
+.ac-wrap input{width:100%;}
+.ac-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:300;max-height:260px;overflow-y:auto;display:none;}
+.ac-dropdown.open{display:block;}
+.ac-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover,.ac-item.ac-sel{background:var(--accent-light);}
+.ac-item-ct{font-size:13px;font-weight:600;color:var(--text);}
+.ac-item-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.ac-empty{padding:12px 14px;font-size:13px;color:var(--text3);text-align:center;}
+.ct-selecionado{background:var(--green-bg);border:1px solid #a8dfc0;border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;}
+.ct-selecionado .ct-num{font-weight:600;color:var(--green);font-size:15px;}
+.ct-selecionado .ct-cli{font-size:13px;color:var(--text2);margin-top:2px;}
+.btn-trocar{background:none;border:1px solid var(--border2);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.ct-pedidos{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:1rem;}
+.ct-pedidos-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;}
+.ct-ped-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:5px 0;border-top:1px solid var(--border);font-size:12px;align-items:center;cursor:pointer;}
+.ct-ped-row:hover{background:var(--accent-light);}
+.ct-ped-row span:first-child{color:var(--blue);text-decoration:underline;text-decoration-style:dotted;}
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+/* ── MODAL EDIÇÃO ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,26,46,0.55);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto;}
+.modal-box{background:var(--bg2);border-radius:var(--radius);width:100%;max-width:720px;box-shadow:var(--shadow-lg);margin:auto;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);}
+.modal-title{font-size:16px;font-weight:500;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);padding:0;line-height:1;}
+.modal-body{padding:1.25rem 1.5rem;max-height:70vh;overflow-y:auto;}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.audit-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.audit-item:last-child{border-bottom:none;}
+.audit-campo{font-weight:600;color:var(--text);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;}
+.audit-who{color:var(--text2);margin-top:2px;}
+.audit-diff{margin-top:4px;display:flex;gap:8px;}
+.audit-antes{background:var(--red-bg);color:var(--red);padding:3px 8px;border-radius:4px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.audit-depois{background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:4px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.oc-edit-item{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+/* ── ASTECA ── */
+.badge-asteca{background:#8a1a1a;color:#fff;animation:pulso 2s infinite;}
+@keyframes pulso{0%,100%{opacity:1;}50%{opacity:0.7;}}
+.checklist-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+.checklist-item:last-child{border-bottom:none;}
+.checklist-item:hover{background:var(--accent-light);}
+.checklist-item.checked{background:var(--green-bg);}
+.checklist-item input[type=checkbox]{width:18px;height:18px;cursor:pointer;flex-shrink:0;margin-top:2px;accent-color:var(--green);}
+.checklist-item .ci-tipo{font-size:11px;font-weight:600;color:var(--brand);text-transform:uppercase;letter-spacing:0.3px;}
+.checklist-item .ci-desc{font-size:12px;color:var(--text);margin-top:2px;}
+.checklist-item .ci-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.checklist-wrap{border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
+.checklist-header{background:var(--brand);color:#fff;padding:8px 14px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:space-between;}
+.tipo-toggle{display:flex;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:3px;margin-bottom:1rem;gap:4px;}
+.tipo-btn{flex:1;padding:10px;text-align:center;font-size:13px;font-family:'DM Sans',sans-serif;border:none;background:transparent;border-radius:6px;cursor:pointer;color:var(--text2);transition:all 0.2s;font-weight:500;}
+.tipo-btn.active-montagem{background:var(--brand);color:#fff;box-shadow:var(--shadow);}
+.tipo-btn.active-asteca{background:#8a1a1a;color:#fff;box-shadow:var(--shadow);}
+.asteca-urgente{border-left:4px solid #8a1a1a !important;}
+</style>
+</head>
+<body>
+<div id="notif"></div>
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <img src="/logo_basic (1).png" alt="Marcena Rio" style="width:180px;margin-bottom:12px;" onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='block'">
+      <h1 id="logo-fallback" style="display:none;font-size:32px;color:var(--brand);">Marcena<span style="color:var(--accent);font-style:italic;">Rio</span></h1>
+      <p>Portal do cliente · Móveis planejados</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup')">Criar conta</button>
+    </div>
+    <div id="login-form">
+      <div class="form-group"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com"></div>
+      <div class="form-group"><label>Senha</label><input type="password" id="login-pass" placeholder="Sua senha" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-main" onclick="doLogin()" id="btn-login">Entrar</button>
+      <p class="auth-msg" id="login-msg"></p>
+    </div>
+    <div id="signup-form" style="display:none">
+      <div class="form-group"><label>Nome completo</label><input type="text" id="signup-nome" placeholder="Seu nome"></div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="signup-email" placeholder="seu@email.com"></div>
+      <div class="form-group"><label>Telefone / WhatsApp</label><input type="text" id="signup-tel" placeholder="(21) 99999-0000"></div>
+      <div class="form-group"><label>Senha</label><input type="password" id="signup-pass" placeholder="Mínimo 6 caracteres"></div>
+      <button class="btn-main" onclick="doSignup()" id="btn-signup">Criar conta</button>
+      <p class="auth-msg" id="signup-msg"></p>
+    </div>
+  </div>
+</div>
 
-  const body = await req.text();
-  console.log("Body recebido:", body);
+<div id="app-screen">
+  <div class="topbar">
+    <div class="topbar-logo">Marcena<span>Rio</span></div>
+    <div class="topbar-right">
+      <span class="topbar-nivel" id="topbar-nivel"></span>
+      <span class="topbar-user" id="topbar-email"></span>
+      <button class="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+  <div class="nav-bar">
+    <button class="nav-item active" id="nav-solicitar" onclick="showSection('solicitar',this)">Solicitar orçamento</button>
+    <button class="nav-item" id="nav-projetos" onclick="showSection('projetos',this)">Meus projetos</button>
+    <button class="nav-item" id="nav-montagem" style="display:none" onclick="showSection('montagem',this)">Montagem</button>
+    <button class="nav-item" id="nav-ocorrencias" style="display:none" onclick="showSection('ocorrencias',this)">Ocorrências</button>
+    <button class="nav-item" id="nav-vistoria" style="display:none" onclick="showSection('vistoria',this)">Vistoria Final</button>
+    <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin',this)">Painel admin</button>
+    <button class="nav-item" id="nav-usuarios" style="display:none" onclick="showSection('usuarios',this)">Usuários</button>
+  </div>
+  <div class="main-content">
 
-  try {
-    const { relatorio_id, doc_id } = JSON.parse(body);
-    console.log("relatorio_id:", relatorio_id);
-    console.log("doc_id:", doc_id);
+    <!-- SOLICITAR ORÇAMENTO -->
+    <div id="solicitar" class="section active">
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">Nova solicitação de orçamento</div><div class="card-sub">Preencha as informações para iniciarmos seu projeto</div></div></div>
+        <div class="form-grid">
+          <div class="form-row"><label>Nome completo</label><input type="text" id="orc-nome" placeholder="Seu nome completo"></div>
+          <div class="form-row"><label>Telefone / WhatsApp</label><input type="text" id="orc-tel" placeholder="(21) 99999-0000"></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row"><label>Para qual ambiente deseja um orçamento?</label><input type="text" id="orc-ambiente" placeholder="Ex: Cozinha, dormitório, sala..."></div>
+          <div class="form-row"><label>Faixa de investimento</label>
+            <select id="orc-prazo">
+              <option value="">Selecione...</option>
+              <option>0 a 15.000</option><option>15.000 a 30.000</option>
+              <option>30.000 a 50.000</option><option>50.000 a 100.000</option>
+              <option>Acima de 100.000</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row"><label>Descrição do projeto</label><textarea id="orc-desc" placeholder="Descreva o que você precisa: estilo, cores, referências, medidas aproximadas..."></textarea></div>
+        <div class="form-row">
+          <label>Planta ou referências (opcional)</label>
+          <div id="upload-area" style="border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;background:var(--bg);" onclick="document.getElementById('orc-arquivo').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="handleDrop(event)">
+            <input type="file" id="orc-arquivo" accept=".pdf,.jpg,.jpeg,.png,.dwg" style="display:none" onchange="showFile(this)">
+            <div id="upload-label"><div style="font-size:22px;margin-bottom:6px;color:var(--text3)">📄</div><div style="font-size:13px;color:var(--text2);font-weight:500;">Clique para anexar ou arraste o arquivo aqui</div><div style="font-size:11px;color:var(--text3);margin-top:4px;">PDF, JPG, PNG ou DWG · máx. 10MB</div></div>
+          </div>
+          <div id="file-preview" style="display:none;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;"><span>📄</span><div><div id="file-name" style="font-size:13px;font-weight:500;"></div><div id="file-size" style="font-size:11px;color:var(--text3)"></div></div></div>
+            <button onclick="removeFile()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;">✕</button>
+          </div>
+        </div>
+        <div id="orc-alert"></div>
+        <button class="btn-submit" onclick="enviarOrcamento()" id="btn-orc">Enviar solicitação</button>
+      </div>
+    </div>
 
-    if (!doc_id) throw new Error("doc_id não informado");
+    <!-- PROJETOS -->
+    <div id="projetos" class="section">
+      <div id="projetos-content"><div class="loader">Carregando projetos...</div></div>
+    </div>
 
-    const token = Deno.env.get("AUTENTIQUE_TOKEN")!;
-    console.log("Token disponível:", !!token);
+    <!-- MONTAGEM -->
+    <div id="montagem" class="section">
+      <div class="sub-nav">
+        <button class="nav-item active" id="mt-nav-fila" onclick="showSubMontagem('mt-fila',this)">Fila</button>
+        <button class="nav-item" id="mt-nav-novo" onclick="showSubMontagem('mt-novo',this)">Novo pedido</button>
+        <button class="nav-item" id="mt-nav-equipes" style="display:none" onclick="showSubMontagem('mt-equipes',this)">Equipes</button>
+        <button class="nav-item" id="mt-nav-relatorio" style="display:none" onclick="showSubMontagem('mt-relatorio',this)">Relatório</button>
+      </div>
+      <div id="mt-fila">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="stat-card"><div class="stat-num" id="mt-st-ag">—</div><div class="stat-label">Aguardando</div></div>
+          <div class="stat-card"><div class="stat-num" id="mt-st-em">—</div><div class="stat-label">Em montagem</div></div>
+          <div class="stat-card"><div class="stat-num" id="mt-st-co">—</div><div class="stat-label">Concluídos</div></div>
+          <div class="stat-card"><div class="stat-num" id="mt-st-vl">—</div><div class="stat-label">Valor em fila</div></div>
+        </div>
+        <div id="mt-fila-content"><div class="loader">Carregando...</div></div>
+      </div>
+      <div id="mt-novo" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Registrar chegada de pedido</div>
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+          <!-- Toggle Montagem / ASTECA -->
+          <div class="tipo-toggle">
+            <button class="tipo-btn active-montagem" id="btn-tipo-montagem" onclick="setTipoMt('montagem')">🔨 Montagem</button>
+            <button class="tipo-btn" id="btn-tipo-asteca" onclick="setTipoMt('asteca')">🔧 ASTECA — Assistência Técnica</button>
+          </div>
 
-    const query = `query {
-      document(id: "${doc_id}") {
-        id
-        name
-        files { signed }
-        signatures { public_id name email }
-      }
-    }`;
+          <div class="form-grid">
+            <div class="form-row"><label>Número do contrato</label><input type="text" id="mt-contrato" placeholder="Ex: CT-2026-001" oninput="onMtContratoInput(this.value)"></div>
+            <div class="form-row"><label>Data de chegada</label><input type="date" id="mt-data"></div>
+          </div>
+          <div class="form-row"><label>Nome do cliente</label><input type="text" id="mt-cliente" placeholder="Nome completo"></div>
 
-    const res = await fetch("https://api.autentique.com.br/v2/graphql", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query }),
+          <!-- CHECKLIST ASTECA — aparece só quando tipo=asteca -->
+          <div id="mt-asteca-wrap" style="display:none;">
+            <div class="divider"></div>
+            <div style="font-size:14px;font-weight:500;color:#8a1a1a;margin-bottom:0.5rem;">⚠️ Checklist de peças/avarias da vistoria</div>
+            <div class="info-box" style="border-color:#f0a8a8;background:var(--red-bg);color:var(--red);">Todas as ocorrências do relatório de vistoria devem ser confirmadas antes de liberar a ASTECA para a fila. Marque cada item conforme as peças chegam.</div>
+            <div id="mt-checklist-wrap">
+              <div style="font-size:13px;color:var(--text3);padding:12px 0;">Digite o número do contrato acima para carregar as ocorrências da vistoria.</div>
+            </div>
+            <div id="mt-asteca-admin" style="display:none;margin-bottom:1rem;">
+              <div style="background:var(--amber-bg);border:1px solid #e8c87a;border-radius:var(--radius-sm);padding:12px 14px;">
+                <div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:8px;">⚠️ Autorização de admin — envio parcial</div>
+                <div class="form-row" style="margin-bottom:0;"><label>Justificativa para envio parcial</label><textarea id="mt-asteca-justificativa" style="height:60px;resize:none;" placeholder="Descreva o motivo para enviar com itens pendentes..."></textarea></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+          <div id="mt-secao-label" style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores de contrato</div>
+          <div class="info-box">Adicione cada ambiente com seu número de pedido, nota fiscal e valor. O app distribui automaticamente para a equipe mais produtiva.</div>
+          <div id="mt-amb-list"></div>
+          <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do pedido</label><input type="text" id="mt-amb-pedido" placeholder="Ex: 00123" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nota fiscal</label><input type="text" id="mt-amb-nf" placeholder="Ex: 9876" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nome do ambiente</label><input type="text" id="mt-amb-nome" placeholder="Ex: Cozinha" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Valor (R$)</label><input type="text" id="mt-amb-valor" placeholder="Ex: 15000" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;width:100%;" onclick="addAmbMt()">+ Adicionar ambiente</button>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <span style="font-size:14px;color:var(--text2);">Total:</span>
+            <span style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;" id="mt-total">R$ 0,00</span>
+          </div>
+          <div id="mt-novo-alert"></div>
+          <button class="btn-submit" onclick="salvarPedidoMt()" id="btn-mt-novo">Registrar e distribuir para equipe</button>
+        </div>
+      </div>
+      <div id="mt-equipes" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Cadastrar nova equipe</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Nome da equipe</label><input type="text" id="mt-eq-nome" placeholder="Ex: Equipe Alpha"></div>
+            <div class="form-row"><label>Produtividade inicial (R$/dia)</label><input type="number" id="mt-eq-prod" placeholder="Ex: 3000"></div>
+          </div>
+          <button class="btn-submit" onclick="salvarEquipe()">Cadastrar equipe</button>
+        </div>
+        <div id="mt-equipes-content"><div class="loader">Carregando...</div></div>
+      </div>
+      <div id="mt-relatorio" style="display:none">
+        <div class="info-box">A produtividade média é recalculada automaticamente a cada 3 meses com base nas montagens concluídas.</div>
+        <div id="mt-rel-content"><div class="loader">Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="admin" class="section">
+      <div class="rd-banner" id="rd-banner">
+        <div class="rd-banner-title">Integração RD Station — aguardando configuração</div>
+        <div class="rd-banner-sub">Cole seu token de API para sincronizar leads automaticamente.</div>
+        <div class="rd-row"><input type="password" id="rd-key-input" placeholder="Cole seu token de API aqui..."><button class="btn-rd" onclick="saveRDKey()">Conectar</button></div>
+        <div id="rd-status-msg" style="font-size:12px;margin-top:6px;"></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="stat-ativos">—</div><div class="stat-label">Projetos ativos</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-pendentes">—</div><div class="stat-label">Aguardando ação</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-concluidos">—</div><div class="stat-label">Concluídos</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Todos os projetos</div></div>
+        <div id="admin-projetos"><div class="loader">Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- USUÁRIOS -->
+    <div id="usuarios" class="section">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:0.75rem;">Gerenciar níveis de acesso</div>
+        <div class="info-box">Clientes veem apenas seus projetos. Funcionários acessam montagem e projetos. Admin acessa tudo.</div>
+        <div id="usuarios-content"><div class="loader">Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- OCORRÊNCIAS -->
+    <div id="ocorrencias" class="section">
+      <div class="sub-nav">
+        <button class="nav-item active" id="oc-nav-lista" onclick="showSubOc('oc-lista',this)">Registros</button>
+        <button class="nav-item" id="oc-nav-falta" onclick="showSubOc('oc-falta',this)">+ Falta de volume</button>
+        <button class="nav-item" id="oc-nav-ocorrencia" onclick="showSubOc('oc-ocorrencia',this)">+ Ocorrência</button>
+      </div>
+
+      <!-- Lista de ocorrências -->
+      <div id="oc-lista">
+        <div id="oc-lista-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- Registrar falta de volume -->
+      <div id="oc-falta" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:0.75rem;">Registrar falta de volume</div>
+          <div class="info-box">Registre cada peça faltante identificada na conferência da mercadoria.</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Pedido de montagem</label>
+              <select id="oc-falta-pedido">
+                <option value="">Selecione o pedido...</option>
+              </select>
+            </div>
+            <div class="form-row"><label>Data</label><input type="date" id="oc-falta-data"></div>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Peças faltantes</div>
+          <div id="oc-falta-list"></div>
+          <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+            <div class="form-grid" style="margin-bottom:8px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do pedido</label><input type="text" id="oc-f-nped" placeholder="Ex: 00123" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nota fiscal</label><input type="text" id="oc-f-nf" placeholder="Ex: 9876" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do volume</label><input type="text" id="oc-f-vol" placeholder="Ex: 03" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do item</label><input type="text" id="oc-f-item" placeholder="Ex: 05" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Quantidade</label><input type="number" id="oc-f-qtd" placeholder="1" min="1" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;width:100%;" onclick="addFaltaItem()">+ Adicionar peça</button>
+          </div>
+          <div class="divider"></div>
+          <div id="oc-falta-alert"></div>
+          <button class="btn-submit" onclick="salvarFalta()" id="btn-salvar-falta">Registrar falta</button>
+        </div>
+      </div>
+
+      <!-- Registrar ocorrência -->
+      <div id="oc-ocorrencia" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:0.75rem;">Registrar ocorrência</div>
+          <div class="info-box">Registre problemas identificados durante a montagem. Fotos da etiqueta e do problema são obrigatórias.</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Pedido de montagem</label>
+              <select id="oc-oc-pedido">
+                <option value="">Selecione o pedido...</option>
+              </select>
+            </div>
+            <div class="form-row"><label>Tipo de ocorrência</label>
+              <select id="oc-oc-tipo">
+                <option value="">Selecione...</option>
+                <option value="asteca_fabrica">Asteca de fábrica</option>
+                <option value="asteca_loja">Asteca de loja</option>
+                <option value="avaria_transporte">Avaria de transporte</option>
+                <option value="avaria_montagem">Avaria de montagem</option>
+              </select>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Peças com ocorrência</div>
+          <div id="oc-oc-list"></div>
+          <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+            <div class="form-grid" style="margin-bottom:8px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do pedido</label><input type="text" id="oc-o-nped" placeholder="Ex: 00123" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nota fiscal</label><input type="text" id="oc-o-nf" placeholder="Ex: 9876" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do volume</label><input type="text" id="oc-o-vol" placeholder="Ex: 03" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do item</label><input type="text" id="oc-o-item" placeholder="Ex: 05" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Quantidade</label><input type="number" id="oc-o-qtd" placeholder="1" min="1" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;width:100%;" onclick="addOcorrenciaItem()">+ Adicionar peça</button>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Fotos obrigatórias</div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>📷 Foto da etiqueta da peça</label>
+              <input type="file" id="oc-foto-etiqueta" accept="image/*" capture="environment" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);">
+            </div>
+            <div class="form-row">
+              <label>📷 Foto do problema</label>
+              <input type="file" id="oc-foto-problema" accept="image/*" capture="environment" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);">
+            </div>
+          </div>
+          <div class="form-row">
+            <label>📷 Fotos adicionais (opcional)</label>
+            <input type="file" id="oc-fotos-extras" accept="image/*" multiple style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);">
+          </div>
+          <div id="oc-oc-alert"></div>
+          <button class="btn-submit" onclick="salvarOcorrencia()" id="btn-salvar-oc">Registrar ocorrência</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTORIA FINAL -->
+    <div id="vistoria" class="section">
+      <div class="sub-nav">
+        <button class="nav-item active" id="vs-nav-lista" onclick="showSubVistoria('vs-lista',this)">Relatórios</button>
+        <button class="nav-item" id="vs-nav-novo" onclick="showSubVistoria('vs-novo',this)">+ Novo relatório</button>
+      </div>
+
+      <!-- Lista de relatórios -->
+      <div id="vs-lista">
+        <div id="vs-lista-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- Novo relatório -->
+      <div id="vs-novo" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:0.75rem;">Criar relatório de vistoria final</div>
+
+          <!-- Passo 1: Dados do cliente -->
+          <div style="font-size:13px;font-weight:500;color:var(--accent);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.5px;">Passo 1 — Buscar contrato</div>
+
+          <!-- Busca autocomplete -->
+          <div id="vs-busca-wrap">
+            <div class="form-row">
+              <label>Número do contrato ou nome do cliente</label>
+              <div class="ac-wrap" id="vs-ac-wrap">
+                <input type="text" id="vs-ac-input" placeholder="Digite o contrato ou nome..." autocomplete="off"
+                  oninput="vsAcInput(this.value)" onkeydown="vsAcKeydown(event)" onfocus="vsAcInput(this.value)">
+                <div class="ac-dropdown" id="vs-ac-dropdown"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contrato selecionado -->
+          <div id="vs-ct-selecionado" style="display:none;">
+            <div class="ct-selecionado">
+              <div>
+                <div class="ct-num" id="vs-ct-num">—</div>
+                <div class="ct-cli" id="vs-ct-cli">—</div>
+              </div>
+              <button class="btn-trocar" onclick="vsTrocarContrato()">Trocar contrato</button>
+            </div>
+            <div id="vs-ct-pedidos"></div>
+          </div>
+
+          <!-- Campo oculto para manter o pedido_id selecionado -->
+          <input type="hidden" id="vs-pedido" value="">
+
+          <div class="form-grid">
+            <div class="form-row"><label>Data da vistoria</label><input type="date" id="vs-data"></div>
+            <div class="form-row"><label>Número do contrato</label><input type="text" id="vs-contrato" placeholder="Preenchido automaticamente"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row"><label>Nome do cliente</label><input type="text" id="vs-cliente" placeholder="Preenchido automaticamente"></div>
+            <div class="form-row"><label>E-mail do cliente (para assinatura)</label><input type="email" id="vs-email" placeholder="cliente@email.com"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row"><label>Nome do responsável pela vistoria</label><input type="text" id="vs-responsavel-nome" placeholder="Nome completo do responsável"></div>
+            <div class="form-row"><label>E-mail do responsável (para assinatura)</label><input type="email" id="vs-responsavel-email" placeholder="responsavel@marcenario.com.br"></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Passo 2: Projeto executivo -->
+          <div style="font-size:13px;font-weight:500;color:var(--accent);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.5px;">Passo 2 — Projeto executivo</div>
+          <div class="form-row">
+            <label>Anexar projeto executivo (PDF)</label>
+            <div style="border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;background:var(--bg);" onclick="document.getElementById('vs-projeto-file').click()">
+              <input type="file" id="vs-projeto-file" accept=".pdf" style="display:none" onchange="showProjetoFile(this)">
+              <div id="vs-projeto-label"><div style="font-size:20px;margin-bottom:4px;">📋</div><div style="font-size:13px;color:var(--text2);font-weight:500;">Clique para anexar o PDF do projeto</div></div>
+              <div id="vs-projeto-preview" style="display:none;font-size:13px;color:var(--green);font-weight:500;"></div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Passo 3: Ocorrências -->
+          <div style="font-size:13px;font-weight:500;color:var(--accent);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.5px;">Passo 3 — Ocorrências registradas</div>
+          <div id="vs-ocorrencias-content"><div style="font-size:13px;color:var(--text3);">Selecione um pedido para carregar as ocorrências.</div></div>
+
+          <div style="margin-top:1rem;">
+            <div style="font-size:13px;font-weight:500;margin-bottom:0.5rem;">Adicionar nova ocorrência ao relatório</div>
+            <div class="form-grid" style="margin-bottom:8px;">
+              <div class="form-row"><label>Tipo</label>
+                <select id="vs-oc-tipo">
+                  <option value="">Selecione...</option>
+                  <option value="falta_volume">Falta de volume</option>
+                  <option value="asteca_fabrica">Asteca de fábrica</option>
+                  <option value="asteca_loja">Asteca de loja</option>
+                  <option value="avaria_transporte">Avaria de transporte</option>
+                  <option value="avaria_montagem">Avaria de montagem</option>
+                </select>
+              </div>
+              <div class="form-row"><label>Descrição</label><input type="text" id="vs-oc-desc" placeholder="Descreva o problema"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+              <input type="text" id="vs-oc-nped" placeholder="Nº Pedido" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+              <input type="text" id="vs-oc-nf" placeholder="Nota Fiscal" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+              <input type="text" id="vs-oc-item" placeholder="Nº Item" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+              <input type="number" id="vs-oc-qtd" placeholder="Qtd" min="1" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+            </div>
+            <div class="form-row"><label>📷 Foto (opcional)</label><input type="file" id="vs-oc-foto" accept="image/*" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);"></div>
+            <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;" onclick="addOcVistoria()">+ Adicionar ao relatório</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Passo 4: Observação do cliente -->
+          <div style="font-size:13px;font-weight:500;color:var(--accent);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.5px;">Passo 4 — Observação do cliente (opcional)</div>
+          <div class="form-row"><textarea id="vs-obs" placeholder="Campo para o cliente registrar alguma observação durante a vistoria..." style="height:80px;"></textarea></div>
+
+          <div class="divider"></div>
+          <div id="vs-novo-alert"></div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn-submit" onclick="gerarRelatorio()" id="btn-gerar-rel">Gerar relatório de vistoria</button>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- MODAL EDIÇÃO DE RELATÓRIO -->
+<div id="modal-edicao" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalEdicao()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Editar relatório</div>
+      <button class="modal-close" onclick="fecharModalEdicao()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-rel-id">
+      <div class="form-grid">
+        <div class="form-row"><label>Nome do cliente</label><input type="text" id="edit-cliente"></div>
+        <div class="form-row"><label>E-mail do cliente</label><input type="email" id="edit-email"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row"><label>Número do contrato</label><input type="text" id="edit-contrato"></div>
+        <div class="form-row"><label>Data da vistoria</label><input type="date" id="edit-data"></div>
+      </div>
+      <div class="form-row"><label>Observação do cliente</label><textarea id="edit-obs" style="height:80px;resize:vertical;"></textarea></div>
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Ocorrências</div>
+      <div id="edit-ocs-lista"></div>
+      <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;margin-bottom:8px;">+ Adicionar ocorrência</div>
+        <div class="form-grid" style="margin-bottom:8px;">
+          <div class="form-row" style="margin-bottom:0;"><label>Tipo</label>
+            <select id="edit-oc-tipo">
+              <option value="">Selecione...</option>
+              <option value="falta_volume">Falta de volume</option>
+              <option value="asteca_fabrica">Asteca de fábrica</option>
+              <option value="asteca_loja">Asteca de loja</option>
+              <option value="avaria_transporte">Avaria de transporte</option>
+              <option value="avaria_montagem">Avaria de montagem</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin-bottom:0;"><label>Descrição</label><input type="text" id="edit-oc-desc" placeholder="Descreva o problema"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+          <input type="text" id="edit-oc-nped" placeholder="Nº Pedido" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+          <input type="text" id="edit-oc-nf" placeholder="NF" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+          <input type="text" id="edit-oc-item" placeholder="Nº Item" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+          <input type="number" id="edit-oc-qtd" placeholder="Qtd" min="1" style="padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+        </div>
+        <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;" onclick="editAdicionarOc()">+ Adicionar</button>
+      </div>
+      <div id="edit-alert" style="margin-top:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-step-back" onclick="fecharModalEdicao()">Cancelar</button>
+      <button class="btn-submit" style="margin-top:0;" onclick="salvarEdicaoRelatorio()" id="btn-salvar-edicao">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AUDITORIA -->
+<div id="modal-auditoria" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalAuditoria()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">🔍 Histórico de alterações</div>
+      <button class="modal-close" onclick="fecharModalAuditoria()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="audit-content"><div class="loader">Carregando...</div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-step-back" onclick="fecharModalAuditoria()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://gnjykqkqtcqqdadhyvcw.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImduanlrcWtxdGNxcWRhZGh5dmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NzY3ODAsImV4cCI6MjA5MjA1Mjc4MH0.w34JaXnu_7cEJ_tNYfjkd0rC_kG0sf5fIunqy2s3sWk';
+const ADMIN_EMAIL='contato@marcenario.com.br';
+const ETAPAS=['Briefing / Envio de planta','Elaboração do projeto','Apresentação do projeto','Orçamento','Negociação e fechamento','Conferência de medidas','Elaboração do projeto executivo','Apresentação do projeto executivo','Produção','Entrega','Montagem'];
+const {createClient}=supabase;
+const db=createClient(SUPABASE_URL,SUPABASE_ANON);
+let currentUser=null,userNivel='cliente',rdKey=localStorage.getItem('mr_rd_key')||'',ambsMt=[];
+
+function notify(msg,type='success'){const n=document.getElementById('notif');n.textContent=msg;n.style.background=type==='error'?'#8a1a1a':type==='info'?'#1a4a8a':'#1a1a2e';n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3000)}
+function setAlert(id,msg,type='info'){const el=document.getElementById(id);if(el)el.innerHTML=msg?`<div class="alert alert-${type}">${msg}</div>`:''}
+function fmt(v){return'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function parseMoney(s){return parseFloat(String(s).replace(/[^\d,\.]/g,'').replace(',','.'))||0}
+
+function switchAuthTab(tab){
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='signup')));
+  document.getElementById('login-form').style.display=tab==='login'?'block':'none';
+  document.getElementById('signup-form').style.display=tab==='signup'?'block':'none';
+}
+
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const btn=document.getElementById('btn-login');
+  const msg=document.getElementById('login-msg');
+  if(!email||!pass){msg.textContent='Preencha e-mail e senha.';msg.className='auth-msg error';return}
+  btn.disabled=true;btn.textContent='Entrando...';
+  const {data,error}=await db.auth.signInWithPassword({email,password:pass});
+  btn.disabled=false;btn.textContent='Entrar';
+  if(error){msg.textContent='E-mail ou senha incorretos.';msg.className='auth-msg error';return}
+  await onLogin(data.user);
+}
+
+async function doSignup(){
+  const nome=document.getElementById('signup-nome').value.trim();
+  const email=document.getElementById('signup-email').value.trim();
+  const tel=document.getElementById('signup-tel').value.trim();
+  const pass=document.getElementById('signup-pass').value;
+  const btn=document.getElementById('btn-signup');
+  const msg=document.getElementById('signup-msg');
+  if(!nome||!email||!pass){msg.textContent='Preencha todos os campos.';msg.className='auth-msg error';return}
+  if(pass.length<6){msg.textContent='Senha mínimo 6 caracteres.';msg.className='auth-msg error';return}
+  btn.disabled=true;btn.textContent='Criando...';
+  const {data,error}=await db.auth.signUp({email,password:pass,options:{data:{nome,telefone:tel}}});
+  btn.disabled=false;btn.textContent='Criar conta';
+  if(error){msg.textContent=error.message;msg.className='auth-msg error';return}
+  msg.textContent='Conta criada! Verifique seu e-mail.';msg.className='auth-msg success';
+}
+
+async function doLogout(){
+  await db.auth.signOut();
+  currentUser=null;userNivel='cliente';
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app-screen').style.display='none';
+}
+
+async function onLogin(user){
+  currentUser=user;
+  userNivel=user.email===ADMIN_EMAIL?'admin':'cliente';
+  try{
+    const {data:p}=await db.from('perfis').select('nivel').eq('id',user.id).single();
+    if(p&&p.nivel&&user.email!==ADMIN_EMAIL)userNivel=p.nivel;
+  }catch(e){}
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('topbar-email').textContent=user.email;
+  const nivelLabel=userNivel==='admin'?'Admin':userNivel==='funcionario'?'Funcionário':'Cliente';
+  const nivelClass=userNivel==='admin'?'nivel-admin':userNivel==='funcionario'?'nivel-funcionario':'nivel-cliente';
+  document.getElementById('topbar-nivel').textContent=nivelLabel;
+  document.getElementById('topbar-nivel').className='topbar-nivel '+nivelClass;
+  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  document.getElementById('nav-solicitar').style.display=isStaff?'none':'block';
+  document.getElementById('nav-projetos').textContent=isStaff?'Projetos':'Meus projetos';
+  document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
+  document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
+  document.getElementById('nav-vistoria').style.display=userNivel==='admin'||userNivel==='funcionario'?'block':'none';
+  document.getElementById('nav-admin').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('nav-usuarios').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('mt-nav-equipes').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('mt-nav-relatorio').style.display=userNivel==='admin'?'block':'none';
+  if(rdKey)showRDConnected();
+  document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
+  if(isStaff){showSection('montagem',document.getElementById('nav-montagem'))}
+  else{showSection('solicitar',document.getElementById('nav-solicitar'));prefillOrcamento()}
+}
+
+function prefillOrcamento(){
+  if(!currentUser)return;
+  const meta=currentUser.user_metadata||{};
+  if(meta.nome)document.getElementById('orc-nome').value=meta.nome;
+  if(meta.telefone)document.getElementById('orc-tel').value=meta.telefone;
+}
+
+function showSection(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-bar>.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='projetos')loadProjetos();
+  if(id==='admin')loadAdmin();
+  if(id==='montagem')loadFilaMt();
+  if(id==='usuarios')loadUsuarios();
+  if(id==='ocorrencias'){loadOcorrencias();carregarPedidosSelect()}
+  if(id==='vistoria'){loadVistorias();carregarPedidosSelectVistoria()}
+}
+
+function showSubMontagem(id,btn){
+  ['mt-fila','mt-novo','mt-equipes','mt-relatorio'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none'});
+  document.querySelectorAll('.sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.style.display='block';
+  if(btn)btn.classList.add('active');
+  if(id==='mt-fila')loadFilaMt();
+  if(id==='mt-equipes')loadEquipes();
+  if(id==='mt-relatorio')loadRelatorio();
+}
+
+function showFile(input){
+  const file=input.files[0];if(!file)return;
+  document.getElementById('upload-label').style.display='none';
+  document.getElementById('file-preview').style.display='flex';
+  document.getElementById('file-name').textContent=file.name;
+  document.getElementById('file-size').textContent=(file.size/1024/1024).toFixed(2)+' MB';
+}
+function removeFile(){
+  document.getElementById('orc-arquivo').value='';
+  document.getElementById('upload-label').style.display='block';
+  document.getElementById('file-preview').style.display='none';
+}
+function handleDrop(event){
+  event.preventDefault();
+  document.getElementById('upload-area').style.borderColor='var(--border2)';
+  const file=event.dataTransfer.files[0];if(!file)return;
+  const input=document.getElementById('orc-arquivo');
+  const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;showFile(input);
+}
+async function uploadArquivo(projetoId){
+  const input=document.getElementById('orc-arquivo');
+  if(!input.files||!input.files[0])return null;
+  const file=input.files[0];
+  const ext=file.name.split('.').pop();
+  const path=`plantas/${projetoId}.${ext}`;
+  const {error}=await db.storage.from('plantas').upload(path,file,{upsert:true});
+  if(error){console.warn('Upload:',error);return null}
+  const {data:urlData}=db.storage.from('plantas').getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+async function enviarOrcamento(){
+  const nome=document.getElementById('orc-nome').value.trim();
+  const tel=document.getElementById('orc-tel').value.trim();
+  const ambiente=document.getElementById('orc-ambiente').value;
+  const investimento=document.getElementById('orc-prazo').value;
+  const desc=document.getElementById('orc-desc').value.trim();
+  if(!nome||!ambiente){setAlert('orc-alert','Preencha nome e ambiente.','error');return}
+  const btn=document.getElementById('btn-orc');btn.disabled=true;btn.textContent='Enviando...';
+  setAlert('orc-alert','','');
+  const {data:proj,error}=await db.from('projetos').insert({titulo:ambiente+(desc?' — '+desc.substring(0,40):''),ambiente,descricao:desc,prazo_desejado:investimento,etapa_atual:1,cliente_email:currentUser.email,cliente_nome:nome,cliente_tel:tel,user_id:currentUser.id}).select().single();
+  btn.disabled=false;btn.textContent='Enviar solicitação';
+  if(error){setAlert('orc-alert','Erro ao enviar. Tente novamente.','error');return}
+  const arquivoUrl=await uploadArquivo(proj.id);
+  if(arquivoUrl)await db.from('projetos').update({arquivo_url:arquivoUrl}).eq('id',proj.id);
+  await enviarRD(nome,currentUser.email,tel,ambiente,desc,investimento);
+  setAlert('orc-alert','Solicitação enviada! Acompanhe em "Meus projetos".','success');
+  document.getElementById('orc-nome').value='';document.getElementById('orc-tel').value='';
+  document.getElementById('orc-ambiente').value='';document.getElementById('orc-prazo').value='';
+  document.getElementById('orc-desc').value='';removeFile();prefillOrcamento();notify('Solicitação enviada!');
+}
+
+async function loadProjetos(){
+  const cont=document.getElementById('projetos-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  const query=isStaff?db.from('projetos').select('*').order('created_at',{ascending:false}):db.from('projetos').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  const {data,error}=await query;
+  if(error||!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum projeto encontrado.</p></div>';return}
+  cont.innerHTML=data.map(p=>renderProjeto(p)).join('');
+}
+
+function renderProjeto(p){
+  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  const etapaIdx=(p.etapa_atual||1)-1;
+  const pct=Math.round(((p.etapa_atual||1)/11)*100);
+  const concluido=p.etapa_atual>=11;
+  const badgeClass=concluido?'badge-green':p.etapa_atual>=5?'badge-amber':'badge-blue';
+  const badgeText=concluido?'Concluído':'Em andamento';
+  const tl=ETAPAS.map((nome,i)=>{
+    const st=i<etapaIdx?'done':i===etapaIdx?'active':'pending';
+    const sl=st==='done'?'Concluído':st==='active'?'Em andamento':'Aguardando';
+    const isLast=i===ETAPAS.length-1;
+    return `<div class="tl-item"><div class="tl-left"><div class="tl-dot ${st}">${i+1}</div>${!isLast?'<div class="tl-line"></div>':''}</div><div class="tl-content"><div class="tl-name ${st}">${nome}</div><div class="tl-status ${st}">${sl}</div></div></div>`;
+  }).join('');
+  const staffCtrl=isStaff?`<div class="step-control">
+    <button class="btn-step-back" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)-1})" ${(p.etapa_atual||1)<=1?'disabled':''}>← Voltar</button>
+    <button class="btn-step" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1)>=11?'disabled':''}>Avançar →</button>
+    ${p.arquivo_url?`<a href="${p.arquivo_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);color:#7a5c2a;border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;text-decoration:none;font-family:'DM Sans',sans-serif;">📄 Ver planta</a>`:'<span style="font-size:12px;color:var(--text3);">Sem planta</span>'}
+  </div>`:'<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe o andamento do seu projeto.</div>';
+  const dataStr=new Date(p.created_at).toLocaleDateString('pt-BR');
+  return `<div class="card"><div class="card-header"><div><div class="card-title">${p.titulo||p.ambiente}</div><div class="card-sub">${p.cliente_nome||''} · ${dataStr}</div></div><span class="badge ${badgeClass}">${badgeText}</span></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Etapa: <strong style="color:var(--text)">${ETAPAS[etapaIdx]}</strong></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:1rem">${p.etapa_atual||1} de 11 · ${pct}%</div>
+    ${staffCtrl}
+    <div style="margin-top:${isStaff?'16px':'0'};border-top:1px solid var(--border);padding-top:14px">${tl}</div>
+  </div>`;
+}
+
+async function avancarEtapa(id,novaEtapa){
+  if(novaEtapa<1||novaEtapa>11)return;
+  const {error}=await db.from('projetos').update({etapa_atual:novaEtapa}).eq('id',id);
+  if(error){notify('Erro ao atualizar.','error');return}
+  notify(`Etapa: ${ETAPAS[novaEtapa-1]}`);loadProjetos();
+}
+
+async function loadAdmin(){
+  const {data}=await db.from('projetos').select('*').order('created_at',{ascending:false});
+  if(!data)return;
+  document.getElementById('stat-ativos').textContent=data.filter(p=>p.etapa_atual<11&&p.etapa_atual>1).length;
+  document.getElementById('stat-pendentes').textContent=data.filter(p=>p.etapa_atual===1).length;
+  document.getElementById('stat-concluidos').textContent=data.filter(p=>p.etapa_atual>=11).length;
+  const cont=document.getElementById('admin-projetos');
+  if(!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum projeto.</p></div>';return}
+  cont.innerHTML=data.map(p=>{
+    const etapaIdx=(p.etapa_atual||1)-1;
+    const pct=Math.round(((p.etapa_atual||1)/11)*100);
+    const badgeClass=p.etapa_atual>=11?'badge-green':p.etapa_atual===1?'badge-accent':'badge-blue';
+    const badgeText=p.etapa_atual>=11?'Concluído':p.etapa_atual===1?'Novo':'Em andamento';
+    const dataStr=new Date(p.created_at).toLocaleDateString('pt-BR');
+    return `<div class="proj-row" onclick="showSection('projetos',document.getElementById('nav-projetos'))">
+      <div><div class="proj-name">${p.cliente_nome||p.cliente_email} — ${p.ambiente||p.titulo}</div><div class="proj-meta">${ETAPAS[etapaIdx]} · ${dataStr}</div><div class="progress-bar" style="max-width:200px;margin-top:6px"><div class="progress-fill" style="width:${pct}%"></div></div></div>
+      <span class="badge ${badgeClass}">${badgeText}</span>
+    </div>`;
+  }).join('');
+}
+
+function saveRDKey(){
+  const key=document.getElementById('rd-key-input').value.trim();
+  if(!key||key.length<8){document.getElementById('rd-status-msg').textContent='Token inválido.';return}
+  rdKey=key;localStorage.setItem('mr_rd_key',key);showRDConnected();notify('RD Station conectado!');
+}
+function showRDConnected(){
+  const b=document.getElementById('rd-banner');b.classList.add('connected');
+  b.querySelector('.rd-banner-title').textContent='RD Station conectado';
+  b.querySelector('.rd-banner-sub').textContent='Novos orçamentos sincronizados automaticamente.';
+  const r=b.querySelector('.rd-row');if(r)r.style.display='none';
+}
+async function enviarRD(nome,email,telefone,ambiente,descricao,investimento){
+  try{await fetch('https://api.rd.services/platform/conversions?api_key=4e0542b477a910cc438dcad16032df37',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'CONVERSION',event_family:'CDP',payload:{conversion_identifier:'Solicitação de Orçamento - Marcena Rio',name:nome,email,mobile_phone:telefone,cf_pra_qual_ambiente_deseja_um_orcamento:ambiente,cf_valor_de_investimento_previsto:investimento,cf_descricao_do_projeto:descricao}})})}catch(e){console.warn('RD:',e)}
+}
+
+/* MONTAGEM */
+function addAmbMt(){
+  const pedido=document.getElementById('mt-amb-pedido').value.trim();
+  const nf=document.getElementById('mt-amb-nf').value.trim();
+  const nome=document.getElementById('mt-amb-nome').value.trim();
+  const valor=parseMoney(document.getElementById('mt-amb-valor').value);
+  if(!nome||!valor){notify('Preencha pelo menos o nome e o valor do ambiente.','error');return}
+  ambsMt.push({pedido,nf,nome,valor});
+  document.getElementById('mt-amb-pedido').value='';
+  document.getElementById('mt-amb-nf').value='';
+  document.getElementById('mt-amb-nome').value='';
+  document.getElementById('mt-amb-valor').value='';
+  renderAmbsMt();
+}
+function renderAmbsMt(){
+  const total=ambsMt.reduce((s,a)=>s+a.valor,0);
+  document.getElementById('mt-total').textContent=fmt(total);
+  document.getElementById('mt-amb-list').innerHTML=ambsMt.length?`
+    <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.3px;">
+        <span>Nº Pedido</span><span>NF</span><span>Ambiente</span><span>Valor</span><span></span>
+      </div>
+      ${ambsMt.map((a,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;padding:10px 12px;border-top:1px solid var(--border);font-size:13px;align-items:center;">
+        <span style="color:var(--text2);">${a.pedido||'—'}</span>
+        <span style="color:var(--text2);">${a.nf||'—'}</span>
+        <span style="font-weight:500;">${a.nome}</span>
+        <span style="font-weight:500;color:var(--accent);">${fmt(a.valor)}</span>
+        <button class="btn-red-sm" onclick="removeAmbMt(${i})">✕</button>
+      </div>`).join('')}
+    </div>`:''
+;}
+function removeAmbMt(i){ambsMt.splice(i,1);renderAmbsMt()}
+
+async function distribuirEquipe(valorTotal){
+  const {data:eqs}=await db.from('equipes_montagem').select('*').order('produtividade_atual',{ascending:false});
+  if(!eqs||!eqs.length)return null;
+  const {data:ativos}=await db.from('pedidos_montagem').select('*').eq('status','em_montagem');
+  const carga={};eqs.forEach(e=>carga[e.id]=0);
+  if(ativos)ativos.forEach(p=>{if(carga[p.equipe_id]!==undefined)carga[p.equipe_id]+=p.valor_total});
+  // Calcula dias acumulados por equipe: carga total / produtividade = dias de trabalho pendentes
+  // A equipe com MENOS dias acumulados recebe o próximo pedido — garante equilíbrio
+  // Entre equipes empatadas em dias, a mais produtiva leva pedidos maiores naturalmente
+  const sorted=[...eqs].sort((a,b)=>{
+    const diasA=carga[a.id]/a.produtividade_atual;
+    const diasB=carga[b.id]/b.produtividade_atual;
+    if(Math.abs(diasA-diasB)<0.5)return b.produtividade_atual-a.produtividade_atual;
+    return diasA-diasB;
+  });
+  return sorted[0];
+}
+
+async function salvarPedidoMt(){
+  const contrato=document.getElementById('mt-contrato').value.trim();
+  const cliente=document.getElementById('mt-cliente').value.trim();
+  const data=document.getElementById('mt-data').value;
+  if(!contrato){setAlert('mt-novo-alert','Preencha o número do contrato.','error');return}
+  if(!cliente){setAlert('mt-novo-alert','Preencha o nome do cliente.','error');return}
+  if(!ambsMt.length){setAlert('mt-novo-alert','Adicione pelo menos um ambiente.','error');return}
+  const valorTotal=ambsMt.reduce((s,a)=>s+a.valor,0);
+  if(!valorTotal){setAlert('mt-novo-alert','O valor total não pode ser zero.','error');return}
+  // Valida checklist ASTECA
+  if(mtTipo==='asteca'&&mtChecklist.length>0){
+    const marcados=mtChecklist.filter(i=>i.confirmado).length;
+    const total=mtChecklist.length;
+    if(marcados<total&&userNivel==='admin'){
+      const just=document.getElementById('mt-asteca-justificativa').value.trim();
+      if(!just){setAlert('mt-novo-alert','Preencha a justificativa para o envio parcial.','error');return}
+    } else if(marcados<total&&userNivel!=='admin'){
+      setAlert('mt-novo-alert','Confirme todos os itens do checklist para continuar.','error');return}
+  }
+  const btn=document.getElementById('btn-mt-novo');btn.disabled=true;btn.textContent='Salvando...';
+  const equipe=await distribuirEquipe(valorTotal);
+  if(!equipe){setAlert('mt-novo-alert','Cadastre pelo menos uma equipe antes.','error');btn.disabled=false;btn.textContent=mtTipo==='asteca'?'🔧 Registrar ASTECA — URGENTE':'Registrar e distribuir para equipe';return}
+  const payload={
+    cliente_nome:cliente,numero_contrato:contrato,data_chegada:data,
+    valor_total:valorTotal,ambientes:JSON.stringify(ambsMt),
+    equipe_id:equipe.id,equipe_nome:equipe.nome,status:'em_montagem',
+    tipo:mtTipo
+  };
+  if(mtTipo==='asteca'&&mtChecklist.length>0)payload.checklist_asteca=JSON.stringify(mtChecklist);
+  if(mtRelatorioId)payload.relatorio_vistoria_id=mtRelatorioId;
+  const {error}=await db.from('pedidos_montagem').insert(payload);
+  btn.disabled=false;
+  btn.textContent=mtTipo==='asteca'?'🔧 Registrar ASTECA — URGENTE':'Registrar e distribuir para equipe';
+  if(error){setAlert('mt-novo-alert','Erro ao salvar.','error');return}
+  const msg=mtTipo==='asteca'?`ASTECA registrada para ${equipe.nome}! Entrada urgente na fila.`:`Distribuído para ${equipe.nome}!`;
+  setAlert('mt-novo-alert',msg,'success');
+  notify(msg);
+  ambsMt=[];renderAmbsMt();mtChecklist=[];mtRelatorioId=null;
+  document.getElementById('mt-contrato').value='';
+  document.getElementById('mt-cliente').value='';
+  document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
+  if(mtTipo==='asteca'){
+    document.getElementById('mt-checklist-wrap').innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Digite o número do contrato acima para carregar as ocorrências da vistoria.</div>';
+    document.getElementById('mt-asteca-admin').style.display='none';
+  }
+  setTipoMt('montagem');
+}
+
+async function loadFilaMt(){
+  const cont=document.getElementById('mt-fila-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const {data}=await db.from('pedidos_montagem').select('*').order('created_at',{ascending:true});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum pedido na fila.</p></div>';
+    ['mt-st-ag','mt-st-em','mt-st-co','mt-st-vl'].forEach(id=>document.getElementById(id).textContent='0');return}
+  document.getElementById('mt-st-ag').textContent=data.filter(p=>p.status==='aguardando').length;
+  document.getElementById('mt-st-em').textContent=data.filter(p=>p.status==='em_montagem').length;
+  document.getElementById('mt-st-co').textContent=data.filter(p=>p.status==='concluido').length;
+  document.getElementById('mt-st-vl').textContent=fmt(data.filter(p=>p.status!=='concluido').reduce((s,p)=>s+p.valor_total,0));
+  // ASTECA aparece primeiro (urgente)
+  const ativos=data.filter(p=>p.status!=='concluido').sort((a,b)=>{
+    if(a.tipo==='asteca'&&b.tipo!=='asteca')return -1;
+    if(a.tipo!=='asteca'&&b.tipo==='asteca')return 1;
+    return 0;
+  });
+  const concl=data.filter(p=>p.status==='concluido');
+  let html='';
+  if(ativos.length)html+=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Em andamento (${ativos.length})</div>`+ativos.map(p=>renderPedidoMt(p)).join('');
+  if(concl.length)html+=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin:16px 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Concluídos (${concl.length})</div>`+concl.map(p=>renderPedidoMt(p)).join('');
+  cont.innerHTML=html;
+}
+
+function renderPedidoMt(p){
+  const ambs=typeof p.ambientes==='string'?JSON.parse(p.ambientes):p.ambientes||[];
+  const isAsteca=p.tipo==='asteca';
+  const badgeClass=p.status==='concluido'?'badge-green':isAsteca?'badge-asteca':p.status==='em_montagem'?'badge-blue':'badge-amber';
+  const badgeText=p.status==='concluido'?'Concluído':isAsteca?'🔧 ASTECA — URGENTE':p.status==='em_montagem'?'Em montagem':'Aguardando';
+  const dataStr=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  const dataConcl=p.data_conclusao?new Date(p.data_conclusao).toLocaleDateString('pt-BR'):null;
+  const btnC=p.status!=='concluido'?`<button class="btn-green" onclick="concluirPedidoMt('${p.id}')">✓ Concluir</button>`:`<span style="font-size:12px;color:var(--green);">Concluído em ${dataConcl}</span>`;
+  const btnE=p.status!=='concluido'?`<button style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;" onclick="excluirPedidoMt('${p.id}')">Excluir</button>`:'';
+  // Checklist da ASTECA
+  let checklistHtml='';
+  if(isAsteca&&p.checklist_asteca){
+    const cl=typeof p.checklist_asteca==='string'?JSON.parse(p.checklist_asteca):p.checklist_asteca;
+    const total=cl.length;const marcados=cl.filter(i=>i.confirmado).length;
+    checklistHtml=`<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+      <div style="font-size:11px;font-weight:600;color:#8a1a1a;text-transform:uppercase;margin-bottom:6px;">Checklist de peças — ${marcados}/${total} confirmados</div>
+      <div style="background:var(--bg);border-radius:4px;overflow:hidden;">
+        ${cl.map((item,i)=>`<div class="checklist-item ${item.confirmado?'checked':''}" onclick="toggleChecklistFila('${p.id}',${i})">
+          <input type="checkbox" ${item.confirmado?'checked':''} onclick="event.stopPropagation();toggleChecklistFila('${p.id}',${i})">
+          <div>
+            <div class="ci-tipo">${tipoLabel(item.tipo)}</div>
+            <div class="ci-desc">${item.desc||'—'}</div>
+            <div class="ci-meta">${item.nped?'Ped: '+item.nped+' ·':''} ${item.nf?'NF: '+item.nf+' ·':''} ${item.item?'Item: '+item.item:''} Qtd: ${item.qtd||1}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  return `<div class="pedido-item ${isAsteca?'asteca-urgente':''}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div>
+        <div style="font-size:14px;font-weight:500;">${p.cliente_nome}${isAsteca?' <span style="color:#8a1a1a;font-size:12px;">⚡ Assistência Técnica</span>':''}</div>
+        <div style="font-size:12px;color:var(--text2);">Contrato: <strong>${p.numero_contrato||'—'}</strong> · Chegada: ${dataStr} · <strong>${p.equipe_nome||'—'}</strong></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:15px;font-weight:500;color:var(--accent);">${fmt(p.valor_total)}</span><span class="badge ${badgeClass}">${badgeText}</span></div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:8px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:var(--bg);padding:6px 8px;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;border-radius:4px;margin-bottom:4px;">
+        <span>Nº Pedido</span><span>NF</span><span>Ambiente</span><span style="text-align:right">Valor</span>
+      </div>
+      ${ambs.map(a=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:5px 8px;border-bottom:1px solid var(--border);font-size:12px;align-items:center;">
+        <span style="color:var(--text2)">${a.pedido||'—'}</span>
+        <span style="color:var(--text2)">${a.nf||'—'}</span>
+        <span>${a.nome}</span>
+        <span style="font-weight:500;text-align:right;">${fmt(a.valor)}</span>
+      </div>`).join('')}
+    </div>
+    ${checklistHtml}
+    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">${btnC}${btnE}</div>
+  </div>`;
+}
+
+async function concluirPedidoMt(id){
+  const {data:p}=await db.from('pedidos_montagem').select('*').eq('id',id).single();
+  if(!p)return;
+  const chegada=new Date(p.data_chegada+'T12:00:00');
+  const conclusao=new Date();
+  const dias=Math.max(1,Math.round((conclusao-chegada)/(1000*60*60*24)));
+  await db.from('pedidos_montagem').update({status:'concluido',data_conclusao:conclusao.toISOString(),dias_montagem:dias,prod_dia_real:p.valor_total/dias}).eq('id',id);
+  await atualizarMediaEquipe(p.equipe_id);
+  notify('Montagem concluída!');loadFilaMt();
+}
+
+async function atualizarMediaEquipe(equipeId){
+  const tresMeses=new Date();tresMeses.setMonth(tresMeses.getMonth()-3);
+  const {data:pedidos}=await db.from('pedidos_montagem').select('prod_dia_real').eq('equipe_id',equipeId).eq('status','concluido').gte('data_conclusao',tresMeses.toISOString());
+  if(!pedidos||pedidos.length<2)return;
+  const media=pedidos.reduce((s,p)=>s+(p.prod_dia_real||0),0)/pedidos.length;
+  await db.from('equipes_montagem').update({produtividade_atual:Math.round(media),ultima_atualizacao:new Date().toISOString()}).eq('id',equipeId);
+}
+
+async function excluirPedidoMt(id){
+  if(!confirm('Excluir este pedido?'))return;
+  await db.from('pedidos_montagem').delete().eq('id',id);
+  notify('Pedido excluído.');loadFilaMt();
+}
+
+async function salvarEquipe(){
+  const nome=document.getElementById('mt-eq-nome').value.trim();
+  const prod=parseFloat(document.getElementById('mt-eq-prod').value)||0;
+  if(!nome||!prod){notify('Preencha nome e produtividade.','error');return}
+  const {error}=await db.from('equipes_montagem').insert({nome,produtividade_base:prod,produtividade_atual:prod});
+  if(error){notify('Erro ao salvar equipe.','error');return}
+  document.getElementById('mt-eq-nome').value='';document.getElementById('mt-eq-prod').value='';
+  notify('Equipe cadastrada!');loadEquipes();
+}
+
+async function loadEquipes(){
+  const cont=document.getElementById('mt-equipes-content');
+  const {data}=await db.from('equipes_montagem').select('*').order('produtividade_atual',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma equipe cadastrada.</p></div>';return}
+  const maxProd=Math.max(...data.map(e=>e.produtividade_atual));
+  cont.innerHTML=`<div class="team-grid">${data.map(e=>{
+    const pct=Math.round((e.produtividade_atual/maxProd)*100);
+    const ultima=e.ultima_atualizacao?new Date(e.ultima_atualizacao).toLocaleDateString('pt-BR'):'Não atualizada';
+    return `<div class="team-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div style="font-size:15px;font-weight:500;">${e.nome}</div>
+        <button style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;" onclick="excluirEquipe('${e.id}')">Excluir</button>
+      </div>
+      <div style="font-size:13px;color:var(--text2);">Produtividade: <strong>${fmt(e.produtividade_atual)}/dia</strong></div>
+      <div style="height:4px;background:var(--bg);border-radius:2px;margin:10px 0;"><div style="height:4px;border-radius:2px;background:var(--accent);width:${pct}%"></div></div>
+      <div style="font-size:11px;color:var(--text3);">Última atualização: ${ultima}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function excluirEquipe(id){
+  if(!confirm('Excluir esta equipe?'))return;
+  await db.from('equipes_montagem').delete().eq('id',id);
+  notify('Equipe excluída.');loadEquipes();
+}
+
+async function loadRelatorio(){
+  const cont=document.getElementById('mt-rel-content');
+  const {data:eqs}=await db.from('equipes_montagem').select('*').order('produtividade_atual',{ascending:false});
+  if(!eqs||!eqs.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma equipe.</p></div>';return}
+  let html='';
+  for(const eq of eqs){
+    const {data:pedidos}=await db.from('pedidos_montagem').select('*').eq('equipe_id',eq.id).eq('status','concluido').order('data_conclusao',{ascending:false});
+    const total=pedidos?pedidos.reduce((s,p)=>s+p.valor_total,0):0;
+    const media=pedidos&&pedidos.length?pedidos.reduce((s,p)=>s+(p.prod_dia_real||0),0)/pedidos.length:0;
+    html+=`<div class="card">
+      <div class="card-header"><div class="card-title" style="margin:0">${eq.nome}</div><span class="badge badge-amber">${fmt(eq.produtividade_atual)}/dia</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:1rem;">
+        <div><div style="font-size:11px;color:var(--text2);">Total montado</div><div style="font-size:16px;font-weight:500;">${fmt(total)}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Pedidos concluídos</div><div style="font-size:16px;font-weight:500;">${pedidos?pedidos.length:0}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Média real/dia</div><div style="font-size:16px;font-weight:500;">${media?fmt(media):'—'}</div></div>
+      </div>
+      ${pedidos&&pedidos.length?pedidos.slice(0,5).map(p=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>${p.cliente_nome}</span><span style="font-weight:500;">${fmt(p.valor_total)}</span></div>`).join(''):'<div style="font-size:13px;color:var(--text3);">Nenhum pedido concluído ainda.</div>'}
+    </div>`;
+  }
+  cont.innerHTML=html;
+}
+
+/* USUÁRIOS */
+async function loadUsuarios(){
+  const cont=document.getElementById('usuarios-content');
+  const {data}=await db.from('perfis').select('*').order('created_at',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum usuário.</p></div>';return}
+  cont.innerHTML=data.map(u=>{
+    const lbl=u.nivel==='admin'?'Admin':u.nivel==='funcionario'?'Funcionário':'Cliente';
+    const cls=u.nivel==='admin'?'badge-accent':u.nivel==='funcionario'?'badge-blue':'badge-blue';
+    const isMe=u.id===currentUser.id;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-size:14px;font-weight:500;">${u.email}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Criado em ${new Date(u.created_at).toLocaleDateString('pt-BR')}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="badge ${cls}">${lbl}</span>
+        <select onchange="alterarNivel('${u.id}',this.value)" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+          <option value="">Alterar nível...</option>
+          <option value="cliente">Cliente</option>
+          <option value="funcionario">Funcionário</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button onclick="resetarSenha('${u.id}','${u.email}')" style="background:var(--amber-bg);color:var(--amber);border:1px solid #e8c87a;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔑 Resetar senha</button>
+        ${!isMe?`<button onclick="excluirUsuario('${u.id}','${u.email}')" style="background:var(--red-bg);color:var(--red);border:1px solid #f0a8a8;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑 Excluir</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function alterarNivel(userId,nivel){
+  if(!nivel)return;
+  const {error}=await db.from('perfis').update({nivel}).eq('id',userId);
+  if(error){notify('Erro ao alterar.','error');return}
+  notify('Nível atualizado!');loadUsuarios();
+}
+
+async function resetarSenha(userId,email){
+  if(!confirm(`Enviar e-mail de redefinição de senha para ${email}?`))return;
+  const {error}=await db.auth.resetPasswordForEmail(email,{
+    redirectTo:`${window.location.origin}`
+  });
+  if(error){notify('Erro ao enviar e-mail: '+error.message,'error');return}
+  notify(`E-mail de redefinição enviado para ${email}!`);
+}
+
+async function excluirUsuario(userId,email){
+  if(!confirm(`Excluir permanentemente o usuário ${email}?\n\nEsta ação não pode ser desfeita.`))return;
+  try{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/admin-excluir-usuario`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({user_id:userId})
     });
+    const json=await res.json();
+    if(!res.ok)throw new Error(json.error||'Erro desconhecido');
+    notify(`Usuário ${email} excluído!`);
+    loadUsuarios();
+  }catch(e){
+    notify('Erro ao excluir: '+e.message,'error');
+  }
+}
 
-    const text = await res.text();
-    console.log("Resposta Autentique:", text);
+/* ══════════════════════════════════════════
+   ASTECA — Assistência Técnica
+══════════════════════════════════════════ */
+let mtTipo='montagem';
+let mtChecklist=[];
+let mtRelatorioId=null;
 
-    let data: any;
-    try { data = JSON.parse(text); }
-    catch { throw new Error(`JSON inválido: ${text.substring(0,200)}`); }
+function setTipoMt(tipo){
+  mtTipo=tipo;
+  const btnM=document.getElementById('btn-tipo-montagem');
+  const btnA=document.getElementById('btn-tipo-asteca');
+  const wrap=document.getElementById('mt-asteca-wrap');
+  const secLabel=document.getElementById('mt-secao-label');
+  const btnEnviar=document.getElementById('btn-mt-novo');
+  if(tipo==='montagem'){
+    btnM.className='tipo-btn active-montagem';
+    btnA.className='tipo-btn';
+    wrap.style.display='none';
+    secLabel.textContent='Ambientes e valores de contrato';
+    btnEnviar.textContent='Registrar e distribuir para equipe';
+    btnEnviar.style.background='';
+    btnEnviar.disabled=false;btnEnviar.style.opacity='1';
+    setAlert('mt-novo-alert','','');
+  } else {
+    btnM.className='tipo-btn';
+    btnA.className='tipo-btn active-asteca';
+    wrap.style.display='block';
+    secLabel.textContent='Ambientes e valores da ASTECA';
+    btnEnviar.textContent='🔧 Registrar ASTECA — URGENTE';
+    btnEnviar.style.background='#8a1a1a';
+    const contrato=document.getElementById('mt-contrato').value.trim();
+    if(contrato)buscarChecklistAsteca(contrato);
+    else atualizarBotaoAsteca();
+  }
+}
 
-    if (data.errors) throw new Error(JSON.stringify(data.errors));
+let mtContratoTimeout=null;
+function onMtContratoInput(val){
+  clearTimeout(mtContratoTimeout);
+  if(mtTipo==='asteca'&&val.trim().length>2){
+    mtContratoTimeout=setTimeout(()=>buscarChecklistAsteca(val.trim()),600);
+  }
+}
 
-    const doc = data.data?.document;
-    if (!doc) throw new Error("Documento não encontrado no Autentique");
+async function buscarChecklistAsteca(contrato){
+  const wrap=document.getElementById('mt-checklist-wrap');
+  wrap.innerHTML='<div style="font-size:13px;color:var(--text2);padding:8px 0;">🔍 Buscando ocorrências da vistoria...</div>';
+  const {data:relatorios}=await db.from('relatorios_vistoria')
+    .select('id,ocorrencias,cliente_nome').eq('numero_contrato',contrato)
+    .order('created_at',{ascending:false}).limit(1);
+  if(!relatorios||!relatorios.length){
+    wrap.innerHTML='<div class="alert alert-info">Nenhum relatório de vistoria encontrado para este contrato. A ASTECA será registrada sem checklist.</div>';
+    mtChecklist=[];mtRelatorioId=null;atualizarBotaoAsteca();return;
+  }
+  const rel=relatorios[0];
+  mtRelatorioId=rel.id;
+  if(rel.cliente_nome)document.getElementById('mt-cliente').value=rel.cliente_nome;
+  const ocs=rel.ocorrencias?JSON.parse(rel.ocorrencias):[];
+  if(!ocs.length){
+    wrap.innerHTML='<div class="alert alert-info">Relatório encontrado, mas sem ocorrências registradas.</div>';
+    mtChecklist=[];atualizarBotaoAsteca();return;
+  }
+  mtChecklist=ocs.map(o=>({tipo:o.tipo,desc:o.descricao||o.desc||'',nped:o.nped||o.num_pedido||'',nf:o.nf||o.nota_fiscal||'',item:o.item||o.num_item||'',qtd:o.qtd||o.quantidade||1,confirmado:false}));
+  renderChecklistMt();
+}
 
-    console.log("PDF signed:", doc.files?.signed);
-    console.log("Signatures:", JSON.stringify(doc.signatures));
+function renderChecklistMt(){
+  const wrap=document.getElementById('mt-checklist-wrap');
+  const total=mtChecklist.length;
+  const marcados=mtChecklist.filter(i=>i.confirmado).length;
+  wrap.innerHTML=`<div class="checklist-wrap">
+    <div class="checklist-header">
+      <span>Confirme cada peça/avaria recebida</span>
+      <span class="checklist-progress">${marcados}/${total} ✓</span>
+    </div>
+    ${mtChecklist.map((item,i)=>`<div class="checklist-item ${item.confirmado?'checked':''}" onclick="toggleChecklistMt(${i})">
+      <input type="checkbox" ${item.confirmado?'checked':''} onclick="event.stopPropagation();toggleChecklistMt(${i})">
+      <div>
+        <div class="ci-tipo">${tipoLabel(item.tipo)}</div>
+        <div class="ci-desc">${item.desc||'—'}</div>
+        <div class="ci-meta">${item.nped?'Ped: '+item.nped+' ·':''} ${item.nf?'NF: '+item.nf+' ·':''} ${item.item?'Item: '+item.item+' ·':''} Qtd: ${item.qtd}</div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+  atualizarBotaoAsteca();
+}
 
-    const temPdf = !!(doc.files?.signed);
+function toggleChecklistMt(i){
+  mtChecklist[i].confirmado=!mtChecklist[i].confirmado;
+  renderChecklistMt();
+}
 
-    if (temPdf) {
-      await supabase.from("relatorios_vistoria").update({
-        status: "assinado",
-        docusign_status: "completed",
-        pdf_url: doc.files.signed,
-      }).eq("id", relatorio_id);
-
-      await supabase.from("relatorios_vistoria_audit").insert({
-        relatorio_id,
-        alterado_por_email: "sincronizacao-manual",
-        campo_alterado: "status",
-        valor_anterior: "enviado",
-        valor_novo: "assinado — PDF disponível",
-      });
+function atualizarBotaoAsteca(){
+  if(mtTipo!=='asteca')return;
+  const btn=document.getElementById('btn-mt-novo');
+  const adminWrap=document.getElementById('mt-asteca-admin');
+  const total=mtChecklist.length;
+  const marcados=mtChecklist.filter(i=>i.confirmado).length;
+  const completo=total===0||marcados===total;
+  if(completo){
+    btn.disabled=false;btn.style.opacity='1';
+    adminWrap.style.display='none';
+    setAlert('mt-novo-alert','','');
+  } else {
+    if(userNivel==='admin'){
+      btn.disabled=false;btn.style.opacity='1';
+      adminWrap.style.display='block';
+      setAlert('mt-novo-alert',`⚠️ ${total-marcados} item(s) pendente(s). Preencha a justificativa para envio parcial.`,'info');
+    } else {
+      btn.disabled=true;btn.style.opacity='0.5';
+      adminWrap.style.display='none';
+      setAlert('mt-novo-alert',`🔒 ${total-marcados} item(s) ainda não confirmado(s). Confirme todos para liberar o envio.`,'error');
     }
+  }
+}
 
-    return new Response(JSON.stringify({
-      ok: true,
-      assinado: temPdf,
-      pdf_url: doc.files?.signed || null,
-      signatarios: doc.signatures,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+async function toggleChecklistFila(pedidoId,idx){
+  const {data:p}=await db.from('pedidos_montagem').select('checklist_asteca').eq('id',pedidoId).single();
+  if(!p)return;
+  const cl=p.checklist_asteca?JSON.parse(p.checklist_asteca):[];
+  if(cl[idx]===undefined)return;
+  cl[idx].confirmado=!cl[idx].confirmado;
+  cl[idx].confirmado_por=currentUser.email;
+  cl[idx].confirmado_em=new Date().toISOString();
+  await db.from('pedidos_montagem').update({checklist_asteca:JSON.stringify(cl)}).eq('id',pedidoId);
+  notify(cl[idx].confirmado?'Item confirmado!':'Item desmarcado.');
+  loadFilaMt();
+}
 
-  } catch (e) {
-    console.error("ERRO:", String(e));
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+function tipoLabel(t){
+  return({falta_volume:'Falta de volume',asteca_fabrica:'Asteca de fábrica',asteca_loja:'Asteca de loja',avaria_transporte:'Avaria de transporte',avaria_montagem:'Avaria de montagem'})[t]||t||'—';
+}
+
+db.auth.onAuthStateChange((event,session)=>{if(session&&session.user)onLogin(session.user)});
+db.auth.getSession().then(({data})=>{if(data.session)onLogin(data.session.user)});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js');
+
+/* ===== OCORRÊNCIAS ===== */
+let faltaItens=[];
+let ocorrenciaItens=[];
+let vsOcorrencias=[];
+
+function showSubOc(id,btn){
+  ['oc-lista','oc-falta','oc-ocorrencia'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none'});
+  document.querySelectorAll('#ocorrencias .sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.style.display='block';
+  if(btn)btn.classList.add('active');
+  if(id==='oc-lista')loadOcorrencias();
+}
+
+function showSubVistoria(id,btn){
+  ['vs-lista','vs-novo'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none'});
+  document.querySelectorAll('#vistoria .sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.style.display='block';
+  if(btn)btn.classList.add('active');
+  if(id==='vs-lista')loadVistorias();
+}
+
+async function carregarPedidosSelect(){
+  const {data}=await db.from('pedidos_montagem').select('id,cliente_nome,numero_contrato').order('created_at',{ascending:false});
+  if(!data)return;
+  ['oc-falta-pedido','oc-oc-pedido'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.innerHTML='<option value="">Selecione o pedido...</option>'+data.map(p=>`<option value="${p.id}">${p.cliente_nome}${p.numero_contrato?' — CT: '+p.numero_contrato:''}</option>`).join('');
+  });
+  document.getElementById('oc-falta-data').value=new Date().toISOString().split('T')[0];
+}
+
+/* ── AUTOCOMPLETE VISTORIA ── */
+let vsContratos=[];
+let vsAcIdx=-1;
+
+async function carregarPedidosSelectVistoria(){
+  const {data}=await db.from('pedidos_montagem')
+    .select('id,cliente_nome,numero_contrato,ambientes,valor_total,status')
+    .order('created_at',{ascending:false});
+  vsContratos=data||[];
+  document.getElementById('vs-data').value=new Date().toISOString().split('T')[0];
+}
+
+function vsAcInput(val){
+  const dd=document.getElementById('vs-ac-dropdown');
+  const q=val.trim().toLowerCase();
+  if(!q){dd.classList.remove('open');dd.innerHTML='';vsAcIdx=-1;return}
+  const hits=vsContratos.filter(c=>
+    (c.numero_contrato||'').toLowerCase().includes(q)||
+    (c.cliente_nome||'').toLowerCase().includes(q)
+  ).slice(0,8);
+  if(!hits.length){
+    dd.innerHTML='<div class="ac-empty">Nenhum contrato encontrado</div>';
+    dd.classList.add('open');vsAcIdx=-1;return;
+  }
+  vsAcIdx=-1;
+  dd._hits=hits;
+  dd.innerHTML=hits.map((c,i)=>{
+    const ambs=typeof c.ambientes==='string'?JSON.parse(c.ambientes||'[]'):c.ambientes||[];
+    return `<div class="ac-item" data-i="${i}" onmousedown="vsAcSelecionar('${c.id}')">
+      <div class="ac-item-ct">${c.numero_contrato||'Sem contrato'}</div>
+      <div class="ac-item-sub">${c.cliente_nome||'—'} · ${ambs.length} pedido${ambs.length!==1?'s':''} · ${fmt(c.valor_total)}</div>
+    </div>`;
+  }).join('');
+  dd.classList.add('open');
+}
+
+function vsAcKeydown(e){
+  const dd=document.getElementById('vs-ac-dropdown');
+  const items=dd.querySelectorAll('.ac-item');
+  if(!dd.classList.contains('open')||!items.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();vsAcIdx=Math.min(vsAcIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('ac-sel',i===vsAcIdx));}
+  else if(e.key==='ArrowUp'){e.preventDefault();vsAcIdx=Math.max(vsAcIdx-1,0);items.forEach((el,i)=>el.classList.toggle('ac-sel',i===vsAcIdx));}
+  else if(e.key==='Enter'&&vsAcIdx>=0){e.preventDefault();const h=dd._hits;if(h&&h[vsAcIdx])vsAcSelecionar(h[vsAcIdx].id);}
+  else if(e.key==='Escape'){dd.classList.remove('open');}
+}
+
+async function vsAcSelecionar(contratoId){
+  const ct=vsContratos.find(c=>c.id===contratoId);
+  if(!ct)return;
+  const dd=document.getElementById('vs-ac-dropdown');
+  dd.classList.remove('open');
+  document.getElementById('vs-ac-input').value=ct.numero_contrato||'';
+  // Preenche campos
+  document.getElementById('vs-pedido').value=ct.id;
+  document.getElementById('vs-contrato').value=ct.numero_contrato||'';
+  document.getElementById('vs-cliente').value=ct.cliente_nome||'';
+  // Mostra card de contrato selecionado
+  document.getElementById('vs-ct-num').textContent=ct.numero_contrato||'—';
+  document.getElementById('vs-ct-cli').textContent=ct.cliente_nome||'—';
+  // Pedidos vinculados
+  const ambs=typeof ct.ambientes==='string'?JSON.parse(ct.ambientes||'[]'):ct.ambientes||[];
+  let pedHtml='';
+  if(ambs.length){
+    pedHtml=`<div class="ct-pedidos">
+      <div class="ct-pedidos-title">Pedidos deste contrato — clique no nº para preencher a ocorrência</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:var(--bg2);padding:5px 0;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px;">
+        <span>Nº Pedido</span><span>NF</span><span>Ambiente</span><span style="text-align:right">Valor</span>
+      </div>
+      ${ambs.map(a=>`<div class="ct-ped-row" onclick="vsPreencherNped('${a.pedido||''}','${a.nf||''}')">
+        <span>${a.pedido||'—'}</span>
+        <span style="color:var(--text2)">${a.nf||'—'}</span>
+        <span>${a.nome||'—'}</span>
+        <span style="text-align:right;font-weight:500;">${fmt(a.valor)}</span>
+      </div>`).join('')}
+    </div>
+    <div class="info-box" style="margin-bottom:0;">Clique em um pedido acima para preenchê-lo automaticamente na ocorrência.</div>`;
+  }
+  document.getElementById('vs-ct-pedidos').innerHTML=pedHtml;
+  document.getElementById('vs-busca-wrap').style.display='none';
+  document.getElementById('vs-ct-selecionado').style.display='block';
+  // Carrega ocorrências existentes do contrato
+  const {data}=await db.from('ocorrencias_montagem').select('*').eq('pedido_id',ct.id).order('created_at',{ascending:true});
+  vsOcorrencias=data?data.map(o=>({...o,fonte:'sistema'})):[];
+  renderVsOcorrencias();
+}
+
+function vsPreencherNped(nped,nf){
+  if(nped)document.getElementById('vs-oc-nped').value=nped;
+  if(nf)document.getElementById('vs-oc-nf').value=nf;
+  notify('Pedido preenchido!','info');
+}
+
+function vsTrocarContrato(){
+  document.getElementById('vs-pedido').value='';
+  document.getElementById('vs-contrato').value='';
+  document.getElementById('vs-cliente').value='';
+  document.getElementById('vs-email').value='';
+  document.getElementById('vs-ac-input').value='';
+  document.getElementById('vs-ct-selecionado').style.display='none';
+  document.getElementById('vs-busca-wrap').style.display='block';
+  vsOcorrencias=[];renderVsOcorrencias();
+}
+
+// Fechar dropdown ao clicar fora
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('vs-ac-wrap');
+  if(wrap&&!wrap.contains(e.target)){
+    const dd=document.getElementById('vs-ac-dropdown');if(dd)dd.classList.remove('open');
   }
 });
+
+async function carregarDadosVistoria(){
+  // mantido por compatibilidade — não é mais chamado pelo HTML
+}
+
+function tipoLabel(tipo){
+  const map={falta_volume:'Falta de volume',asteca_fabrica:'Asteca de fábrica',asteca_loja:'Asteca de loja',avaria_transporte:'Avaria de transporte',avaria_montagem:'Avaria de montagem'};
+  return map[tipo]||tipo;
+}
+
+function tipoBadgeClass(tipo){
+  if(tipo==='falta_volume')return'badge-amber';
+  if(tipo==='asteca_fabrica'||tipo==='asteca_loja')return'badge-blue';
+  return'badge-red';
+}
+
+/* FALTAS */
+function addFaltaItem(){
+  const nped=document.getElementById('oc-f-nped').value.trim();
+  const nf=document.getElementById('oc-f-nf').value.trim();
+  const vol=document.getElementById('oc-f-vol').value.trim();
+  const item=document.getElementById('oc-f-item').value.trim();
+  const qtd=parseInt(document.getElementById('oc-f-qtd').value)||1;
+  if(!nped&&!nf&&!item){notify('Preencha pelo menos um campo de identificação.','error');return}
+  faltaItens.push({nped,nf,vol,item,qtd});
+  document.getElementById('oc-f-nped').value='';document.getElementById('oc-f-nf').value='';
+  document.getElementById('oc-f-vol').value='';document.getElementById('oc-f-item').value='';
+  document.getElementById('oc-f-qtd').value='';
+  renderFaltaItens();
+}
+function removeFaltaItem(i){faltaItens.splice(i,1);renderFaltaItens()}
+function renderFaltaItens(){
+  const el=document.getElementById('oc-falta-list');
+  el.innerHTML=faltaItens.length?`<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;">
+      <span>Nº Ped.</span><span>NF</span><span>Volume</span><span>Item</span><span>Qtd</span><span></span>
+    </div>
+    ${faltaItens.map((f,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:12px;align-items:center;">
+      <span>${f.nped||'—'}</span><span>${f.nf||'—'}</span><span>${f.vol||'—'}</span><span>${f.item||'—'}</span><span>${f.qtd}</span>
+      <button class="btn-red-sm" onclick="removeFaltaItem(${i})">✕</button>
+    </div>`).join('')}
+  </div>`:''
+}
+
+async function salvarFalta(){
+  const pedidoId=document.getElementById('oc-falta-pedido').value;
+  const data=document.getElementById('oc-falta-data').value;
+  if(!pedidoId){setAlert('oc-falta-alert','Selecione o pedido.','error');return}
+  if(!faltaItens.length){setAlert('oc-falta-alert','Adicione pelo menos uma peça faltante.','error');return}
+  const btn=document.getElementById('btn-salvar-falta');btn.disabled=true;btn.textContent='Salvando...';
+  const {error}=await db.from('ocorrencias_montagem').insert({
+    pedido_id:pedidoId,tipo:'falta_volume',
+    descricao:`Falta de volume registrada em ${data}`,
+    itens:JSON.stringify(faltaItens),
+    registrado_por:currentUser.id
+  });
+  btn.disabled=false;btn.textContent='Registrar falta';
+  if(error){setAlert('oc-falta-alert','Erro ao salvar.','error');return}
+  faltaItens=[];renderFaltaItens();
+  document.getElementById('oc-falta-pedido').value='';
+  setAlert('oc-falta-alert','Falta registrada com sucesso!','success');
+  notify('Falta registrada!');
+}
+
+/* OCORRÊNCIAS */
+function addOcorrenciaItem(){
+  const nped=document.getElementById('oc-o-nped').value.trim();
+  const nf=document.getElementById('oc-o-nf').value.trim();
+  const vol=document.getElementById('oc-o-vol').value.trim();
+  const item=document.getElementById('oc-o-item').value.trim();
+  const qtd=parseInt(document.getElementById('oc-o-qtd').value)||1;
+  if(!nped&&!nf&&!item){notify('Preencha pelo menos um campo de identificação.','error');return}
+  ocorrenciaItens.push({nped,nf,vol,item,qtd});
+  document.getElementById('oc-o-nped').value='';document.getElementById('oc-o-nf').value='';
+  document.getElementById('oc-o-vol').value='';document.getElementById('oc-o-item').value='';
+  document.getElementById('oc-o-qtd').value='';
+  renderOcorrenciaItens();
+}
+function removeOcorrenciaItem(i){ocorrenciaItens.splice(i,1);renderOcorrenciaItens()}
+function renderOcorrenciaItens(){
+  const el=document.getElementById('oc-oc-list');
+  el.innerHTML=ocorrenciaItens.length?`<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;">
+      <span>Nº Ped.</span><span>NF</span><span>Volume</span><span>Item</span><span>Qtd</span><span></span>
+    </div>
+    ${ocorrenciaItens.map((o,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:12px;align-items:center;">
+      <span>${o.nped||'—'}</span><span>${o.nf||'—'}</span><span>${o.vol||'—'}</span><span>${o.item||'—'}</span><span>${o.qtd}</span>
+      <button class="btn-red-sm" onclick="removeOcorrenciaItem(${i})">✕</button>
+    </div>`).join('')}
+  </div>`:''
+}
+
+async function salvarOcorrencia(){
+  const pedidoId=document.getElementById('oc-oc-pedido').value;
+  const tipo=document.getElementById('oc-oc-tipo').value;
+  const fotoEtiqueta=document.getElementById('oc-foto-etiqueta').files[0];
+  const fotoProblema=document.getElementById('oc-foto-problema').files[0];
+  if(!pedidoId){setAlert('oc-oc-alert','Selecione o pedido.','error');return}
+  if(!tipo){setAlert('oc-oc-alert','Selecione o tipo de ocorrência.','error');return}
+  if(!ocorrenciaItens.length){setAlert('oc-oc-alert','Adicione pelo menos uma peça.','error');return}
+  if(!fotoEtiqueta){setAlert('oc-oc-alert','Foto da etiqueta é obrigatória.','error');return}
+  if(!fotoProblema){setAlert('oc-oc-alert','Foto do problema é obrigatória.','error');return}
+  const btn=document.getElementById('btn-salvar-oc');btn.disabled=true;btn.textContent='Salvando...';
+  const ts=Date.now();
+  const fotos=[];
+  const uploadFoto=async(file,nome)=>{
+    const ext=file.name.split('.').pop();
+    const path=`${pedidoId}/${ts}_${nome}.${ext}`;
+    const {error}=await db.storage.from('ocorrencias').upload(path,file,{upsert:true});
+    if(!error){const {data:u}=db.storage.from('ocorrencias').getPublicUrl(path);fotos.push({nome,url:u.publicUrl})}
+  };
+  await uploadFoto(fotoEtiqueta,'etiqueta');
+  await uploadFoto(fotoProblema,'problema');
+  const extras=document.getElementById('oc-fotos-extras').files;
+  for(let i=0;i<extras.length;i++)await uploadFoto(extras[i],`extra_${i+1}`);
+  const {error}=await db.from('ocorrencias_montagem').insert({
+    pedido_id:pedidoId,tipo,
+    itens:JSON.stringify(ocorrenciaItens),
+    fotos:JSON.stringify(fotos),
+    registrado_por:currentUser.id
+  });
+  btn.disabled=false;btn.textContent='Registrar ocorrência';
+  if(error){setAlert('oc-oc-alert','Erro ao salvar.','error');return}
+  ocorrenciaItens=[];renderOcorrenciaItens();
+  document.getElementById('oc-oc-pedido').value='';document.getElementById('oc-oc-tipo').value='';
+  document.getElementById('oc-foto-etiqueta').value='';document.getElementById('oc-foto-problema').value='';
+  document.getElementById('oc-fotos-extras').value='';
+  setAlert('oc-oc-alert','Ocorrência registrada com sucesso!','success');
+  notify('Ocorrência registrada!');
+}
+
+async function loadOcorrencias(){
+  const cont=document.getElementById('oc-lista-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const {data}=await db.from('ocorrencias_montagem').select('*,pedidos_montagem(cliente_nome,numero_contrato)').order('created_at',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma ocorrência registrada.</p></div>';return}
+  cont.innerHTML=data.map(o=>{
+    const itens=o.itens?JSON.parse(o.itens):[];
+    const fotos=o.fotos?JSON.parse(o.fotos):[];
+    const dataStr=new Date(o.created_at).toLocaleDateString('pt-BR');
+    const cliente=o.pedidos_montagem?.cliente_nome||'—';
+    const contrato=o.pedidos_montagem?.numero_contrato||'';
+    return `<div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div><div style="font-size:14px;font-weight:500;">${cliente}${contrato?' — CT: '+contrato:''}</div><div style="font-size:12px;color:var(--text2);">${dataStr}</div></div>
+        <span class="badge ${tipoBadgeClass(o.tipo)}">${tipoLabel(o.tipo)}</span>
+      </div>
+      ${itens.length?`<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;background:var(--bg);padding:6px 10px;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;"><span>Nº Ped.</span><span>NF</span><span>Volume</span><span>Item</span><span>Qtd</span></div>
+        ${itens.map(i=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;padding:6px 10px;border-top:1px solid var(--border);font-size:12px;"><span>${i.nped||'—'}</span><span>${i.nf||'—'}</span><span>${i.vol||'—'}</span><span>${i.item||'—'}</span><span>${i.qtd}</span></div>`).join('')}
+      </div>`:''}
+      ${fotos.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;">${fotos.map(f=>`<a href="${f.url}" target="_blank" style="display:inline-block;"><img src="${f.url}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" title="${f.nome}"></a>`).join('')}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* VISTORIA FINAL */
+function showProjetoFile(input){
+  const file=input.files[0];if(!file)return;
+  document.getElementById('vs-projeto-label').style.display='none';
+  document.getElementById('vs-projeto-preview').style.display='block';
+  document.getElementById('vs-projeto-preview').textContent='✅ '+file.name;
+}
+
+function addOcVistoria(){
+  const tipo=document.getElementById('vs-oc-tipo').value;
+  const desc=document.getElementById('vs-oc-desc').value.trim();
+  const nped=document.getElementById('vs-oc-nped').value.trim();
+  const nf=document.getElementById('vs-oc-nf').value.trim();
+  const item=document.getElementById('vs-oc-item').value.trim();
+  const qtd=parseInt(document.getElementById('vs-oc-qtd').value)||1;
+  const foto=document.getElementById('vs-oc-foto').files[0];
+  if(!tipo){notify('Selecione o tipo de ocorrência.','error');return}
+  vsOcorrencias.push({tipo,descricao:desc,nped,nf,item,qtd,foto,fonte:'supervisor'});
+  document.getElementById('vs-oc-tipo').value='';document.getElementById('vs-oc-desc').value='';
+  document.getElementById('vs-oc-nped').value='';document.getElementById('vs-oc-nf').value='';
+  document.getElementById('vs-oc-item').value='';document.getElementById('vs-oc-qtd').value='';
+  document.getElementById('vs-oc-foto').value='';
+  renderVsOcorrencias();
+  notify('Ocorrência adicionada ao relatório!');
+}
+
+function removeVsOc(i){vsOcorrencias.splice(i,1);renderVsOcorrencias()}
+
+function renderVsOcorrencias(){
+  const cont=document.getElementById('vs-ocorrencias-content');
+  if(!vsOcorrencias.length){cont.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhuma ocorrência registrada para este pedido.</div>';return}
+  const grupos={falta_volume:[],asteca_fabrica:[],asteca_loja:[],avaria_transporte:[],avaria_montagem:[]};
+  vsOcorrencias.forEach((o,i)=>{if(grupos[o.tipo])grupos[o.tipo].push({...o,idx:i})});
+  let html='';
+  Object.entries(grupos).forEach(([tipo,itens])=>{
+    if(!itens.length)return;
+    html+=`<div style="margin-bottom:12px;"><div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;">${tipoLabel(tipo)} (${itens.length})</div>`;
+    itens.forEach(o=>{
+      const isSistema=o.fonte==='sistema';
+      const fotos=o.fotos?JSON.parse(o.fotos):[];
+      html+=`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <span class="badge ${tipoBadgeClass(tipo)}">${tipoLabel(tipo)}</span>
+          ${isSistema?'<span style="font-size:11px;color:var(--green);margin-left:6px;">● do montador</span>':'<span style="font-size:11px;color:var(--blue);margin-left:6px;">● adicionado agora</span>'}
+          ${o.descricao?`<div style="font-size:12px;color:var(--text2);margin-top:4px;">${o.descricao}</div>`:''}
+          ${o.itens?JSON.parse(o.itens).map(i=>`<div style="font-size:11px;color:var(--text3);">Ped: ${i.nped||'—'} · NF: ${i.nf||'—'} · Item: ${i.item||'—'} · Qtd: ${i.qtd}</div>`).join(''):''}
+          ${fotos.length?`<div style="display:flex;gap:4px;margin-top:4px;">${fotos.map(f=>`<img src="${f.url}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">`).join('')}</div>`:''}
+        </div>
+        ${!isSistema?`<button class="btn-red-sm" onclick="removeVsOc(${o.idx})">✕</button>`:''}
+      </div>`;
+    });
+    html+='</div>';
+  });
+  cont.innerHTML=html;
+}
+
+async function gerarRelatorio(){
+  const pedidoId=document.getElementById('vs-pedido').value;
+  const cliente=document.getElementById('vs-cliente').value.trim();
+  const email=document.getElementById('vs-email').value.trim();
+  const contrato=document.getElementById('vs-contrato').value.trim();
+  const data=document.getElementById('vs-data').value;
+  const obs=document.getElementById('vs-obs').value.trim();
+  const respNome=document.getElementById('vs-responsavel-nome').value.trim();
+  const respEmail=document.getElementById('vs-responsavel-email').value.trim();
+  const projetoFile=document.getElementById('vs-projeto-file').files[0];
+  if(!pedidoId||!cliente||!email){setAlert('vs-novo-alert','Preencha todos os dados do cliente.','error');return}
+  if(!respNome||!respEmail){setAlert('vs-novo-alert','Preencha o nome e e-mail do responsável pela vistoria.','error');return}
+  const btn=document.getElementById('btn-gerar-rel');btn.disabled=true;btn.textContent='Gerando...';
+  let projetoUrl='';
+  if(projetoFile){
+    const ext=projetoFile.name.split('.').pop();
+    const path=`${pedidoId}/${Date.now()}.${ext}`;
+    const {error}=await db.storage.from('projetos').upload(path,projetoFile,{upsert:true});
+    if(!error){const {data:u}=db.storage.from('projetos').getPublicUrl(path);projetoUrl=u.publicUrl}
+  }
+  const ocParaSalvar=[];
+  for(const o of vsOcorrencias){
+    if(o.fonte==='supervisor'&&o.foto){
+      const ext=o.foto.name.split('.').pop();
+      const path=`${pedidoId}/vs_${Date.now()}.${ext}`;
+      const {error}=await db.storage.from('ocorrencias').upload(path,o.foto,{upsert:true});
+      let fotoUrl='';
+      if(!error){const {data:u}=db.storage.from('ocorrencias').getPublicUrl(path);fotoUrl=u.publicUrl}
+      ocParaSalvar.push({...o,fotoUrl,foto:undefined});
+    } else {
+      ocParaSalvar.push({...o,foto:undefined});
+    }
+  }
+  const {data:rel,error}=await db.from('relatorios_vistoria').insert({
+    pedido_id:pedidoId,cliente_nome:cliente,cliente_email:email,
+    numero_contrato:contrato,data_vistoria:data,
+    projeto_executivo_url:projetoUrl,
+    ocorrencias:JSON.stringify(ocParaSalvar),
+    observacao_cliente:obs,
+    responsavel_nome:respNome,
+    responsavel_email:respEmail,
+    status:'gerado',
+    criado_por:currentUser.id
+  }).select().single();
+  btn.disabled=false;btn.textContent='Gerar relatório de vistoria';
+  if(error){setAlert('vs-novo-alert','Erro ao gerar relatório.','error');return}
+  setAlert('vs-novo-alert',`Relatório gerado com sucesso! <a href="#" onclick="abrirRelatorio('${rel.id}')" style="color:var(--green);font-weight:500;">Visualizar relatório</a>`,'success');
+  notify('Relatório gerado!');
+  vsOcorrencias=[];
+  vsTrocarContrato();
+  document.getElementById('vs-responsavel-nome').value='';
+  document.getElementById('vs-responsavel-email').value='';
+  setTimeout(()=>{showSubVistoria('vs-lista',document.getElementById('vs-nav-lista'));loadVistorias()},1500);
+}
+
+async function loadVistorias(){
+  const cont=document.getElementById('vs-lista-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const {data}=await db.from('relatorios_vistoria').select('*').order('created_at',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum relatório gerado ainda.</p></div>';return}
+  cont.innerHTML=data.map(r=>{
+    const dataStr=r.data_vistoria?new Date(r.data_vistoria+'T12:00:00').toLocaleDateString('pt-BR'):new Date(r.created_at).toLocaleDateString('pt-BR');
+    const badgeClass=r.status==='assinado'?'badge-green':r.status==='enviado'?'badge-blue':'badge-amber';
+    const badgeText=r.status==='assinado'?'Assinado':r.status==='enviado'?'Enviado para assinatura':'Gerado';
+    return `<div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div>
+          <div style="font-size:14px;font-weight:500;">${r.cliente_nome}</div>
+          <div style="font-size:12px;color:var(--text2);">${r.numero_contrato||''} · ${dataStr}</div>
+        </div>
+        <span class="badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <button onclick="abrirRelatorio('${r.id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">📄 Visualizar</button>
+        <button onclick="abrirModalEdicao('${r.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✏️ Editar</button>
+        <button onclick="abrirModalAuditoria('${r.id}')" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔍 Histórico</button>
+        ${r.projeto_executivo_url?`<a href="${r.projeto_executivo_url}" target="_blank" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;text-decoration:none;font-family:'DM Sans',sans-serif;">📋 Projeto</a>`:''}
+        ${(r.status==='gerado'||r.status==='enviado')?`<button onclick="enviarRelatorioEmail('${r.id}')" style="background:#0061ff;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✍️ ${r.status==='enviado'?'Reenviar para assinatura':'Enviar para assinatura'}</button>`:''}
+        ${r.status==='enviado'&&r.docusign_envelope_id?`<button onclick="sincronizarAssinatura('${r.id}','${r.docusign_envelope_id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔄 Sincronizar</button>`:''}
+        ${r.status==='assinado'&&r.pdf_url?`<a href="${r.pdf_url}" target="_blank" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;text-decoration:none;font-family:'DM Sans',sans-serif;">📥 Baixar assinado</a>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function abrirRelatorio(id){
+  const {data:r}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
+  if(!r)return;
+
+  const ocs=r.ocorrencias?JSON.parse(r.ocorrencias):[];
+  const dataStr=r.data_vistoria?new Date(r.data_vistoria+'T12:00:00').toLocaleDateString('pt-BR'):'';
+
+  // Normaliza todas as ocorrências (sistema e supervisor) para formato único
+  // Formato unificado: { tipo, linhas:[{nped,nf,vol,item,qtd,desc}], fotos:[{url,meta}] }
+  const grupos={falta_volume:[],asteca_fabrica:[],asteca_loja:[],avaria_transporte:[],avaria_montagem:[]};
+
+  ocs.forEach(o=>{
+    if(!grupos[o.tipo])return;
+    const desc=o.descricao||o.desc||'';
+
+    // Linhas da tabela — suporta fonte 'sistema' (itens:[]) e 'supervisor' (campos diretos)
+    let linhas=[];
+    if(o.itens){
+      // ocorrência do montador: itens é array de peças
+      const its=typeof o.itens==='string'?JSON.parse(o.itens):o.itens;
+      linhas=its.map(i=>({nped:i.nped||'—',nf:i.nf||'—',vol:i.vol||'—',item:i.item||'—',qtd:i.qtd||1,desc}));
+    } else {
+      // ocorrência do supervisor: campos diretos nped/nf/item/qtd
+      linhas=[{nped:o.nped||o.num_pedido||'—',nf:o.nf||o.nota_fiscal||'—',vol:o.vol||'—',item:o.item||o.num_item||'—',qtd:o.qtd||o.quantidade||1,desc}];
+    }
+
+    // Fotos — suporta fotos:[], fotoUrl:'', foto_url:''
+    let fotos=[];
+    if(o.fotos){
+      const fs=typeof o.fotos==='string'?JSON.parse(o.fotos):o.fotos;
+      fotos=fs.filter(f=>f&&f.url).map(f=>({url:f.url,meta:gerarMetaFoto(linhas,desc,tipoLabel(o.tipo))}));
+    } else if(o.fotoUrl){
+      fotos=[{url:o.fotoUrl,meta:gerarMetaFoto(linhas,desc,tipoLabel(o.tipo))}];
+    } else if(o.foto_url){
+      fotos=[{url:o.foto_url,meta:gerarMetaFoto(linhas,desc,tipoLabel(o.tipo))}];
+    }
+
+    grupos[o.tipo].push({linhas,fotos,desc});
+  });
+
+  const win=window.open('','_blank');
+  let html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Relatório de Vistoria — ${r.cliente_nome}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Arial',sans-serif;color:#1a1a2e;background:#fff}
+    .page{max-width:800px;margin:0 auto;padding:40px}
+    .header{border-bottom:3px solid #1a1a2e;padding-bottom:16px;margin-bottom:28px}
+    .titulo-doc{font-size:18px;font-weight:700;text-align:center;margin:16px 0 0;text-transform:uppercase;letter-spacing:1px;color:#1a1a2e}
+    .dados-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #1a1a2e;margin-bottom:24px}
+    .dado{padding:10px 14px;border-bottom:1px solid #ccc}
+    .dado:nth-child(odd){border-right:1px solid #1a1a2e}
+    .dado label{font-size:10px;font-weight:700;text-transform:uppercase;color:#6b6880;display:block;margin-bottom:2px}
+    .dado span{font-size:13px;font-weight:600;color:#1a1a2e}
+    .secao-titulo{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#1a1a2e;padding:8px 14px;margin:24px 0 12px}
+    .tabela{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px}
+    .tabela th{background:#f0e6d3;color:#1a1a2e;font-weight:700;padding:8px;text-align:left;border:1px solid #ccc}
+    .tabela td{padding:8px;border:1px solid #ccc;color:#1a1a2e}
+    .tabela tr:nth-child(even) td{background:#f8f6f2}
+    /* Fotos: 1 por linha, 2 por página, sem legenda */
+    .foto-bloco{margin-bottom:0;page-break-inside:avoid;break-inside:avoid;}
+    .foto-unica{border:1px solid #ccc;margin-bottom:12px;page-break-inside:avoid;break-inside:avoid;}
+    .foto-unica img{width:100%;height:320px;object-fit:cover;display:block;}
+    .foto-par-pagina{page-break-after:always;break-after:page;}
+    .obs-box{border:1px solid #1a1a2e;padding:14px;min-height:80px;margin-bottom:20px;font-size:13px}
+    .assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px;page-break-inside:avoid;}
+    .assinatura{text-align:center}
+    .assinatura-nome{font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:2px;}
+    .assinatura-email{font-size:11px;color:#6b6880;margin-bottom:0;}
+    .assinatura-linha{border-top:1px solid #1a1a2e;padding-top:8px;margin-top:48px;}
+    .rodape{text-align:center;margin-top:28px;font-size:10px;color:#9b98a8}
+    @media print{
+      body{padding:0}
+      .page{padding:20px}
+      .no-print{display:none}
+      .foto-par{page-break-inside:avoid;break-inside:avoid;}
+    }
+  </style></head><body><div class="page">
+
+  <div class="header">
+    <div class="titulo-doc">Relatório de Supervisão de Montagem</div>
+  </div>
+
+  <div class="dados-grid">
+    <div class="dado"><label>Cliente</label><span>${r.cliente_nome}</span></div>
+    <div class="dado"><label>Contrato</label><span>${r.numero_contrato||'—'}</span></div>
+    <div class="dado"><label>Data da vistoria</label><span>${dataStr}</span></div>
+    <div class="dado"><label>E-mail</label><span>${r.cliente_email||'—'}</span></div>
+  </div>`;
+
+  const tiposOrdem=['falta_volume','asteca_fabrica','asteca_loja','avaria_transporte','avaria_montagem'];
+
+  tiposOrdem.forEach(tipo=>{
+    const grupo=grupos[tipo];
+    if(!grupo.length)return;
+
+    html+=`<div class="secao-titulo">${tipoLabel(tipo)}</div>`;
+
+    // Tabela com todas as linhas deste tipo
+    const todasLinhas=grupo.flatMap(g=>g.linhas);
+    if(todasLinhas.length){
+      html+=`<table class="tabela"><thead><tr>
+        <th>Nº Pedido</th><th>NF</th><th>Volume</th><th>Item</th><th>Qtd</th><th>Descrição</th>
+      </tr></thead><tbody>
+      ${todasLinhas.map(l=>`<tr>
+        <td>${l.nped}</td><td>${l.nf}</td><td>${l.vol}</td><td>${l.item}</td><td>${l.qtd}</td><td>${l.desc||'—'}</td>
+      </tr>`).join('')}
+      </tbody></table>`;
+    }
+
+    // Fotos — 1 por linha, quebra de página a cada 2
+    const todasFotos=grupo.flatMap(g=>g.fotos);
+    if(todasFotos.length){
+      todasFotos.forEach((f,i)=>{
+        const ultimaDaPagina=(i%2===1)||(i===todasFotos.length-1);
+        html+=`<div class="foto-unica${ultimaDaPagina&&i%2===1?' foto-par-pagina':''}">
+          <img src="${f.url}" alt="${tipoLabel(tipo)}">
+        </div>`;
+      });
+    }
+  });
+
+  html+=`
+  <div class="secao-titulo">Observações do cliente</div>
+  <div class="obs-box">${r.observacao_cliente||''}</div>
+
+  <div class="assinaturas">
+    <div class="assinatura">
+      <div class="assinatura-linha">
+        <div class="assinatura-nome">${r.responsavel_nome||'Responsável pela vistoria'}</div>
+        <div class="assinatura-email">${r.responsavel_email||''}</div>
+      </div>
+    </div>
+    <div class="assinatura">
+      <div class="assinatura-linha">
+        <div class="assinatura-nome">${r.cliente_nome}</div>
+        <div class="assinatura-email">${r.cliente_email||''}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rodape">Data: ${dataStr}</div>
+  </div>
+
+  <div class="no-print" style="text-align:center;padding:20px;">
+    <button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:14px;cursor:pointer;font-family:Arial,sans-serif;">🖨️ Imprimir / Salvar PDF</button>
+  </div>
+  </body></html>`;
+
+  win.document.write(html);win.document.close();
+}
+
+// Gera texto de legenda para foto: "Ped: X · NF: Y · Item: Z · Qtd: N · Desc"
+function gerarMetaFoto(linhas,desc,tipo){
+  if(!linhas||!linhas.length)return desc||tipo;
+  const l=linhas[0];
+  const partes=[];
+  if(l.nped&&l.nped!=='—')partes.push('Ped: '+l.nped);
+  if(l.nf&&l.nf!=='—')partes.push('NF: '+l.nf);
+  if(l.item&&l.item!=='—')partes.push('Item: '+l.item);
+  if(l.qtd&&l.qtd!==1)partes.push('Qtd: '+l.qtd);
+  if(desc)partes.push(desc);
+  return partes.join(' · ')||tipo;
+}
+
+async function sincronizarAssinatura(relatorioId, docId){
+  notify('Verificando assinaturas...','info');
+  try{
+    const token=`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`;
+    const res=await fetch(token,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({relatorio_id:relatorioId,doc_id:docId})
+    });
+    const json=await res.json();
+    if(!res.ok)throw new Error(json.error||'Erro desconhecido');
+    if(json.assinado){
+      notify('Relatório atualizado para Assinado! ✅');
+    } else {
+      notify(`Ainda aguardando assinaturas (${json.assinados}/${json.total})`, 'info');
+    }
+    loadVistorias();
+  }catch(e){
+    notify('Erro: '+e.message,'error');
+  }
+}
+
+async function enviarRelatorioEmail(id){
+  const {data:r}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
+  if(!r){notify('Relatório não encontrado.','error');return}
+  if(!r.cliente_email){notify('E-mail do cliente não cadastrado.','error');return}
+  if(!r.responsavel_email){notify('E-mail do responsável não cadastrado. Edite o relatório primeiro.','error');return}
+  notify('Enviando para assinatura...','info');
+  try{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({relatorio_id:id})
+    });
+    const json=await res.json();
+    if(!res.ok)throw new Error(json.error||'Erro desconhecido');
+    notify('Enviado para assinatura! Responsável receberá o e-mail primeiro.');
+    loadVistorias();
+  }catch(e){
+    console.error(e);
+    notify('Erro: '+e.message,'error');
+  }
+}
+
+/* ══════════════════════════════════════════
+   EDIÇÃO DE RELATÓRIO
+══════════════════════════════════════════ */
+let editOcsAtual=[];
+
+async function abrirModalEdicao(id){
+  const {data:r}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
+  if(!r)return;
+  document.getElementById('edit-rel-id').value=id;
+  document.getElementById('edit-cliente').value=r.cliente_nome||'';
+  document.getElementById('edit-email').value=r.cliente_email||'';
+  document.getElementById('edit-contrato').value=r.numero_contrato||'';
+  document.getElementById('edit-data').value=r.data_vistoria||'';
+  document.getElementById('edit-obs').value=r.observacao_cliente||'';
+  editOcsAtual=r.ocorrencias?JSON.parse(r.ocorrencias):[];
+  renderEditOcs();
+  setAlert('edit-alert','','');
+  document.getElementById('modal-edicao').style.display='flex';
+}
+
+function fecharModalEdicao(){
+  document.getElementById('modal-edicao').style.display='none';
+}
+
+function renderEditOcs(){
+  const cont=document.getElementById('edit-ocs-lista');
+  if(!editOcsAtual.length){
+    cont.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhuma ocorrência registrada.</div>';return;
+  }
+  cont.innerHTML=editOcsAtual.map((o,i)=>{
+    const desc=o.descricao||o.desc||'';
+    const nped=o.nped||o.num_pedido||'—';
+    const nf=o.nf||o.nota_fiscal||'—';
+    const item=o.item||o.num_item||'—';
+    const qtd=o.qtd||o.quantidade||1;
+    return `<div class="oc-edit-item">
+      <div style="flex:1;">
+        <div style="font-size:11px;font-weight:600;color:var(--brand);text-transform:uppercase;margin-bottom:3px;">${tipoLabel(o.tipo)}</div>
+        <div style="font-size:12px;color:var(--text);">${desc||'—'}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;">Ped: ${nped} · NF: ${nf} · Item: ${item} · Qtd: ${qtd}</div>
+      </div>
+      <button class="btn-red-sm" onclick="editRemoverOc(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function editAdicionarOc(){
+  const tipo=document.getElementById('edit-oc-tipo').value;
+  const desc=document.getElementById('edit-oc-desc').value.trim();
+  const nped=document.getElementById('edit-oc-nped').value.trim();
+  const nf=document.getElementById('edit-oc-nf').value.trim();
+  const item=document.getElementById('edit-oc-item').value.trim();
+  const qtd=parseInt(document.getElementById('edit-oc-qtd').value)||1;
+  if(!tipo){notify('Selecione o tipo.','error');return}
+  editOcsAtual.push({tipo,descricao:desc,nped,nf,item,qtd,fonte:'edicao'});
+  document.getElementById('edit-oc-tipo').value='';
+  document.getElementById('edit-oc-desc').value='';
+  document.getElementById('edit-oc-nped').value='';
+  document.getElementById('edit-oc-nf').value='';
+  document.getElementById('edit-oc-item').value='';
+  document.getElementById('edit-oc-qtd').value='';
+  renderEditOcs();
+}
+
+function editRemoverOc(i){editOcsAtual.splice(i,1);renderEditOcs();}
+
+async function salvarEdicaoRelatorio(){
+  const id=document.getElementById('edit-rel-id').value;
+  if(!id)return;
+  const btn=document.getElementById('btn-salvar-edicao');
+  btn.disabled=true;btn.textContent='Salvando...';
+
+  // Busca valores anteriores para auditoria
+  const {data:anterior}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
+  if(!anterior){btn.disabled=false;btn.textContent='Salvar alterações';return}
+
+  const novos={
+    cliente_nome:document.getElementById('edit-cliente').value.trim(),
+    cliente_email:document.getElementById('edit-email').value.trim(),
+    numero_contrato:document.getElementById('edit-contrato').value.trim(),
+    data_vistoria:document.getElementById('edit-data').value,
+    observacao_cliente:document.getElementById('edit-obs').value.trim(),
+    ocorrencias:JSON.stringify(editOcsAtual),
+    status:'gerado'
+  };
+
+  const {error}=await db.from('relatorios_vistoria').update(novos).eq('id',id);
+  btn.disabled=false;btn.textContent='Salvar alterações';
+  if(error){setAlert('edit-alert','Erro ao salvar. Tente novamente.','error');return}
+
+  // Registra auditoria para cada campo alterado
+  const camposAuditados=[
+    {campo:'cliente_nome',label:'Nome do cliente'},
+    {campo:'cliente_email',label:'E-mail'},
+    {campo:'numero_contrato',label:'Contrato'},
+    {campo:'data_vistoria',label:'Data da vistoria'},
+    {campo:'observacao_cliente',label:'Observação do cliente'},
+    {campo:'ocorrencias',label:'Ocorrências'}
+  ];
+  const registros=[];
+  for(const {campo,label} of camposAuditados){
+    const vAntes=String(anterior[campo]||'');
+    const vDepois=String(novos[campo]||'');
+    if(vAntes!==vDepois){
+      registros.push({
+        relatorio_id:id,
+        alterado_por:currentUser.id,
+        alterado_por_email:currentUser.email,
+        campo_alterado:label,
+        valor_anterior:campo==='ocorrencias'?`${JSON.parse(vAntes||'[]').length} ocorrência(s)`:vAntes,
+        valor_novo:campo==='ocorrencias'?`${editOcsAtual.length} ocorrência(s)`:vDepois
+      });
+    }
+  }
+  if(registros.length)await db.from('relatorios_vistoria_audit').insert(registros);
+
+  notify('Relatório atualizado!');
+  fecharModalEdicao();
+  loadVistorias();
+}
+
+/* ══════════════════════════════════════════
+   AUDITORIA
+══════════════════════════════════════════ */
+async function abrirModalAuditoria(id){
+  document.getElementById('modal-auditoria').style.display='flex';
+  document.getElementById('audit-content').innerHTML='<div class="loader">Carregando...</div>';
+  const {data,error}=await db.from('relatorios_vistoria_audit')
+    .select('*')
+    .eq('relatorio_id',id)
+    .order('created_at',{ascending:false});
+  if(error||!data||!data.length){
+    document.getElementById('audit-content').innerHTML='<div class="empty-state"><p>Nenhuma alteração registrada para este relatório.</p></div>';return;
+  }
+  document.getElementById('audit-content').innerHTML=data.map(a=>{
+    const dataStr=new Date(a.created_at).toLocaleString('pt-BR');
+    return `<div class="audit-item">
+      <div class="audit-campo">${a.campo_alterado}</div>
+      <div class="audit-who">Por <strong>${a.alterado_por_email}</strong> em ${dataStr}</div>
+      <div class="audit-diff">
+        <span class="audit-antes" title="${a.valor_anterior||'vazio'}">− ${a.valor_anterior||'(vazio)'}</span>
+        <span class="audit-depois" title="${a.valor_novo||'vazio'}">+ ${a.valor_novo||'(vazio)'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function fecharModalAuditoria(){
+  document.getElementById('modal-auditoria').style.display='none';
+}
+
+async function enviarParaAssinatura(id){
+  notify('Use o botão "Enviar e-mail" para enviar o relatório ao cliente.','info');
+}
+</script>
+</body>
+</html>
