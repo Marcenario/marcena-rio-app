@@ -1413,6 +1413,14 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worke
 let faltaItens=[];
 let ocorrenciaItens=[];
 let vsOcorrencias=[];
+let acContratos=[];
+
+async function acCarregarTodos(){
+  const {data}=await db.from('pedidos_montagem')
+    .select('id,cliente_nome,numero_contrato,ambientes,valor_total,status')
+    .order('created_at',{ascending:false});
+  acContratos=data||[];
+}
 
 /* ── AUTOCOMPLETE OCORRÊNCIAS ── */
 let ocAcIdx={falta:-1,oc:-1};
