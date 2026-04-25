@@ -1794,7 +1794,7 @@ async function loadVistorias(){
         <button onclick="abrirModalEdicao('${r.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✏️ Editar</button>
         <button onclick="abrirModalAuditoria('${r.id}')" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔍 Histórico</button>
         ${r.projeto_executivo_url?`<a href="${r.projeto_executivo_url}" target="_blank" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;text-decoration:none;font-family:'DM Sans',sans-serif;">📋 Projeto</a>`:''}
-        ${r.status==='gerado'?`<button onclick="enviarRelatorioEmail('${r.id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✉️ Enviar e-mail</button>`:''}
+        ${r.status==='gerado'?`<button onclick="enviarRelatorioEmail('${r.id}')" style="background:#0061ff;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✍️ Enviar para assinatura</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1969,20 +1969,21 @@ async function enviarRelatorioEmail(id){
   const {data:r}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
   if(!r){notify('Relatório não encontrado.','error');return}
   if(!r.cliente_email){notify('E-mail do cliente não cadastrado.','error');return}
-  notify('Enviando e-mail...','info');
+  if(!r.responsavel_email){notify('E-mail do responsável não cadastrado. Edite o relatório primeiro.','error');return}
+  notify('Enviando para assinatura...','info');
   try{
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/enviar-relatorio`,{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
       body:JSON.stringify({relatorio_id:id})
     });
-    if(!res.ok)throw new Error(await res.text());
-    notify('E-mail enviado com sucesso!');
-    await db.from('relatorios_vistoria').update({status:'enviado'}).eq('id',id);
+    const json=await res.json();
+    if(!res.ok)throw new Error(json.error||'Erro desconhecido');
+    notify('Enviado para assinatura! Responsável receberá o e-mail primeiro.');
     loadVistorias();
   }catch(e){
     console.error(e);
-    notify('Erro ao enviar e-mail. Verifique a Edge Function.','error');
+    notify('Erro: '+e.message,'error');
   }
 }
 
