@@ -166,6 +166,24 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .audit-antes{background:var(--red-bg);color:var(--red);padding:3px 8px;border-radius:4px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .audit-depois{background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:4px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .oc-edit-item{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+/* ── ASTECA ── */
+.badge-asteca{background:#8a1a1a;color:#fff;animation:pulso 2s infinite;}
+@keyframes pulso{0%,100%{opacity:1;}50%{opacity:0.7;}}
+.checklist-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+.checklist-item:last-child{border-bottom:none;}
+.checklist-item:hover{background:var(--accent-light);}
+.checklist-item.checked{background:var(--green-bg);}
+.checklist-item input[type=checkbox]{width:18px;height:18px;cursor:pointer;flex-shrink:0;margin-top:2px;accent-color:var(--green);}
+.checklist-item .ci-tipo{font-size:11px;font-weight:600;color:var(--brand);text-transform:uppercase;letter-spacing:0.3px;}
+.checklist-item .ci-desc{font-size:12px;color:var(--text);margin-top:2px;}
+.checklist-item .ci-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.checklist-wrap{border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
+.checklist-header{background:var(--brand);color:#fff;padding:8px 14px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:space-between;}
+.tipo-toggle{display:flex;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:3px;margin-bottom:1rem;gap:4px;}
+.tipo-btn{flex:1;padding:10px;text-align:center;font-size:13px;font-family:'DM Sans',sans-serif;border:none;background:transparent;border-radius:6px;cursor:pointer;color:var(--text2);transition:all 0.2s;font-weight:500;}
+.tipo-btn.active-montagem{background:var(--brand);color:#fff;box-shadow:var(--shadow);}
+.tipo-btn.active-asteca{background:#8a1a1a;color:#fff;box-shadow:var(--shadow);}
+.asteca-urgente{border-left:4px solid #8a1a1a !important;}
 </style>
 </head>
 <body>
@@ -280,13 +298,37 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <div id="mt-novo" style="display:none">
         <div class="card">
           <div class="card-title" style="margin-bottom:1rem;">Registrar chegada de pedido</div>
+
+          <!-- Toggle Montagem / ASTECA -->
+          <div class="tipo-toggle">
+            <button class="tipo-btn active-montagem" id="btn-tipo-montagem" onclick="setTipoMt('montagem')">🔨 Montagem</button>
+            <button class="tipo-btn" id="btn-tipo-asteca" onclick="setTipoMt('asteca')">🔧 ASTECA — Assistência Técnica</button>
+          </div>
+
           <div class="form-grid">
-            <div class="form-row"><label>Número do contrato</label><input type="text" id="mt-contrato" placeholder="Ex: CT-2026-001"></div>
+            <div class="form-row"><label>Número do contrato</label><input type="text" id="mt-contrato" placeholder="Ex: CT-2026-001" oninput="onMtContratoInput(this.value)"></div>
             <div class="form-row"><label>Data de chegada</label><input type="date" id="mt-data"></div>
           </div>
           <div class="form-row"><label>Nome do cliente</label><input type="text" id="mt-cliente" placeholder="Nome completo"></div>
+
+          <!-- CHECKLIST ASTECA — aparece só quando tipo=asteca -->
+          <div id="mt-asteca-wrap" style="display:none;">
+            <div class="divider"></div>
+            <div style="font-size:14px;font-weight:500;color:#8a1a1a;margin-bottom:0.5rem;">⚠️ Checklist de peças/avarias da vistoria</div>
+            <div class="info-box" style="border-color:#f0a8a8;background:var(--red-bg);color:var(--red);">Todas as ocorrências do relatório de vistoria devem ser confirmadas antes de liberar a ASTECA para a fila. Marque cada item conforme as peças chegam.</div>
+            <div id="mt-checklist-wrap">
+              <div style="font-size:13px;color:var(--text3);padding:12px 0;">Digite o número do contrato acima para carregar as ocorrências da vistoria.</div>
+            </div>
+            <div id="mt-asteca-admin" style="display:none;margin-bottom:1rem;">
+              <div style="background:var(--amber-bg);border:1px solid #e8c87a;border-radius:var(--radius-sm);padding:12px 14px;">
+                <div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:8px;">⚠️ Autorização de admin — envio parcial</div>
+                <div class="form-row" style="margin-bottom:0;"><label>Justificativa para envio parcial</label><textarea id="mt-asteca-justificativa" style="height:60px;resize:none;" placeholder="Descreva o motivo para enviar com itens pendentes..."></textarea></div>
+              </div>
+            </div>
+          </div>
+
           <div class="divider"></div>
-          <div style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores de contrato</div>
+          <div id="mt-secao-label" style="font-size:14px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores de contrato</div>
           <div class="info-box">Adicione cada ambiente com seu número de pedido, nota fiscal e valor. O app distribui automaticamente para a equipe mais produtiva.</div>
           <div id="mt-amb-list"></div>
           <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
@@ -296,7 +338,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
               <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nome do ambiente</label><input type="text" id="mt-amb-nome" placeholder="Ex: Cozinha" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
-              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Valor do contrato (R$)</label><input type="text" id="mt-amb-valor" placeholder="Ex: 15000" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Valor (R$)</label><input type="text" id="mt-amb-valor" placeholder="Ex: 15000" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
             </div>
             <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;width:100%;" onclick="addAmbMt()">+ Adicionar ambiente</button>
           </div>
@@ -513,6 +555,10 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div class="form-grid">
             <div class="form-row"><label>Nome do cliente</label><input type="text" id="vs-cliente" placeholder="Preenchido automaticamente"></div>
             <div class="form-row"><label>E-mail do cliente (para assinatura)</label><input type="email" id="vs-email" placeholder="cliente@email.com"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row"><label>Nome do responsável pela vistoria</label><input type="text" id="vs-responsavel-nome" placeholder="Nome completo do responsável"></div>
+            <div class="form-row"><label>E-mail do responsável (para assinatura)</label><input type="email" id="vs-responsavel-email" placeholder="responsavel@marcenario.com.br"></div>
           </div>
 
           <div class="divider"></div>
@@ -953,18 +999,43 @@ async function salvarPedidoMt(){
   if(!ambsMt.length){setAlert('mt-novo-alert','Adicione pelo menos um ambiente.','error');return}
   const valorTotal=ambsMt.reduce((s,a)=>s+a.valor,0);
   if(!valorTotal){setAlert('mt-novo-alert','O valor total não pode ser zero.','error');return}
+  // Valida checklist ASTECA
+  if(mtTipo==='asteca'&&mtChecklist.length>0){
+    const marcados=mtChecklist.filter(i=>i.confirmado).length;
+    const total=mtChecklist.length;
+    if(marcados<total&&userNivel==='admin'){
+      const just=document.getElementById('mt-asteca-justificativa').value.trim();
+      if(!just){setAlert('mt-novo-alert','Preencha a justificativa para o envio parcial.','error');return}
+    } else if(marcados<total&&userNivel!=='admin'){
+      setAlert('mt-novo-alert','Confirme todos os itens do checklist para continuar.','error');return}
+  }
   const btn=document.getElementById('btn-mt-novo');btn.disabled=true;btn.textContent='Salvando...';
   const equipe=await distribuirEquipe(valorTotal);
-  if(!equipe){setAlert('mt-novo-alert','Cadastre pelo menos uma equipe antes.','error');btn.disabled=false;btn.textContent='Registrar e distribuir para equipe';return}
-  const {error}=await db.from('pedidos_montagem').insert({cliente_nome:cliente,numero_contrato:contrato,data_chegada:data,valor_total:valorTotal,ambientes:JSON.stringify(ambsMt),equipe_id:equipe.id,equipe_nome:equipe.nome,status:'em_montagem'});
-  btn.disabled=false;btn.textContent='Registrar e distribuir para equipe';
+  if(!equipe){setAlert('mt-novo-alert','Cadastre pelo menos uma equipe antes.','error');btn.disabled=false;btn.textContent=mtTipo==='asteca'?'🔧 Registrar ASTECA — URGENTE':'Registrar e distribuir para equipe';return}
+  const payload={
+    cliente_nome:cliente,numero_contrato:contrato,data_chegada:data,
+    valor_total:valorTotal,ambientes:JSON.stringify(ambsMt),
+    equipe_id:equipe.id,equipe_nome:equipe.nome,status:'em_montagem',
+    tipo:mtTipo
+  };
+  if(mtTipo==='asteca'&&mtChecklist.length>0)payload.checklist_asteca=JSON.stringify(mtChecklist);
+  if(mtRelatorioId)payload.relatorio_vistoria_id=mtRelatorioId;
+  const {error}=await db.from('pedidos_montagem').insert(payload);
+  btn.disabled=false;
+  btn.textContent=mtTipo==='asteca'?'🔧 Registrar ASTECA — URGENTE':'Registrar e distribuir para equipe';
   if(error){setAlert('mt-novo-alert','Erro ao salvar.','error');return}
-  setAlert('mt-novo-alert',`Distribuído para ${equipe.nome}!`,'success');
-  ambsMt=[];renderAmbsMt();
+  const msg=mtTipo==='asteca'?`ASTECA registrada para ${equipe.nome}! Entrada urgente na fila.`:`Distribuído para ${equipe.nome}!`;
+  setAlert('mt-novo-alert',msg,'success');
+  notify(msg);
+  ambsMt=[];renderAmbsMt();mtChecklist=[];mtRelatorioId=null;
   document.getElementById('mt-contrato').value='';
   document.getElementById('mt-cliente').value='';
   document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
-  notify(`Distribuído para ${equipe.nome}!`);
+  if(mtTipo==='asteca'){
+    document.getElementById('mt-checklist-wrap').innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Digite o número do contrato acima para carregar as ocorrências da vistoria.</div>';
+    document.getElementById('mt-asteca-admin').style.display='none';
+  }
+  setTipoMt('montagem');
 }
 
 async function loadFilaMt(){
@@ -977,7 +1048,12 @@ async function loadFilaMt(){
   document.getElementById('mt-st-em').textContent=data.filter(p=>p.status==='em_montagem').length;
   document.getElementById('mt-st-co').textContent=data.filter(p=>p.status==='concluido').length;
   document.getElementById('mt-st-vl').textContent=fmt(data.filter(p=>p.status!=='concluido').reduce((s,p)=>s+p.valor_total,0));
-  const ativos=data.filter(p=>p.status!=='concluido');
+  // ASTECA aparece primeiro (urgente)
+  const ativos=data.filter(p=>p.status!=='concluido').sort((a,b)=>{
+    if(a.tipo==='asteca'&&b.tipo!=='asteca')return -1;
+    if(a.tipo!=='asteca'&&b.tipo==='asteca')return 1;
+    return 0;
+  });
   const concl=data.filter(p=>p.status==='concluido');
   let html='';
   if(ativos.length)html+=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Em andamento (${ativos.length})</div>`+ativos.map(p=>renderPedidoMt(p)).join('');
@@ -987,15 +1063,38 @@ async function loadFilaMt(){
 
 function renderPedidoMt(p){
   const ambs=typeof p.ambientes==='string'?JSON.parse(p.ambientes):p.ambientes||[];
-  const badgeClass=p.status==='concluido'?'badge-green':p.status==='em_montagem'?'badge-blue':'badge-amber';
-  const badgeText=p.status==='concluido'?'Concluído':p.status==='em_montagem'?'Em montagem':'Aguardando';
+  const isAsteca=p.tipo==='asteca';
+  const badgeClass=p.status==='concluido'?'badge-green':isAsteca?'badge-asteca':p.status==='em_montagem'?'badge-blue':'badge-amber';
+  const badgeText=p.status==='concluido'?'Concluído':isAsteca?'🔧 ASTECA — URGENTE':p.status==='em_montagem'?'Em montagem':'Aguardando';
   const dataStr=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
   const dataConcl=p.data_conclusao?new Date(p.data_conclusao).toLocaleDateString('pt-BR'):null;
   const btnC=p.status!=='concluido'?`<button class="btn-green" onclick="concluirPedidoMt('${p.id}')">✓ Concluir</button>`:`<span style="font-size:12px;color:var(--green);">Concluído em ${dataConcl}</span>`;
   const btnE=p.status!=='concluido'?`<button style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;" onclick="excluirPedidoMt('${p.id}')">Excluir</button>`:'';
-  return `<div class="pedido-item">
+  // Checklist da ASTECA
+  let checklistHtml='';
+  if(isAsteca&&p.checklist_asteca){
+    const cl=typeof p.checklist_asteca==='string'?JSON.parse(p.checklist_asteca):p.checklist_asteca;
+    const total=cl.length;const marcados=cl.filter(i=>i.confirmado).length;
+    checklistHtml=`<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+      <div style="font-size:11px;font-weight:600;color:#8a1a1a;text-transform:uppercase;margin-bottom:6px;">Checklist de peças — ${marcados}/${total} confirmados</div>
+      <div style="background:var(--bg);border-radius:4px;overflow:hidden;">
+        ${cl.map((item,i)=>`<div class="checklist-item ${item.confirmado?'checked':''}" onclick="toggleChecklistFila('${p.id}',${i})">
+          <input type="checkbox" ${item.confirmado?'checked':''} onclick="event.stopPropagation();toggleChecklistFila('${p.id}',${i})">
+          <div>
+            <div class="ci-tipo">${tipoLabel(item.tipo)}</div>
+            <div class="ci-desc">${item.desc||'—'}</div>
+            <div class="ci-meta">${item.nped?'Ped: '+item.nped+' ·':''} ${item.nf?'NF: '+item.nf+' ·':''} ${item.item?'Item: '+item.item:''} Qtd: ${item.qtd||1}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  return `<div class="pedido-item ${isAsteca?'asteca-urgente':''}">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div><div style="font-size:14px;font-weight:500;">${p.cliente_nome}</div><div style="font-size:12px;color:var(--text2);">Contrato: <strong>${p.numero_contrato||'—'}</strong> · Chegada: ${dataStr} · <strong>${p.equipe_nome||'—'}</strong></div></div>
+      <div>
+        <div style="font-size:14px;font-weight:500;">${p.cliente_nome}${isAsteca?' <span style="color:#8a1a1a;font-size:12px;">⚡ Assistência Técnica</span>':''}</div>
+        <div style="font-size:12px;color:var(--text2);">Contrato: <strong>${p.numero_contrato||'—'}</strong> · Chegada: ${dataStr} · <strong>${p.equipe_nome||'—'}</strong></div>
+      </div>
       <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:15px;font-weight:500;color:var(--accent);">${fmt(p.valor_total)}</span><span class="badge ${badgeClass}">${badgeText}</span></div>
     </div>
     <div style="border-top:1px solid var(--border);padding-top:8px;">
@@ -1009,6 +1108,7 @@ function renderPedidoMt(p){
         <span style="font-weight:500;text-align:right;">${fmt(a.valor)}</span>
       </div>`).join('')}
     </div>
+    ${checklistHtml}
     <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">${btnC}${btnE}</div>
   </div>`;
 }
@@ -1124,6 +1224,139 @@ async function alterarNivel(userId,nivel){
   const {error}=await db.from('perfis').update({nivel}).eq('id',userId);
   if(error){notify('Erro ao alterar.','error');return}
   notify('Nível atualizado!');loadUsuarios();
+}
+
+/* ══════════════════════════════════════════
+   ASTECA — Assistência Técnica
+══════════════════════════════════════════ */
+let mtTipo='montagem';
+let mtChecklist=[];
+let mtRelatorioId=null;
+
+function setTipoMt(tipo){
+  mtTipo=tipo;
+  const btnM=document.getElementById('btn-tipo-montagem');
+  const btnA=document.getElementById('btn-tipo-asteca');
+  const wrap=document.getElementById('mt-asteca-wrap');
+  const secLabel=document.getElementById('mt-secao-label');
+  const btnEnviar=document.getElementById('btn-mt-novo');
+  if(tipo==='montagem'){
+    btnM.className='tipo-btn active-montagem';
+    btnA.className='tipo-btn';
+    wrap.style.display='none';
+    secLabel.textContent='Ambientes e valores de contrato';
+    btnEnviar.textContent='Registrar e distribuir para equipe';
+    btnEnviar.style.background='';
+    btnEnviar.disabled=false;btnEnviar.style.opacity='1';
+    setAlert('mt-novo-alert','','');
+  } else {
+    btnM.className='tipo-btn';
+    btnA.className='tipo-btn active-asteca';
+    wrap.style.display='block';
+    secLabel.textContent='Ambientes e valores da ASTECA';
+    btnEnviar.textContent='🔧 Registrar ASTECA — URGENTE';
+    btnEnviar.style.background='#8a1a1a';
+    const contrato=document.getElementById('mt-contrato').value.trim();
+    if(contrato)buscarChecklistAsteca(contrato);
+    else atualizarBotaoAsteca();
+  }
+}
+
+let mtContratoTimeout=null;
+function onMtContratoInput(val){
+  clearTimeout(mtContratoTimeout);
+  if(mtTipo==='asteca'&&val.trim().length>2){
+    mtContratoTimeout=setTimeout(()=>buscarChecklistAsteca(val.trim()),600);
+  }
+}
+
+async function buscarChecklistAsteca(contrato){
+  const wrap=document.getElementById('mt-checklist-wrap');
+  wrap.innerHTML='<div style="font-size:13px;color:var(--text2);padding:8px 0;">🔍 Buscando ocorrências da vistoria...</div>';
+  const {data:relatorios}=await db.from('relatorios_vistoria')
+    .select('id,ocorrencias,cliente_nome').eq('numero_contrato',contrato)
+    .order('created_at',{ascending:false}).limit(1);
+  if(!relatorios||!relatorios.length){
+    wrap.innerHTML='<div class="alert alert-info">Nenhum relatório de vistoria encontrado para este contrato. A ASTECA será registrada sem checklist.</div>';
+    mtChecklist=[];mtRelatorioId=null;atualizarBotaoAsteca();return;
+  }
+  const rel=relatorios[0];
+  mtRelatorioId=rel.id;
+  if(rel.cliente_nome)document.getElementById('mt-cliente').value=rel.cliente_nome;
+  const ocs=rel.ocorrencias?JSON.parse(rel.ocorrencias):[];
+  if(!ocs.length){
+    wrap.innerHTML='<div class="alert alert-info">Relatório encontrado, mas sem ocorrências registradas.</div>';
+    mtChecklist=[];atualizarBotaoAsteca();return;
+  }
+  mtChecklist=ocs.map(o=>({tipo:o.tipo,desc:o.descricao||o.desc||'',nped:o.nped||o.num_pedido||'',nf:o.nf||o.nota_fiscal||'',item:o.item||o.num_item||'',qtd:o.qtd||o.quantidade||1,confirmado:false}));
+  renderChecklistMt();
+}
+
+function renderChecklistMt(){
+  const wrap=document.getElementById('mt-checklist-wrap');
+  const total=mtChecklist.length;
+  const marcados=mtChecklist.filter(i=>i.confirmado).length;
+  wrap.innerHTML=`<div class="checklist-wrap">
+    <div class="checklist-header">
+      <span>Confirme cada peça/avaria recebida</span>
+      <span class="checklist-progress">${marcados}/${total} ✓</span>
+    </div>
+    ${mtChecklist.map((item,i)=>`<div class="checklist-item ${item.confirmado?'checked':''}" onclick="toggleChecklistMt(${i})">
+      <input type="checkbox" ${item.confirmado?'checked':''} onclick="event.stopPropagation();toggleChecklistMt(${i})">
+      <div>
+        <div class="ci-tipo">${tipoLabel(item.tipo)}</div>
+        <div class="ci-desc">${item.desc||'—'}</div>
+        <div class="ci-meta">${item.nped?'Ped: '+item.nped+' ·':''} ${item.nf?'NF: '+item.nf+' ·':''} ${item.item?'Item: '+item.item+' ·':''} Qtd: ${item.qtd}</div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+  atualizarBotaoAsteca();
+}
+
+function toggleChecklistMt(i){
+  mtChecklist[i].confirmado=!mtChecklist[i].confirmado;
+  renderChecklistMt();
+}
+
+function atualizarBotaoAsteca(){
+  if(mtTipo!=='asteca')return;
+  const btn=document.getElementById('btn-mt-novo');
+  const adminWrap=document.getElementById('mt-asteca-admin');
+  const total=mtChecklist.length;
+  const marcados=mtChecklist.filter(i=>i.confirmado).length;
+  const completo=total===0||marcados===total;
+  if(completo){
+    btn.disabled=false;btn.style.opacity='1';
+    adminWrap.style.display='none';
+    setAlert('mt-novo-alert','','');
+  } else {
+    if(userNivel==='admin'){
+      btn.disabled=false;btn.style.opacity='1';
+      adminWrap.style.display='block';
+      setAlert('mt-novo-alert',`⚠️ ${total-marcados} item(s) pendente(s). Preencha a justificativa para envio parcial.`,'info');
+    } else {
+      btn.disabled=true;btn.style.opacity='0.5';
+      adminWrap.style.display='none';
+      setAlert('mt-novo-alert',`🔒 ${total-marcados} item(s) ainda não confirmado(s). Confirme todos para liberar o envio.`,'error');
+    }
+  }
+}
+
+async function toggleChecklistFila(pedidoId,idx){
+  const {data:p}=await db.from('pedidos_montagem').select('checklist_asteca').eq('id',pedidoId).single();
+  if(!p)return;
+  const cl=p.checklist_asteca?JSON.parse(p.checklist_asteca):[];
+  if(cl[idx]===undefined)return;
+  cl[idx].confirmado=!cl[idx].confirmado;
+  cl[idx].confirmado_por=currentUser.email;
+  cl[idx].confirmado_em=new Date().toISOString();
+  await db.from('pedidos_montagem').update({checklist_asteca:JSON.stringify(cl)}).eq('id',pedidoId);
+  notify(cl[idx].confirmado?'Item confirmado!':'Item desmarcado.');
+  loadFilaMt();
+}
+
+function tipoLabel(t){
+  return({falta_volume:'Falta de volume',asteca_fabrica:'Asteca de fábrica',asteca_loja:'Asteca de loja',avaria_transporte:'Avaria de transporte',avaria_montagem:'Avaria de montagem'})[t]||t||'—';
 }
 
 db.auth.onAuthStateChange((event,session)=>{if(session&&session.user)onLogin(session.user)});
@@ -1491,8 +1724,11 @@ async function gerarRelatorio(){
   const contrato=document.getElementById('vs-contrato').value.trim();
   const data=document.getElementById('vs-data').value;
   const obs=document.getElementById('vs-obs').value.trim();
+  const respNome=document.getElementById('vs-responsavel-nome').value.trim();
+  const respEmail=document.getElementById('vs-responsavel-email').value.trim();
   const projetoFile=document.getElementById('vs-projeto-file').files[0];
   if(!pedidoId||!cliente||!email){setAlert('vs-novo-alert','Preencha todos os dados do cliente.','error');return}
+  if(!respNome||!respEmail){setAlert('vs-novo-alert','Preencha o nome e e-mail do responsável pela vistoria.','error');return}
   const btn=document.getElementById('btn-gerar-rel');btn.disabled=true;btn.textContent='Gerando...';
   let projetoUrl='';
   if(projetoFile){
@@ -1501,7 +1737,6 @@ async function gerarRelatorio(){
     const {error}=await db.storage.from('projetos').upload(path,projetoFile,{upsert:true});
     if(!error){const {data:u}=db.storage.from('projetos').getPublicUrl(path);projetoUrl=u.publicUrl}
   }
-  // Upload fotos de ocorrências adicionadas pelo supervisor
   const ocParaSalvar=[];
   for(const o of vsOcorrencias){
     if(o.fonte==='supervisor'&&o.foto){
@@ -1521,6 +1756,8 @@ async function gerarRelatorio(){
     projeto_executivo_url:projetoUrl,
     ocorrencias:JSON.stringify(ocParaSalvar),
     observacao_cliente:obs,
+    responsavel_nome:respNome,
+    responsavel_email:respEmail,
     status:'gerado',
     criado_por:currentUser.id
   }).select().single();
@@ -1530,6 +1767,8 @@ async function gerarRelatorio(){
   notify('Relatório gerado!');
   vsOcorrencias=[];
   vsTrocarContrato();
+  document.getElementById('vs-responsavel-nome').value='';
+  document.getElementById('vs-responsavel-email').value='';
   setTimeout(()=>{showSubVistoria('vs-lista',document.getElementById('vs-nav-lista'));loadVistorias()},1500);
 }
 
@@ -1620,25 +1859,23 @@ async function abrirRelatorio(id){
     .tabela th{background:#f0e6d3;color:#1a1a2e;font-weight:700;padding:8px;text-align:left;border:1px solid #ccc}
     .tabela td{padding:8px;border:1px solid #ccc;color:#1a1a2e}
     .tabela tr:nth-child(even) td{background:#f8f6f2}
-    /* Fotos: 2 por linha, info abaixo de cada uma */
-    .foto-grade{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;page-break-inside:avoid;}
-    .foto-par{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;page-break-inside:avoid;break-inside:avoid;}
-    .foto-item{border:1px solid #1a1a2e;break-inside:avoid;page-break-inside:avoid}
-    .foto-item img{width:100%;height:200px;object-fit:cover;display:block}
-    .foto-info{padding:8px 10px;background:#f8f6f2;border-top:1px solid #ccc}
-    .foto-info .fi-tipo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#1a1a2e;margin-bottom:4px}
-    .foto-info .fi-det{font-size:11px;color:#555;line-height:1.5}
-    .foto-vazio{background:#f8f6f2;min-height:240px}
+    /* Fotos: 1 por linha, 2 por página, sem legenda */
+    .foto-bloco{margin-bottom:0;page-break-inside:avoid;break-inside:avoid;}
+    .foto-unica{border:1px solid #ccc;margin-bottom:12px;page-break-inside:avoid;break-inside:avoid;}
+    .foto-unica img{width:100%;height:320px;object-fit:cover;display:block;}
+    .foto-par-pagina{page-break-after:always;break-after:page;}
     .obs-box{border:1px solid #1a1a2e;padding:14px;min-height:80px;margin-bottom:20px;font-size:13px}
-    .assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px}
+    .assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px;page-break-inside:avoid;}
     .assinatura{text-align:center}
-    .assinatura-linha{border-top:1px solid #1a1a2e;padding-top:8px;margin-top:48px;font-size:12px}
+    .assinatura-nome{font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:2px;}
+    .assinatura-email{font-size:11px;color:#6b6880;margin-bottom:0;}
+    .assinatura-linha{border-top:1px solid #1a1a2e;padding-top:8px;margin-top:48px;}
     .rodape{text-align:center;margin-top:28px;font-size:10px;color:#9b98a8}
     @media print{
       body{padding:0}
       .page{padding:20px}
       .no-print{display:none}
-      .foto-grade{page-break-inside:avoid}
+      .foto-par{page-break-inside:avoid;break-inside:avoid;}
     }
   </style></head><body><div class="page">
 
@@ -1673,34 +1910,15 @@ async function abrirRelatorio(id){
       </tbody></table>`;
     }
 
-    // Grade de fotos — 2 por linha, info abaixo de cada foto
+    // Fotos — 1 por linha, quebra de página a cada 2
     const todasFotos=grupo.flatMap(g=>g.fotos);
     if(todasFotos.length){
-      // Agrupa em pares de 2 para garantir exatamente 2 por linha
-      for(let i=0;i<todasFotos.length;i+=2){
-        const f1=todasFotos[i];
-        const f2=todasFotos[i+1]||null;
-        html+='<div class="foto-par">';
-        html+=`<div class="foto-item">
-          <img src="${f1.url}" alt="${tipoLabel(tipo)}">
-          <div class="foto-info">
-            <div class="fi-tipo">${tipoLabel(tipo)}</div>
-            <div class="fi-det">${f1.meta}</div>
-          </div>
+      todasFotos.forEach((f,i)=>{
+        const ultimaDaPagina=(i%2===1)||(i===todasFotos.length-1);
+        html+=`<div class="foto-unica${ultimaDaPagina&&i%2===1?' foto-par-pagina':''}">
+          <img src="${f.url}" alt="${tipoLabel(tipo)}">
         </div>`;
-        if(f2){
-          html+=`<div class="foto-item">
-            <img src="${f2.url}" alt="${tipoLabel(tipo)}">
-            <div class="foto-info">
-              <div class="fi-tipo">${tipoLabel(tipo)}</div>
-              <div class="fi-det">${f2.meta}</div>
-            </div>
-          </div>`;
-        } else {
-          html+='<div class="foto-item foto-vazio"></div>';
-        }
-        html+='</div>';
-      }
+      });
     }
   });
 
@@ -1709,8 +1927,18 @@ async function abrirRelatorio(id){
   <div class="obs-box">${r.observacao_cliente||''}</div>
 
   <div class="assinaturas">
-    <div class="assinatura"><div class="assinatura-linha">Responsável pela vistoria</div></div>
-    <div class="assinatura"><div class="assinatura-linha">${r.cliente_nome} — Cliente</div></div>
+    <div class="assinatura">
+      <div class="assinatura-linha">
+        <div class="assinatura-nome">${r.responsavel_nome||'Responsável pela vistoria'}</div>
+        <div class="assinatura-email">${r.responsavel_email||''}</div>
+      </div>
+    </div>
+    <div class="assinatura">
+      <div class="assinatura-linha">
+        <div class="assinatura-nome">${r.cliente_nome}</div>
+        <div class="assinatura-email">${r.cliente_email||''}</div>
+      </div>
+    </div>
   </div>
 
   <div class="rodape">Data: ${dataStr}</div>
