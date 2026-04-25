@@ -166,6 +166,25 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .audit-antes{background:var(--red-bg);color:var(--red);padding:3px 8px;border-radius:4px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .audit-depois{background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:4px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .oc-edit-item{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+
+/* ── ATENDIMENTO ── */
+.at-tipo-btn{padding:10px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;transition:all 0.15s;color:var(--text2);font-weight:500;}
+.at-tipo-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+.funil-col{flex:0 0 220px;min-width:220px;}
+.funil-col-header{padding:10px 14px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;display:flex;align-items:center;justify-content:space-between;}
+.funil-col-body{background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:8px;min-height:200px;}
+.funil-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:box-shadow 0.15s;}
+.funil-card:hover{box-shadow:var(--shadow-lg);}
+.funil-card-nome{font-size:13px;font-weight:500;color:var(--text);}
+.funil-card-sub{font-size:11px;color:var(--text2);margin-top:3px;}
+.funil-card-val{font-size:12px;font-weight:500;color:var(--accent);margin-top:4px;}
+.funil-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:1rem;}
+.at-amb-row{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;align-items:center;}
+.btn-vende{padding:4px 10px;border:none;border-radius:4px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;}
+.btn-vende.sim{background:var(--green-bg);color:var(--green);border:1px solid #a8dfc0;}
+.btn-vende.nao{background:var(--red-bg);color:var(--red);border:1px solid #f0a8a8;}
+.btn-vende.neutro{background:var(--bg);color:var(--text3);border:1px solid var(--border2);}
+
 /* ── ASTECA ── */
 .badge-asteca{background:#8a1a1a;color:#fff;animation:pulso 2s infinite;}
 @keyframes pulso{0%,100%{opacity:1;}50%{opacity:0.7;}}
@@ -229,6 +248,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
   <div class="nav-bar">
     <button class="nav-item active" id="nav-solicitar" onclick="showSection('solicitar',this)">Solicitar orçamento</button>
     <button class="nav-item" id="nav-projetos" onclick="showSection('projetos',this)">Meus projetos</button>
+    <button class="nav-item" id="nav-atendimento" style="display:none" onclick="showSection('atendimento',this)">Atendimento</button>
     <button class="nav-item" id="nav-montagem" style="display:none" onclick="showSection('montagem',this)">Montagem</button>
     <button class="nav-item" id="nav-ocorrencias" style="display:none" onclick="showSection('ocorrencias',this)">Ocorrências</button>
     <button class="nav-item" id="nav-vistoria" style="display:none" onclick="showSection('vistoria',this)">Vistoria Final</button>
@@ -365,6 +385,104 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <div id="mt-relatorio" style="display:none">
         <div class="info-box">A produtividade média é recalculada automaticamente a cada 3 meses com base nas montagens concluídas.</div>
         <div id="mt-rel-content"><div class="loader">Carregando...</div></div>
+      </div>
+    </div>
+
+
+    <!-- ATENDIMENTO -->
+    <div id="atendimento" class="section">
+      <div class="sub-nav">
+        <button class="nav-item active" id="at-nav-funil" onclick="showSubAt('at-funil',this)">Funil</button>
+        <button class="nav-item" id="at-nav-novo" onclick="showSubAt('at-novo',this)">+ Novo atendimento</button>
+        <button class="nav-item" id="at-nav-vendedores" style="display:none" onclick="showSubAt('at-vendedores',this)">Vendedores</button>
+        <button class="nav-item" id="at-nav-relatorio" style="display:none" onclick="showSubAt('at-relatorio',this)">Relatório</button>
+        <button class="nav-item" id="at-nav-motivos" style="display:none" onclick="showSubAt('at-motivos',this)">Motivos de perda</button>
+      </div>
+
+      <!-- FUNIL -->
+      <div id="at-funil">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <select id="at-filtro-mes" onchange="loadFunil()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+            </select>
+            <select id="at-filtro-vendedor" onchange="loadFunil()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+              <option value="">Todos os vendedores</option>
+            </select>
+          </div>
+          <button onclick="exportarFunil()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">⬇ Exportar CSV</button>
+        </div>
+        <div id="at-funil-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- NOVO ATENDIMENTO -->
+      <div id="at-novo" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:0.75rem;">Registrar novo atendimento</div>
+          <div class="info-box">O sistema distribui automaticamente para o vendedor mais disponível.</div>
+
+          <div style="font-size:13px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;">Tipo de atendimento</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem;">
+            <button class="at-tipo-btn active" data-tipo="lead" onclick="setTipoAt('lead',this)">🎯 Lead</button>
+            <button class="at-tipo-btn" data-tipo="porta" onclick="setTipoAt('porta',this)">🚶 Cliente de porta</button>
+            <button class="at-tipo-btn" data-tipo="retorno" onclick="setTipoAt('retorno',this)">🔄 Já é cliente</button>
+            <button class="at-tipo-btn" data-tipo="indicacao" onclick="setTipoAt('indicacao',this)">👥 Indicação</button>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-row"><label>Nome do cliente</label><input type="text" id="at-nome" placeholder="Nome completo"></div>
+            <div class="form-row"><label>Telefone / WhatsApp</label><input type="text" id="at-tel" placeholder="(21) 99999-0000"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row"><label>E-mail</label><input type="email" id="at-email" placeholder="cliente@email.com"></div>
+            <div class="form-row"><label>Ambiente desejado</label><input type="text" id="at-ambiente" placeholder="Ex: Cozinha, quarto..."></div>
+          </div>
+
+          <div class="divider"></div>
+          <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores</div>
+          <div id="at-amb-list"></div>
+          <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:end;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nome do ambiente</label><input type="text" id="at-amb-nome" placeholder="Ex: Cozinha" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Valor (R$)</label><input type="text" id="at-amb-valor" placeholder="Ex: 15000" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 12px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;white-space:nowrap;" onclick="addAmbAt()">+ Add</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+          <div id="at-novo-alert"></div>
+          <button class="btn-submit" onclick="salvarAtendimento()" id="btn-at-novo">Registrar e distribuir para vendedor</button>
+        </div>
+      </div>
+
+      <!-- VENDEDORES -->
+      <div id="at-vendedores" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Cadastrar novo vendedor</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Nome do vendedor</label><input type="text" id="at-vd-nome" placeholder="Ex: João Silva"></div>
+            <div class="form-row"><label>Produtividade inicial (atend./mês)</label><input type="number" id="at-vd-prod" placeholder="Ex: 20"></div>
+          </div>
+          <button class="btn-submit" onclick="salvarVendedor()">Cadastrar vendedor</button>
+        </div>
+        <div id="at-vendedores-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- RELATÓRIO -->
+      <div id="at-relatorio" style="display:none">
+        <div class="info-box">A produtividade é recalculada mensalmente com base nos atendimentos concluídos.</div>
+        <div id="at-rel-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- MOTIVOS DE PERDA -->
+      <div id="at-motivos" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Cadastrar motivo de perda</div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="at-motivo-input" placeholder="Ex: Preço acima do esperado" style="flex:1;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+            <button class="btn-submit" style="margin-top:0;white-space:nowrap;" onclick="salvarMotivo()">+ Adicionar</button>
+          </div>
+          <div id="at-motivos-content" style="margin-top:1rem;"></div>
+        </div>
       </div>
     </div>
 
@@ -635,6 +753,21 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     </div>
 </div>
 
+
+<!-- MODAL ATENDIMENTO -->
+<div id="modal-at" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalAt()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">👤 Atendimento</div>
+      <button class="modal-close" onclick="fecharModalAt()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-at-body"><div class="loader">Carregando...</div></div>
+    <div class="modal-footer">
+      <button class="btn-step-back" onclick="fecharModalAt()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDIÇÃO DE RELATÓRIO -->
 <div id="modal-edicao" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalEdicao()">
   <div class="modal-box">
@@ -777,16 +910,20 @@ async function onLogin(user){
   const isStaff=userNivel==='admin'||userNivel==='funcionario';
   document.getElementById('nav-solicitar').style.display=isStaff?'none':'block';
   document.getElementById('nav-projetos').textContent=isStaff?'Projetos':'Meus projetos';
+  document.getElementById('nav-atendimento').style.display=isStaff?'block':'none';
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
-  document.getElementById('nav-vistoria').style.display=userNivel==='admin'||userNivel==='funcionario'?'block':'none';
+  document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
   document.getElementById('nav-admin').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-usuarios').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('mt-nav-equipes').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('mt-nav-relatorio').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('at-nav-vendedores').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('at-nav-relatorio').style.display=isStaff?'block':'none';
+  document.getElementById('at-nav-motivos').style.display=userNivel==='admin'?'block':'none';
   if(rdKey)showRDConnected();
   document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
-  if(isStaff){showSection('montagem',document.getElementById('nav-montagem'))}
+  if(isStaff){showSection('atendimento',document.getElementById('nav-atendimento'))}
   else{showSection('solicitar',document.getElementById('nav-solicitar'));prefillOrcamento()}
 }
 
@@ -806,6 +943,7 @@ function showSection(id,btn){
   if(id==='admin')loadAdmin();
   if(id==='montagem')loadFilaMt();
   if(id==='usuarios')loadUsuarios();
+  if(id==='atendimento'){preencherFiltroMes();loadFunil();}
   if(id==='ocorrencias'){loadOcorrencias();carregarPedidosSelect()}
   if(id==='vistoria'){loadVistorias();carregarPedidosSelectVistoria()}
 }
@@ -1408,6 +1546,460 @@ function tipoLabel(t){
 db.auth.onAuthStateChange((event,session)=>{if(session&&session.user)onLogin(session.user)});
 db.auth.getSession().then(({data})=>{if(data.session)onLogin(data.session.user)});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js');
+
+
+/* ═══════════════════════════════════════════
+   ATENDIMENTO
+═══════════════════════════════════════════ */
+let atTipo='lead';
+let atAmbs=[];
+
+function setTipoAt(tipo, btn){
+  atTipo=tipo;
+  document.querySelectorAll('.at-tipo-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+}
+
+function showSubAt(id,btn){
+  ['at-funil','at-novo','at-vendedores','at-relatorio','at-motivos'].forEach(s=>{
+    const el=document.getElementById(s);if(el)el.style.display='none';
+  });
+  document.querySelectorAll('#atendimento .sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.style.display='block';
+  if(btn)btn.classList.add('active');
+  if(id==='at-funil'){preencherFiltroMes();loadFunil();}
+  if(id==='at-vendedores')loadVendedores();
+  if(id==='at-relatorio')loadRelatorioAt();
+  if(id==='at-motivos')loadMotivos();
+}
+
+/* ── VENDEDORES ── */
+async function salvarVendedor(){
+  const nome=document.getElementById('at-vd-nome').value.trim();
+  const prod=parseFloat(document.getElementById('at-vd-prod').value)||10;
+  if(!nome){notify('Preencha o nome do vendedor.','error');return}
+  const {error}=await db.from('vendedores').insert({nome,produtividade_base:prod,produtividade_atual:prod});
+  if(error){notify('Erro ao salvar vendedor.','error');return}
+  document.getElementById('at-vd-nome').value='';document.getElementById('at-vd-prod').value='';
+  notify('Vendedor cadastrado!');loadVendedores();
+}
+
+async function loadVendedores(){
+  const cont=document.getElementById('at-vendedores-content');
+  const {data}=await db.from('vendedores').select('*').order('produtividade_atual',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum vendedor cadastrado.</p></div>';return}
+  const maxProd=Math.max(...data.map(e=>e.produtividade_atual));
+  cont.innerHTML='<div class="team-grid">'+data.map(v=>{
+    const pct=Math.round((v.produtividade_atual/maxProd)*100);
+    const ultima=v.ultima_atualizacao?new Date(v.ultima_atualizacao).toLocaleDateString('pt-BR'):'Não atualizada';
+    return `<div class="team-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div style="font-size:15px;font-weight:500;">${v.nome}</div>
+        <button style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;" onclick="excluirVendedor('${v.id}')">Excluir</button>
+      </div>
+      <div style="font-size:13px;color:var(--text2);">Produtividade: <strong>${v.produtividade_atual} atend./mês</strong></div>
+      <div style="height:4px;background:var(--bg);border-radius:2px;margin:10px 0;"><div style="height:4px;border-radius:2px;background:var(--accent);width:${pct}%"></div></div>
+      <div style="font-size:11px;color:var(--text3);">Última atualização: ${ultima}</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+async function excluirVendedor(id){
+  if(!confirm('Excluir este vendedor?'))return;
+  await db.from('vendedores').delete().eq('id',id);
+  notify('Vendedor excluído.');loadVendedores();
+}
+
+async function distribuirVendedor(){
+  const {data:vds}=await db.from('vendedores').select('*').order('produtividade_atual',{ascending:false});
+  if(!vds||!vds.length)return null;
+  const mesAtual=new Date().toISOString().slice(0,7);
+  const {data:ativos}=await db.from('atendimentos').select('vendedor_id').eq('mes_ref',mesAtual).neq('status','concluido_perdido');
+  const carga={};vds.forEach(v=>carga[v.id]=0);
+  if(ativos)ativos.forEach(a=>{if(carga[a.vendedor_id]!==undefined)carga[a.vendedor_id]++});
+  const sorted=[...vds].sort((a,b)=>{
+    const ratioA=carga[a.id]/a.produtividade_atual;
+    const ratioB=carga[b.id]/b.produtividade_atual;
+    if(Math.abs(ratioA-ratioB)<0.05)return b.produtividade_atual-a.produtividade_atual;
+    return ratioA-ratioB;
+  });
+  return sorted[0];
+}
+
+/* ── AMBIENTES DO ATENDIMENTO ── */
+function addAmbAt(){
+  const nome=document.getElementById('at-amb-nome').value.trim();
+  const valor=parseMoney(document.getElementById('at-amb-valor').value);
+  if(!nome){notify('Informe o nome do ambiente.','error');return}
+  atAmbs.push({nome,valor,vendeu:null});
+  document.getElementById('at-amb-nome').value='';document.getElementById('at-amb-valor').value='';
+  renderAmbsAt();
+}
+function removeAmbAt(i){atAmbs.splice(i,1);renderAmbsAt();}
+function toggleVendeu(i,val){
+  atAmbs[i].vendeu=atAmbs[i].vendeu===val?null:val;
+  renderAmbsAt();
+}
+function renderAmbsAt(){
+  const el=document.getElementById('at-amb-list');
+  if(!atAmbs.length){el.innerHTML='';return}
+  el.innerHTML=`<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr auto auto;background:var(--bg);padding:8px 10px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;gap:8px;">
+      <span>Ambiente</span><span>Valor</span><span>Vendeu?</span><span></span>
+    </div>
+    ${atAmbs.map((a,i)=>`<div class="at-amb-row">
+      <span style="font-weight:500;">${a.nome}</span>
+      <span style="color:var(--accent);">${fmt(a.valor)}</span>
+      <div style="display:flex;gap:4px;">
+        <button class="btn-vende ${a.vendeu===true?'sim':'neutro'}" onclick="toggleVendeu(${i},true)">✓ Sim</button>
+        <button class="btn-vende ${a.vendeu===false?'nao':'neutro'}" onclick="toggleVendeu(${i},false)">✗ Não</button>
+      </div>
+      <button class="btn-red-sm" onclick="removeAmbAt(${i})">✕</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+/* ── SALVAR ATENDIMENTO ── */
+async function salvarAtendimento(){
+  const nome=document.getElementById('at-nome').value.trim();
+  const tel=document.getElementById('at-tel').value.trim();
+  const email=document.getElementById('at-email').value.trim();
+  const ambiente=document.getElementById('at-ambiente').value.trim();
+  if(!nome){setAlert('at-novo-alert','Preencha o nome do cliente.','error');return}
+  const btn=document.getElementById('btn-at-novo');btn.disabled=true;btn.textContent='Salvando...';
+  const vendedor=await distribuirVendedor();
+  if(!vendedor){setAlert('at-novo-alert','Cadastre pelo menos um vendedor antes.','error');btn.disabled=false;btn.textContent='Registrar e distribuir para vendedor';return}
+  const mesRef=new Date().toISOString().slice(0,7);
+  const {error}=await db.from('atendimentos').insert({
+    tipo:atTipo,
+    cliente_nome:nome,cliente_tel:tel,cliente_email:email,
+    ambiente_desejado:ambiente,
+    ambientes:JSON.stringify(atAmbs),
+    vendedor_id:vendedor.id,vendedor_nome:vendedor.nome,
+    etapa:'entrada',status:'em_andamento',
+    mes_ref:mesRef,
+    registrado_por:currentUser.id
+  });
+  btn.disabled=false;btn.textContent='Registrar e distribuir para vendedor';
+  if(error){setAlert('at-novo-alert','Erro ao salvar.','error');return}
+  setAlert('at-novo-alert',`Atendimento distribuído para ${vendedor.nome}!`,'success');
+  notify(`Distribuído para ${vendedor.nome}!`);
+  atAmbs=[];renderAmbsAt();
+  document.getElementById('at-nome').value='';document.getElementById('at-tel').value='';
+  document.getElementById('at-email').value='';document.getElementById('at-ambiente').value='';
+}
+
+/* ── FUNIL ── */
+const AT_ETAPAS=[
+  {id:'entrada',label:'Entrada',cor:'#1a4a8a',bg:'#e8f0fc'},
+  {id:'oportunidade',label:'Oportunidade',cor:'#7a4a00',bg:'#fdf3e3'},
+  {id:'planta',label:'Envio de Planta',cor:'#2d5a8a',bg:'#e3f0fd'},
+  {id:'projeto',label:'Projeto',cor:'#4a1a8a',bg:'#f0e8fc'},
+  {id:'apresentacao',label:'Apresentação',cor:'#1a5a4a',bg:'#e3fdf5'},
+  {id:'orcamento',label:'Orçamento',cor:'#5a4a1a',bg:'#fdf8e3'},
+];
+
+function preencherFiltroMes(){
+  const sel=document.getElementById('at-filtro-mes');
+  const atual=new Date();
+  let opts='<option value="">Todos os meses</option>';
+  for(let i=0;i<12;i++){
+    const d=new Date(atual.getFullYear(),atual.getMonth()-i,1);
+    const val=d.toISOString().slice(0,7);
+    const lbl=d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    opts+=`<option value="${val}" ${i===0?'selected':''}>${lbl.charAt(0).toUpperCase()+lbl.slice(1)}</option>`;
+  }
+  sel.innerHTML=opts;
+}
+
+async function loadFunil(){
+  const cont=document.getElementById('at-funil-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const mes=document.getElementById('at-filtro-mes').value;
+  const vdFiltro=document.getElementById('at-filtro-vendedor').value;
+  let query=db.from('atendimentos').select('*').in('status',['em_andamento','concluido_fechado','concluido_perdido']);
+  if(mes)query=query.eq('mes_ref',mes);
+  if(vdFiltro)query=query.eq('vendedor_id',vdFiltro);
+  const {data}=await query.order('created_at',{ascending:false});
+
+  // Preencher filtro de vendedores
+  const {data:vds}=await db.from('vendedores').select('id,nome').order('nome');
+  const selVd=document.getElementById('at-filtro-vendedor');
+  const atualVd=selVd.value;
+  selVd.innerHTML='<option value="">Todos os vendedores</option>'+(vds||[]).map(v=>`<option value="${v.id}" ${v.id===atualVd?'selected':''}>${v.nome}</option>`).join('');
+
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum atendimento encontrado.</p></div>';return}
+
+  const todos=data||[];
+  // Colunas do funil
+  let html='<div class="funil-wrap">';
+  for(const etapa of AT_ETAPAS){
+    const cards=todos.filter(a=>a.etapa===etapa.id&&a.status==='em_andamento');
+    const totalVal=cards.reduce((s,a)=>{
+      const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+      return s+ambs.reduce((ss,am)=>ss+(am.valor||0),0);
+    },0);
+    html+=`<div class="funil-col">
+      <div class="funil-col-header" style="background:${etapa.bg};color:${etapa.cor};">
+        <span>${etapa.label}</span>
+        <span style="background:${etapa.cor};color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;">${cards.length}</span>
+      </div>
+      <div class="funil-col-body">
+        ${cards.length?cards.map(a=>renderFunilCard(a,etapa)).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0;">Vazio</div>'}
+        ${totalVal?`<div style="font-size:11px;font-weight:600;color:${etapa.cor};text-align:right;padding:6px 4px;border-top:1px solid var(--border);margin-top:4px;">${fmt(totalVal)}</div>`:''}
+      </div>
+    </div>`;
+  }
+  // Coluna Fechados
+  const fechados=todos.filter(a=>a.status==='concluido_fechado');
+  const valFechados=fechados.reduce((s,a)=>{const ambs=a.ambientes?JSON.parse(a.ambientes):[];return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);},0);
+  html+=`<div class="funil-col">
+    <div class="funil-col-header" style="background:var(--green-bg);color:var(--green);">
+      <span>✓ Fechados</span>
+      <span style="background:var(--green);color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;">${fechados.length}</span>
+    </div>
+    <div class="funil-col-body">
+      ${fechados.length?fechados.map(a=>renderFunilCard(a,{id:'fechado',cor:'var(--green)',bg:'var(--green-bg)'})).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0;">Vazio</div>'}
+      ${valFechados?`<div style="font-size:11px;font-weight:600;color:var(--green);text-align:right;padding:6px 4px;border-top:1px solid var(--border);margin-top:4px;">${fmt(valFechados)}</div>`:''}
+    </div>
+  </div>`;
+  // Coluna Perdidos
+  const perdidos=todos.filter(a=>a.status==='concluido_perdido');
+  html+=`<div class="funil-col">
+    <div class="funil-col-header" style="background:var(--red-bg);color:var(--red);">
+      <span>✗ Perdidos</span>
+      <span style="background:var(--red);color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;">${perdidos.length}</span>
+    </div>
+    <div class="funil-col-body">
+      ${perdidos.length?perdidos.map(a=>renderFunilCard(a,{id:'perdido',cor:'var(--red)',bg:'var(--red-bg)'})).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0;">Vazio</div>'}
+    </div>
+  </div>`;
+  html+='</div>';
+  cont.innerHTML=html;
+}
+
+function renderFunilCard(a,etapa){
+  const tipoLabel={lead:'🎯 Lead',porta:'🚶 Porta',retorno:'🔄 Retorno',indicacao:'👥 Indicação'}[a.tipo]||a.tipo;
+  const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+  const totalVal=ambs.reduce((s,am)=>s+(am.valor||0),0);
+  return `<div class="funil-card" onclick="abrirModalAt('${a.id}')">
+    <div class="funil-card-nome">${a.cliente_nome}</div>
+    <div class="funil-card-sub">${tipoLabel} · ${a.vendedor_nome||'—'}</div>
+    <div class="funil-card-sub">${a.ambiente_desejado||''}</div>
+    ${totalVal?`<div class="funil-card-val">${fmt(totalVal)}</div>`:''}
+  </div>`;
+}
+
+/* ── MODAL ATENDIMENTO ── */
+async function abrirModalAt(id){
+  document.getElementById('modal-at').style.display='flex';
+  document.getElementById('modal-at-body').innerHTML='<div class="loader">Carregando...</div>';
+  const {data:a}=await db.from('atendimentos').select('*').eq('id',id).single();
+  if(!a){document.getElementById('modal-at-body').innerHTML='<p>Erro ao carregar.</p>';return}
+  const {data:motivos}=await db.from('motivos_perda').select('*').order('descricao');
+  const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+  const tipoLabel={lead:'🎯 Lead',porta:'🚶 Cliente de porta',retorno:'🔄 Já é cliente',indicacao:'👥 Indicação'}[a.tipo]||a.tipo;
+  const etapaAtual=a.etapa||'entrada';
+  const statusAtual=a.status||'em_andamento';
+  const dataStr=new Date(a.created_at).toLocaleDateString('pt-BR');
+
+  let ambsHtml='';
+  if(ambs.length){
+    ambsHtml=`<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin:12px 0;">
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;gap:8px;"><span>Ambiente</span><span>Valor</span><span>Vendeu?</span></div>
+      ${ambs.map((am,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:13px;align-items:center;gap:8px;">
+        <span>${am.nome}</span><span style="color:var(--accent)">${fmt(am.valor)}</span>
+        <div style="display:flex;gap:4px;">
+          <button class="btn-vende ${am.vendeu===true?'sim':'neutro'}" onclick="toggleVendeuModal('${id}',${i},true)">✓</button>
+          <button class="btn-vende ${am.vendeu===false?'nao':'neutro'}" onclick="toggleVendeuModal('${id}',${i},false)">✗</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  const etapasOpts=statusAtual==='em_andamento'?AT_ETAPAS.map(e=>`<option value="${e.id}" ${e.id===etapaAtual?'selected':''}>${e.label}</option>`).join(''):'';
+  const motivosOpts=(motivos||[]).map(m=>`<option value="${m.id}">${m.descricao}</option>`).join('');
+
+  document.getElementById('modal-at-body').innerHTML=`
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem;">
+      <span class="badge badge-blue">${tipoLabel}</span>
+      <span class="badge badge-amber">${a.vendedor_nome||'—'}</span>
+      <span style="font-size:12px;color:var(--text3);">Registrado em ${dataStr}</span>
+    </div>
+    <div class="form-grid" style="margin-bottom:0.75rem;">
+      <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Cliente</label><div style="font-size:14px;font-weight:500;">${a.cliente_nome}</div></div>
+      <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Telefone</label><div style="font-size:14px;">${a.cliente_tel||'—'}</div></div>
+    </div>
+    <div class="form-grid" style="margin-bottom:0.75rem;">
+      <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">E-mail</label><div style="font-size:13px;">${a.cliente_email||'—'}</div></div>
+      <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Ambiente desejado</label><div style="font-size:13px;">${a.ambiente_desejado||'—'}</div></div>
+    </div>
+    ${ambsHtml}
+    ${statusAtual==='em_andamento'?`
+    <div class="divider"></div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Avançar etapa do funil</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
+      <select id="modal-at-etapa" style="flex:1;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">${etapasOpts}</select>
+      <button onclick="avancarEtapaAt('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Salvar etapa</button>
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Concluir atendimento</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="concluirAt('${id}','fechado')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✓ Fechado</button>
+      <button onclick="document.getElementById('modal-at-perda').style.display='block'" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✗ Perdido</button>
+    </div>
+    <div id="modal-at-perda" style="display:none;margin-top:12px;background:var(--red-bg);border:1px solid #f0a8a8;border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:12px;font-weight:500;color:var(--red);margin-bottom:8px;">Selecione o motivo da perda</div>
+      <select id="modal-at-motivo" style="width:100%;padding:9px 12px;border:1px solid #f0a8a8;border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;outline:none;margin-bottom:8px;">
+        <option value="">Selecione...</option>${motivosOpts}
+      </select>
+      <button onclick="concluirAt('${id}','perdido')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;width:100%;">Confirmar perda</button>
+    </div>`:`<div class="alert alert-${statusAtual==='concluido_fechado'?'success':'error'}">${statusAtual==='concluido_fechado'?'✓ Atendimento fechado':'✗ Atendimento perdido'+(a.motivo_perda?' — '+a.motivo_perda:'')}</div>`}
+    <div id="modal-at-alert" style="margin-top:8px;"></div>
+  `;
+  // Guarda referência dos ambientes para toggleVendeuModal
+  window._atModalAmbs={id,ambs};
+}
+
+async function toggleVendeuModal(atId,idx,val){
+  const ref=window._atModalAmbs;
+  if(!ref||ref.id!==atId)return;
+  ref.ambs[idx].vendeu=ref.ambs[idx].vendeu===val?null:val;
+  await db.from('atendimentos').update({ambientes:JSON.stringify(ref.ambs)}).eq('id',atId);
+  abrirModalAt(atId);
+}
+
+async function avancarEtapaAt(id){
+  const etapa=document.getElementById('modal-at-etapa').value;
+  await db.from('atendimentos').update({etapa}).eq('id',id);
+  notify('Etapa atualizada!');abrirModalAt(id);loadFunil();
+}
+
+async function concluirAt(id,resultado){
+  if(resultado==='perdido'){
+    const motivoId=document.getElementById('modal-at-motivo').value;
+    if(!motivoId){notify('Selecione o motivo da perda.','error');return}
+    const {data:m}=await db.from('motivos_perda').select('descricao').eq('id',motivoId).single();
+    await db.from('atendimentos').update({status:'concluido_perdido',motivo_perda:m?.descricao||'',data_conclusao:new Date().toISOString()}).eq('id',id);
+  } else {
+    await db.from('atendimentos').update({status:'concluido_fechado',data_conclusao:new Date().toISOString()}).eq('id',id);
+  }
+  // Atualiza produtividade do vendedor
+  const {data:a}=await db.from('atendimentos').select('vendedor_id').eq('id',id).single();
+  if(a)await atualizarProdutividadeVendedor(a.vendedor_id);
+  notify(resultado==='fechado'?'Atendimento fechado!':'Atendimento marcado como perdido.');
+  fecharModalAt();loadFunil();
+}
+
+async function atualizarProdutividadeVendedor(vendedorId){
+  const mesPassado=new Date();mesPassado.setMonth(mesPassado.getMonth()-1);
+  const mesRef=mesPassado.toISOString().slice(0,7);
+  const {data:ats}=await db.from('atendimentos').select('*').eq('vendedor_id',vendedorId).eq('mes_ref',mesRef);
+  if(!ats||ats.length<3)return;
+  const media=ats.length;
+  await db.from('vendedores').update({produtividade_atual:media,ultima_atualizacao:new Date().toISOString()}).eq('id',vendedorId);
+}
+
+function fecharModalAt(){document.getElementById('modal-at').style.display='none';}
+
+/* ── RELATÓRIO VENDEDORES ── */
+async function loadRelatorioAt(){
+  const cont=document.getElementById('at-rel-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const {data:vds}=await db.from('vendedores').select('*').order('produtividade_atual',{ascending:false});
+  if(!vds||!vds.length){cont.innerHTML='<div class="empty-state"><p>Nenhum vendedor.</p></div>';return}
+  const mesAtual=new Date().toISOString().slice(0,7);
+  let html='';
+  for(const v of vds){
+    const {data:ats}=await db.from('atendimentos').select('*').eq('vendedor_id',v.id).eq('mes_ref',mesAtual);
+    const todos=ats||[];
+    let totalAmbs=0,vendidos=0,naoVendidos=0,valTotal=0,valVendido=0;
+    todos.forEach(a=>{
+      const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+      totalAmbs+=ambs.length;
+      ambs.forEach(am=>{
+        valTotal+=(am.valor||0);
+        if(am.vendeu===true){vendidos++;valVendido+=(am.valor||0);}
+        if(am.vendeu===false)naoVendidos++;
+      });
+    });
+    const taxa=totalAmbs?Math.round((vendidos/totalAmbs)*100):0;
+    html+=`<div class="card">
+      <div class="card-header" style="margin-bottom:0.75rem;">
+        <div class="card-title">${v.nome}</div>
+        <span class="badge badge-amber">${v.produtividade_atual} atend./mês</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:0.75rem;">
+        <div><div style="font-size:11px;color:var(--text2);">Atendimentos</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;">${todos.length}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Ambientes projetados</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;">${totalAmbs}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Vendidos</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;color:var(--green);">${vendidos}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Não vendidos</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;color:var(--red);">${naoVendidos}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div><div style="font-size:11px;color:var(--text2);">Valor total projetado</div><div style="font-size:14px;font-weight:500;">${fmt(valTotal)}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Valor vendido</div><div style="font-size:14px;font-weight:500;color:var(--green);">${fmt(valVendido)}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Taxa de conversão</div><div style="font-size:14px;font-weight:500;color:${taxa>=50?'var(--green)':'var(--red)'};">${taxa}%</div></div>
+      </div>
+      <div style="height:4px;background:var(--bg);border-radius:2px;margin-top:10px;"><div style="height:4px;border-radius:2px;background:var(--accent);width:${taxa}%"></div></div>
+    </div>`;
+  }
+  cont.innerHTML=html;
+}
+
+/* ── MOTIVOS DE PERDA ── */
+async function salvarMotivo(){
+  const desc=document.getElementById('at-motivo-input').value.trim();
+  if(!desc){notify('Digite um motivo.','error');return}
+  const {error}=await db.from('motivos_perda').insert({descricao:desc});
+  if(error){notify('Erro ao salvar.','error');return}
+  document.getElementById('at-motivo-input').value='';
+  notify('Motivo cadastrado!');loadMotivos();
+}
+
+async function loadMotivos(){
+  const cont=document.getElementById('at-motivos-content');
+  const {data}=await db.from('motivos_perda').select('*').order('descricao');
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum motivo cadastrado.</p></div>';return}
+  cont.innerHTML=data.map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:6px;">
+    <span style="font-size:13px;">${m.descricao}</span>
+    <button onclick="excluirMotivo('${m.id}')" class="btn-red-sm">✕</button>
+  </div>`).join('');
+}
+
+async function excluirMotivo(id){
+  await db.from('motivos_perda').delete().eq('id',id);
+  notify('Motivo excluído.');loadMotivos();
+}
+
+/* ── EXPORTAR CSV ── */
+async function exportarFunil(){
+  const mes=document.getElementById('at-filtro-mes').value;
+  let query=db.from('atendimentos').select('*');
+  if(mes)query=query.eq('mes_ref',mes);
+  const {data}=await query.order('created_at',{ascending:false});
+  if(!data||!data.length){notify('Nenhum dado para exportar.','error');return}
+  const etapaLabel={entrada:'Entrada',oportunidade:'Oportunidade',planta:'Envio de Planta',projeto:'Projeto',apresentacao:'Apresentação',orcamento:'Orçamento'};
+  const statusLabel={em_andamento:'Em andamento',concluido_fechado:'Fechado',concluido_perdido:'Perdido'};
+  const tipoLabel={lead:'Lead',porta:'Cliente de porta',retorno:'Já é cliente',indicacao:'Indicação'};
+  let csv='Data;Cliente;Tipo;Vendedor;Ambiente;Etapa;Status;Motivo Perda;Ambientes;Valor Total;Valor Vendido
+';
+  data.forEach(a=>{
+    const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+    const valTotal=ambs.reduce((s,am)=>s+(am.valor||0),0);
+    const valVendido=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0);
+    const ambStr=ambs.map(am=>am.nome+(am.vendeu===true?' (V)':am.vendeu===false?' (NV)':'')).join(' | ');
+    const data_str=new Date(a.created_at).toLocaleDateString('pt-BR');
+    csv+=`${data_str};${a.cliente_nome};${tipoLabel[a.tipo]||a.tipo};${a.vendedor_nome||'—'};${a.ambiente_desejado||'—'};${etapaLabel[a.etapa]||a.etapa};${statusLabel[a.status]||a.status};${a.motivo_perda||''};${ambStr};${valTotal.toFixed(2).replace('.',',')};${valVendido.toFixed(2).replace('.',',')}
+`;
+  });
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`funil_atendimentos_${mes||'todos'}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  notify('CSV exportado!');
+}
+
 
 /* ===== OCORRÊNCIAS ===== */
 let faltaItens=[];
