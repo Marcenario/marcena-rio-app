@@ -1794,7 +1794,9 @@ async function loadVistorias(){
         <button onclick="abrirModalEdicao('${r.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✏️ Editar</button>
         <button onclick="abrirModalAuditoria('${r.id}')" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔍 Histórico</button>
         ${r.projeto_executivo_url?`<a href="${r.projeto_executivo_url}" target="_blank" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;text-decoration:none;font-family:'DM Sans',sans-serif;">📋 Projeto</a>`:''}
-        ${r.status==='gerado'?`<button onclick="enviarRelatorioEmail('${r.id}')" style="background:#0061ff;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✍️ Enviar para assinatura</button>`:''}
+        ${(r.status==='gerado'||r.status==='enviado')?`<button onclick="enviarRelatorioEmail('${r.id}')" style="background:#0061ff;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✍️ ${r.status==='enviado'?'Reenviar para assinatura':'Enviar para assinatura'}</button>`:''}
+        ${r.status==='enviado'&&r.docusign_envelope_id?`<button onclick="sincronizarAssinatura('${r.id}','${r.docusign_envelope_id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔄 Sincronizar</button>`:''}
+        ${r.status==='assinado'&&r.pdf_url?`<a href="${r.pdf_url}" target="_blank" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;text-decoration:none;font-family:'DM Sans',sans-serif;">📥 Baixar assinado</a>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1965,6 +1967,28 @@ function gerarMetaFoto(linhas,desc,tipo){
   return partes.join(' · ')||tipo;
 }
 
+async function sincronizarAssinatura(relatorioId, docId){
+  notify('Verificando assinaturas...','info');
+  try{
+    const token=`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`;
+    const res=await fetch(token,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({relatorio_id:relatorioId,doc_id:docId})
+    });
+    const json=await res.json();
+    if(!res.ok)throw new Error(json.error||'Erro desconhecido');
+    if(json.assinado){
+      notify('Relatório atualizado para Assinado! ✅');
+    } else {
+      notify(`Ainda aguardando assinaturas (${json.assinados}/${json.total})`, 'info');
+    }
+    loadVistorias();
+  }catch(e){
+    notify('Erro: '+e.message,'error');
+  }
+}
+
 async function enviarRelatorioEmail(id){
   const {data:r}=await db.from('relatorios_vistoria').select('*').eq('id',id).single();
   if(!r){notify('Relatório não encontrado.','error');return}
@@ -2069,7 +2093,8 @@ async function salvarEdicaoRelatorio(){
     numero_contrato:document.getElementById('edit-contrato').value.trim(),
     data_vistoria:document.getElementById('edit-data').value,
     observacao_cliente:document.getElementById('edit-obs').value.trim(),
-    ocorrencias:JSON.stringify(editOcsAtual)
+    ocorrencias:JSON.stringify(editOcsAtual),
+    status:'gerado'
   };
 
   const {error}=await db.from('relatorios_vistoria').update(novos).eq('id',id);
