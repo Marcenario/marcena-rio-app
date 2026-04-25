@@ -1981,16 +1981,14 @@ async function exportarFunil(){
   const etapaLabel={entrada:'Entrada',oportunidade:'Oportunidade',planta:'Envio de Planta',projeto:'Projeto',apresentacao:'Apresentação',orcamento:'Orçamento'};
   const statusLabel={em_andamento:'Em andamento',concluido_fechado:'Fechado',concluido_perdido:'Perdido'};
   const tipoLabel={lead:'Lead',porta:'Cliente de porta',retorno:'Já é cliente',indicacao:'Indicação'};
-  let csv='Data;Cliente;Tipo;Vendedor;Ambiente;Etapa;Status;Motivo Perda;Ambientes;Valor Total;Valor Vendido
-';
+  let csv='Data;Cliente;Tipo;Vendedor;Ambiente;Etapa;Status;Motivo Perda;Ambientes;Valor Total;Valor Vendido\n';
   data.forEach(a=>{
     const ambs=a.ambientes?JSON.parse(a.ambientes):[];
     const valTotal=ambs.reduce((s,am)=>s+(am.valor||0),0);
     const valVendido=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0);
     const ambStr=ambs.map(am=>am.nome+(am.vendeu===true?' (V)':am.vendeu===false?' (NV)':'')).join(' | ');
     const data_str=new Date(a.created_at).toLocaleDateString('pt-BR');
-    csv+=`${data_str};${a.cliente_nome};${tipoLabel[a.tipo]||a.tipo};${a.vendedor_nome||'—'};${a.ambiente_desejado||'—'};${etapaLabel[a.etapa]||a.etapa};${statusLabel[a.status]||a.status};${a.motivo_perda||''};${ambStr};${valTotal.toFixed(2).replace('.',',')};${valVendido.toFixed(2).replace('.',',')}
-`;
+    csv+=`${data_str};${a.cliente_nome};${tipoLabel[a.tipo]||a.tipo};${a.vendedor_nome||'—'};${a.ambiente_desejado||'—'};${etapaLabel[a.etapa]||a.etapa};${statusLabel[a.status]||a.status};${a.motivo_perda||''};${ambStr};${valTotal.toFixed(2).replace('.',',')};${valVendido.toFixed(2).replace('.',',')}\n`;
   });
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
