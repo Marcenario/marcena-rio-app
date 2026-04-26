@@ -169,6 +169,19 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
 
 
+
+/* ── DASHBOARD ── */
+.dash-metric{background:var(--bg);border-radius:var(--radius-sm);padding:12px 14px;text-align:center;}
+.dash-metric-label{font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;}
+.dash-metric-val{font-size:22px;font-weight:400;font-family:'DM Serif Display',serif;}
+.dash-alerta-red{background:var(--red-bg);border-left:3px solid var(--red);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;margin-bottom:6px;font-size:13px;color:var(--red);display:flex;align-items:center;justify-content:space-between;}
+.dash-alerta-amber{background:#fff7ed;border-left:3px solid #f59e0b;border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;margin-bottom:6px;font-size:13px;color:#b45309;display:flex;align-items:center;justify-content:space-between;}
+.dash-alerta-green{background:var(--green-bg);border-left:3px solid var(--green);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;margin-bottom:6px;font-size:13px;color:var(--green);display:flex;align-items:center;justify-content:space-between;}
+.dash-funil-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;}
+.dash-funil-fill{height:6px;border-radius:3px;background:var(--accent);transition:width 0.3s;}
+.dash-rank-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.dash-rank-item:last-child{border-bottom:none;}
+
 /* ── RH ── */
 .ponto-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;}
 .ponto-batida{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
@@ -282,6 +295,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <button class="nav-item" id="nav-vistoria" style="display:none" onclick="showSection('vistoria',this)">Vistoria Final</button>
     <button class="nav-item" id="nav-rh" style="display:none" onclick="showSection('rh',this)">RH</button>
     <button class="nav-item" id="nav-financeiro" style="display:none" onclick="showSection('financeiro',this)">Financeiro</button>
+    <button class="nav-item" id="nav-dashboard" style="display:none" onclick="showSection('dashboard',this)">Dashboard</button>
     <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin',this)">Painel admin</button>
     <button class="nav-item" id="nav-usuarios" style="display:none" onclick="showSection('usuarios',this)">Usuários</button>
   </div>
@@ -522,6 +536,83 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     </div>
 
 
+
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="section">
+
+      <!-- Header com seletor de empresa financeiro -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:1.5rem;">
+        <div>
+          <h2 style="font-size:20px;font-family:'DM Serif Display',serif;font-weight:400;margin:0;">Dashboard executivo</h2>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;" id="dash-ultima-atualizacao">Carregando...</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text2);">Financeiro:</span>
+          <button id="dash-emp-mr" onclick="setDashEmpresa('marcenario',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--brand);background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
+          <button id="dash-emp-ct" onclick="setDashEmpresa('conceptus',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus</button>
+          <button onclick="loadDashboard()" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">↻ Atualizar</button>
+        </div>
+      </div>
+
+      <!-- ALERTAS -->
+      <div id="dash-alertas" style="margin-bottom:1.5rem;"></div>
+
+      <!-- GRID PRINCIPAL -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;">
+
+        <!-- ATENDIMENTO -->
+        <div class="card" id="dash-card-atend">
+          <div class="card-header" style="margin-bottom:1rem;">
+            <div class="card-title" style="font-size:15px;">Atendimento</div>
+            <span style="font-size:11px;color:var(--text3);" id="dash-at-mes"></span>
+          </div>
+          <div id="dash-atend-content"><div class="loader">Carregando...</div></div>
+        </div>
+
+        <!-- PROJETOS -->
+        <div class="card" id="dash-card-proj">
+          <div class="card-header" style="margin-bottom:1rem;">
+            <div class="card-title" style="font-size:15px;">Projetos</div>
+          </div>
+          <div id="dash-proj-content"><div class="loader">Carregando...</div></div>
+        </div>
+
+        <!-- MONTAGEM -->
+        <div class="card" id="dash-card-mont">
+          <div class="card-header" style="margin-bottom:1rem;">
+            <div class="card-title" style="font-size:15px;">Montagem</div>
+          </div>
+          <div id="dash-mont-content"><div class="loader">Carregando...</div></div>
+        </div>
+
+        <!-- FINANCEIRO -->
+        <div class="card" id="dash-card-fin">
+          <div class="card-header" style="margin-bottom:1rem;">
+            <div class="card-title" style="font-size:15px;">Financeiro</div>
+            <span style="font-size:11px;color:var(--text3);" id="dash-fin-mes"></span>
+          </div>
+          <div id="dash-fin-content"><div class="loader">Carregando...</div></div>
+        </div>
+
+        <!-- RH -->
+        <div class="card" id="dash-card-rh">
+          <div class="card-header" style="margin-bottom:1rem;">
+            <div class="card-title" style="font-size:15px;">RH</div>
+          </div>
+          <div id="dash-rh-content"><div class="loader">Carregando...</div></div>
+        </div>
+
+        <!-- VENDEDORES -->
+        <div class="card" id="dash-card-vend">
+          <div class="card-header" style="margin-bottom:1rem;">
+            <div class="card-title" style="font-size:15px;">Vendedores do mês</div>
+          </div>
+          <div id="dash-vend-content"><div class="loader">Carregando...</div></div>
+        </div>
+
+      </div>
+    </div>
 
     <!-- RH -->
     <div id="rh" class="section">
@@ -1241,6 +1332,7 @@ async function onLogin(user){
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
+  document.getElementById('nav-dashboard').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-rh').style.display=isStaff?'block':'none';
   document.getElementById('nav-financeiro').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-admin').style.display=userNivel==='admin'?'block':'none';
@@ -1252,7 +1344,8 @@ async function onLogin(user){
   document.getElementById('at-nav-motivos').style.display=userNivel==='admin'?'block':'none';
   if(rdKey)showRDConnected();
   document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
-  if(isStaff){showSection('atendimento',document.getElementById('nav-atendimento'))}
+  if(userNivel==='admin'){showSection('dashboard',document.getElementById('nav-dashboard'))}
+  else if(isStaff){showSection('rh',document.getElementById('nav-rh'))}
   else{showSection('solicitar',document.getElementById('nav-solicitar'));prefillOrcamento()}
 }
 
@@ -1272,6 +1365,7 @@ function showSection(id,btn){
   if(id==='admin')loadAdmin();
   if(id==='montagem')loadFilaMt();
   if(id==='usuarios')loadUsuarios();
+  if(id==='dashboard')loadDashboard();
   if(id==='rh'){
     loadPontoHoje();
     const isAdm=userNivel==='admin';
@@ -1954,6 +2048,344 @@ db.auth.getSession().then(({data})=>{if(data.session)onLogin(data.session.user)}
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js');
 
 
+
+
+
+/* ═══════════════════════════════════════════
+   DASHBOARD EXECUTIVO
+═══════════════════════════════════════════ */
+let dashEmpresa = 'marcenario';
+
+function setDashEmpresa(emp, btn) {
+  dashEmpresa = emp;
+  document.getElementById('dash-emp-mr').style.background = emp==='marcenario'?'var(--brand)':'transparent';
+  document.getElementById('dash-emp-mr').style.color = emp==='marcenario'?'#fff':'var(--text2)';
+  document.getElementById('dash-emp-mr').style.borderColor = emp==='marcenario'?'var(--brand)':'var(--border2)';
+  document.getElementById('dash-emp-ct').style.background = emp==='conceptus'?'var(--brand)':'transparent';
+  document.getElementById('dash-emp-ct').style.color = emp==='conceptus'?'#fff':'var(--text2)';
+  document.getElementById('dash-emp-ct').style.borderColor = emp==='conceptus'?'var(--brand)':'var(--border2)';
+  loadDashFinanceiro();
+}
+
+async function loadDashboard() {
+  const agora = new Date();
+  document.getElementById('dash-ultima-atualizacao').textContent =
+    'Atualizado às ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  const mes = agora.toISOString().slice(0,7);
+  const mesLabel = agora.toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
+  document.getElementById('dash-at-mes').textContent = mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1);
+  document.getElementById('dash-fin-mes').textContent = mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1);
+
+  await Promise.all([
+    loadDashAtendimento(mes),
+    loadDashProjetos(),
+    loadDashMontagem(mes),
+    loadDashFinanceiro(),
+    loadDashRH(),
+    loadDashVendedores(mes),
+    loadDashAlertas(mes),
+  ]);
+}
+
+/* ── ALERTAS ── */
+async function loadDashAlertas(mes) {
+  const cont = document.getElementById('dash-alertas');
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const alertas = [];
+
+  // Contas vencidas
+  const {data: vencidas} = await db.from('fin_despesas').select('descricao,valor')
+    .eq('pago', false).eq('empresa', dashEmpresa).lt('vencimento', hoje.toISOString().split('T')[0]);
+  if(vencidas && vencidas.length) {
+    const total = vencidas.reduce((s,d)=>s+d.valor,0);
+    alertas.push({cls:'red', icon:'🔴', msg:`${vencidas.length} conta(s) vencida(s) — ${fmt(total)}`, acao:"Ver contas", fn:"showSection('financeiro',document.getElementById('nav-financeiro'));showSubFin('fin-despesas',document.getElementById('fin-nav-despesas'))"});
+  }
+
+  // Projetos parados há 15+ dias
+  const quinzeDias = new Date(); quinzeDias.setDate(quinzeDias.getDate()-15);
+  const {data: parados} = await db.from('projetos').select('titulo,updated_at').lt('updated_at', quinzeDias.toISOString()).lt('etapa_atual', ETAPAS_TOTAL);
+  if(parados && parados.length)
+    alertas.push({cls:'amber', icon:'🟡', msg:`${parados.length} projeto(s) sem atualização há 15+ dias`, acao:'Ver projetos', fn:"showSection('projetos',document.getElementById('nav-projetos'))"});
+
+  // Atestados pendentes
+  const {data: atestados} = await db.from('rh_atestados').select('id').eq('status','pendente');
+  if(atestados && atestados.length)
+    alertas.push({cls:'amber', icon:'🟡', msg:`${atestados.length} atestado(s) aguardando aprovação`, acao:'Ver RH', fn:"showSection('rh',document.getElementById('nav-rh'));showSubRH('rh-atestado',document.getElementById('rh-nav-atestado'))"});
+
+  // Taxa de conversão
+  const {data: ats} = await db.from('atendimentos').select('status').eq('mes_ref', mes);
+  if(ats && ats.length >= 5) {
+    const fechados = ats.filter(a=>a.status==='concluido_fechado').length;
+    const taxa = Math.round((fechados/ats.length)*100);
+    if(taxa < 20) alertas.push({cls:'red', icon:'🔴', msg:`Taxa de conversão baixa: ${taxa}% no mês`, acao:'Ver atendimento', fn:"showSection('atendimento',document.getElementById('nav-atendimento'))"});
+  }
+
+  // Ponto de equilíbrio
+  const {data: recs} = await db.from('fin_receitas').select('valor').eq('mes_ref', mes).eq('empresa', dashEmpresa);
+  const {data: desps} = await db.from('fin_despesas').select('valor,tipo').eq('mes_ref', mes).eq('empresa', dashEmpresa);
+  const {data: cargos} = await db.from('fin_cargos').select('*').eq('empresa', dashEmpresa);
+  const {data: cfgArr} = await db.from('fin_config').select('*').eq('empresa', dashEmpresa).limit(1);
+  const cfg = cfgArr&&cfgArr.length?cfgArr[0]:{cmv_pct:0,frete_pct:0,icms_pct:0,impostos_pct:0};
+  const recTotal = (recs||[]).reduce((s,r)=>s+r.valor,0);
+  const despFixas = (desps||[]).filter(d=>d.tipo==='fixa').reduce((s,d)=>s+d.valor,0);
+  const salFixos = (cargos||[]).filter(c=>c.tipo==='fixo').reduce((s,c)=>s+c.salario_fixo,0);
+  const pctCom = (cargos||[]).filter(c=>c.tipo==='comissao').reduce((s,c)=>s+c.comissao_pct,0);
+  const pctCustos = cfg.cmv_pct+cfg.frete_pct+cfg.icms_pct+cfg.impostos_pct+pctCom;
+  const mc = (100-pctCustos)/100;
+  const pe = mc>0?(despFixas+salFixos)/mc:0;
+  if(pe>0) {
+    const pct = Math.round((recTotal/pe)*100);
+    if(pct < 80) alertas.push({cls:'amber', icon:'🟡', msg:`Ponto de equilíbrio: ${pct}% atingido (${fmt(recTotal)} de ${fmt(pe)})`, acao:'Ver financeiro', fn:"showSection('financeiro',document.getElementById('nav-financeiro'))"});
+    else if(pct >= 100) alertas.push({cls:'green', icon:'🟢', msg:`Ponto de equilíbrio atingido! ${pct}% — Pontuação atual: ${recTotal>0&&pe>0?(recTotal/pe).toFixed(2)+'x':'—'}`, acao:'', fn:''});
+  }
+
+  if(!alertas.length) {
+    cont.innerHTML = '<div class="dash-alerta-green"><span>✅ Tudo em ordem! Nenhum alerta no momento.</span></div>';
+    return;
+  }
+  cont.innerHTML = alertas.map(a => `<div class="dash-alerta-${a.cls}">
+    <span>${a.icon} ${a.msg}</span>
+    ${a.acao?`<button onclick="${a.fn}" style="background:none;border:none;font-size:12px;font-weight:500;cursor:pointer;color:inherit;text-decoration:underline;">${a.acao} →</button>`:''}
+  </div>`).join('');
+}
+
+/* ── ATENDIMENTO ── */
+async function loadDashAtendimento(mes) {
+  const cont = document.getElementById('dash-atend-content');
+  const {data: ats} = await db.from('atendimentos').select('*').eq('mes_ref', mes);
+  const todos = ats||[];
+  const total = todos.length;
+  const fechados = todos.filter(a=>a.status==='concluido_fechado').length;
+  const perdidos = todos.filter(a=>a.status==='concluido_perdido').length;
+  const ativos = todos.filter(a=>a.status==='em_andamento').length;
+  const taxa = total>0?Math.round((fechados/total)*100):0;
+  const corTaxa = taxa>=30?'var(--green)':taxa>=20?'#b45309':'var(--red)';
+
+  // Funil por etapa
+  const etapasCount = {};
+  AT_ETAPAS.forEach(e=>etapasCount[e.id]=0);
+  todos.filter(a=>a.status==='em_andamento').forEach(a=>{if(etapasCount[a.etapa]!==undefined)etapasCount[a.etapa]++;});
+  const maxEtapa = Math.max(...Object.values(etapasCount), 1);
+
+  let funilHtml = AT_ETAPAS.map(e => {
+    const n = etapasCount[e.id]||0;
+    const pct = Math.round((n/maxEtapa)*100);
+    return n>0?`<div class="dash-funil-bar">
+      <span style="width:120px;color:var(--text2);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.label}</span>
+      <div style="flex:1;background:var(--bg);border-radius:3px;height:6px;"><div class="dash-funil-fill" style="width:${pct}%;"></div></div>
+      <span style="width:20px;text-align:right;font-weight:500;">${n}</span>
+    </div>`:''
+  }).filter(Boolean).join('');
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">
+      <div class="dash-metric"><div class="dash-metric-label">Total</div><div class="dash-metric-val">${total}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Ativos</div><div class="dash-metric-val">${ativos}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Conversão</div><div class="dash-metric-val" style="color:${corTaxa};">${taxa}%</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
+      <div class="dash-metric"><div class="dash-metric-label">Fechados</div><div class="dash-metric-val" style="color:var(--green);">${fechados}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Perdidos</div><div class="dash-metric-val" style="color:var(--red);">${perdidos}</div></div>
+    </div>
+    ${funilHtml?`<div style="margin-top:0.5rem;"><div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Funil ativo</div>${funilHtml}</div>`:''}
+  `;
+}
+
+/* ── PROJETOS ── */
+async function loadDashProjetos() {
+  const cont = document.getElementById('dash-proj-content');
+  const {data: projs} = await db.from('projetos').select('etapa_atual,updated_at,titulo,cliente_nome');
+  const todos = projs||[];
+  const ativos = todos.filter(p=>p.etapa_atual<ETAPAS_TOTAL&&p.etapa_atual>1);
+  const novos = todos.filter(p=>p.etapa_atual===1);
+  const concluidos = todos.filter(p=>p.etapa_atual>=ETAPAS_TOTAL);
+  const quinzeDias = new Date(); quinzeDias.setDate(quinzeDias.getDate()-15);
+  const parados = ativos.filter(p=>new Date(p.updated_at)<quinzeDias);
+
+  // Distribuição por etapa
+  const porEtapa = {};
+  ativos.forEach(p=>{
+    const nome = ETAPAS[p.etapa_atual-1]?.nome||'—';
+    porEtapa[nome] = (porEtapa[nome]||0)+1;
+  });
+  const etapaTop = Object.entries(porEtapa).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">
+      <div class="dash-metric"><div class="dash-metric-label">Ativos</div><div class="dash-metric-val">${ativos.length}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Novos</div><div class="dash-metric-val">${novos.length}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Concluídos</div><div class="dash-metric-val" style="color:var(--green);">${concluidos.length}</div></div>
+    </div>
+    ${parados.length?`<div style="background:var(--red-bg);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:1rem;">⚠ ${parados.length} projeto(s) sem atualização há 15+ dias</div>`:''}
+    ${etapaTop.length?`<div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Concentração por etapa</div>
+    ${etapaTop.map(([nome,n])=>`<div class="dash-funil-bar">
+      <span style="width:140px;font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nome}</span>
+      <div style="flex:1;background:var(--bg);border-radius:3px;height:6px;"><div class="dash-funil-fill" style="width:${Math.round((n/ativos.length)*100)}%;background:var(--blue);"></div></div>
+      <span style="width:20px;text-align:right;font-weight:500;">${n}</span>
+    </div>`).join('')}`:'<div style="font-size:13px;color:var(--text3);">Nenhum projeto ativo.</div>'}
+  `;
+}
+
+/* ── MONTAGEM ── */
+async function loadDashMontagem(mes) {
+  const cont = document.getElementById('dash-mont-content');
+  const [{data: pedidos},{data: equipes},{data: ocorrs}] = await Promise.all([
+    db.from('pedidos_montagem').select('status,tipo_servico,equipe_id'),
+    db.from('equipes_montagem').select('id,nome,produtividade_atual'),
+    db.from('ocorrencias').select('tipo,created_at').gte('created_at', mes+'-01')
+  ]);
+
+  const pends = (pedidos||[]).filter(p=>p.status==='pendente'||p.status==='agendado');
+  const montagem = pends.filter(p=>!p.tipo_servico||p.tipo_servico!=='asteca');
+  const asteca = pends.filter(p=>p.tipo_servico==='asteca');
+
+  // Carga por equipe
+  const carga = {};
+  (equipes||[]).forEach(e=>carga[e.id]={nome:e.nome,n:0});
+  (pedidos||[]).filter(p=>p.status==='agendado').forEach(p=>{if(carga[p.equipe_id])carga[p.equipe_id].n++;});
+  const equipeTop = Object.values(carga).sort((a,b)=>b.n-a.n).slice(0,3);
+
+  const faltasTotal = (ocorrs||[]).filter(o=>o.tipo==='falta').length;
+  const ocorrTotal = (ocorrs||[]).filter(o=>o.tipo!=='falta').length;
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
+      <div class="dash-metric"><div class="dash-metric-label">Montagem pend.</div><div class="dash-metric-val">${montagem.length}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">ASTECA pend.</div><div class="dash-metric-val" style="color:var(--accent);">${asteca.length}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
+      <div class="dash-metric"><div class="dash-metric-label">Faltas no mês</div><div class="dash-metric-val" style="color:var(--red);">${faltasTotal}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Ocorrências</div><div class="dash-metric-val" style="color:#b45309;">${ocorrTotal}</div></div>
+    </div>
+    ${equipeTop.length?`<div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Carga por equipe</div>
+    ${equipeTop.map(e=>`<div class="dash-rank-item"><span>${e.nome}</span><span class="badge badge-amber">${e.n} pedido(s)</span></div>`).join('')}`:''}
+  `;
+}
+
+/* ── FINANCEIRO ── */
+async function loadDashFinanceiro() {
+  const cont = document.getElementById('dash-fin-content');
+  const mes = new Date().toISOString().slice(0,7);
+  const [{data:recs},{data:desps},{data:cargos},{data:cfgArr}] = await Promise.all([
+    db.from('fin_receitas').select('valor').eq('mes_ref',mes).eq('empresa',dashEmpresa),
+    db.from('fin_despesas').select('valor,tipo,pago,vencimento').eq('mes_ref',mes).eq('empresa',dashEmpresa),
+    db.from('fin_cargos').select('*').eq('empresa',dashEmpresa),
+    db.from('fin_config').select('*').eq('empresa',dashEmpresa).limit(1)
+  ]);
+  const cfg = cfgArr&&cfgArr.length?cfgArr[0]:{cmv_pct:0,frete_pct:0,icms_pct:0,impostos_pct:0};
+  const recTotal = (recs||[]).reduce((s,r)=>s+r.valor,0);
+  const despTotal = (desps||[]).reduce((s,d)=>s+d.valor,0);
+  const pctCom = (cargos||[]).filter(c=>c.tipo==='comissao').reduce((s,c)=>s+c.comissao_pct,0);
+  const pctCustos = cfg.cmv_pct+cfg.frete_pct+cfg.icms_pct+cfg.impostos_pct+pctCom;
+  const custosProd = recTotal*(pctCustos/100);
+  const salFixos = (cargos||[]).filter(c=>c.tipo==='fixo').reduce((s,c)=>s+c.salario_fixo,0);
+  const lucro = recTotal - custosProd - despTotal - salFixos;
+
+  // Ponto de equilíbrio
+  const despFixas = (desps||[]).filter(d=>d.tipo==='fixa').reduce((s,d)=>s+d.valor,0);
+  const mc = (100-pctCustos)/100;
+  const pe = mc>0?(despFixas+salFixos)/mc:0;
+  const pctPE = pe>0?Math.min(Math.round((recTotal/pe)*100),200):0;
+  const corPE = pctPE>=100?'var(--green)':pctPE>=70?'#b45309':'var(--red)';
+  const pontAtual = pe>0&&recTotal>0?(recTotal/pe).toFixed(2):null;
+
+  // Contas vencidas
+  const hoje = new Date().toISOString().split('T')[0];
+  const vencidas = (desps||[]).filter(d=>!d.pago&&d.vencimento&&d.vencimento<hoje).length;
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
+      <div class="dash-metric"><div class="dash-metric-label">Faturamento</div><div class="dash-metric-val" style="font-size:16px;color:var(--green);">${fmt(recTotal)}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Despesas</div><div class="dash-metric-val" style="font-size:16px;color:var(--red);">${fmt(despTotal)}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
+      <div class="dash-metric"><div class="dash-metric-label">${lucro>=0?'Lucro':'Prejuízo'}</div><div class="dash-metric-val" style="font-size:16px;color:${lucro>=0?'var(--green)':'var(--red)'};">${fmt(Math.abs(lucro))}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Contas vencidas</div><div class="dash-metric-val" style="font-size:16px;color:${vencidas?'var(--red)':'var(--green)'};">${vencidas}</div></div>
+    </div>
+    <div style="margin-top:0.5rem;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;">
+        <span>Ponto de equilíbrio ${pctPE>=100?'✓ Atingido!':pctPE+'% atingido'}</span>
+        <span style="font-weight:500;color:${corPE};">${pe>0?fmt(recTotal)+' / '+fmt(pe):'Não configurado'}</span>
+      </div>
+      <div style="height:8px;background:var(--bg);border-radius:4px;">
+        <div style="height:8px;border-radius:4px;background:${corPE};width:${Math.min(pctPE,100)}%;transition:width 0.3s;"></div>
+      </div>
+      ${pontAtual?`<div style="font-size:11px;color:var(--text2);margin-top:4px;">Pontuação atual: <strong style="color:${corPE};">${pontAtual}x</strong></div>`:''}
+    </div>
+  `;
+}
+
+/* ── RH ── */
+async function loadDashRH() {
+  const cont = document.getElementById('dash-rh-content');
+  const hoje = new Date().toISOString().split('T')[0];
+  const mes = new Date().toISOString().slice(0,7);
+
+  const [{data:funcs},{data:pontosHoje},{data:atestados},{data:folgas}] = await Promise.all([
+    db.from('rh_funcionarios').select('id,nome').eq('ativo',true),
+    db.from('rh_pontos').select('funcionario_id,tipo').eq('data',hoje),
+    db.from('rh_atestados').select('id,funcionario_id').eq('status','pendente'),
+    db.from('rh_folgas').select('funcionario_id').eq('data',hoje)
+  ]);
+
+  const totalFuncs = (funcs||[]).length;
+  const folgasHoje = (folgas||[]).map(f=>f.funcionario_id);
+  const funcAtivos = (funcs||[]).filter(f=>!folgasHoje.includes(f.id));
+  const bateramPonto = new Set((pontosHoje||[]).map(p=>p.funcionario_id)).size;
+  const faltasHoje = funcAtivos.length - bateramPonto;
+
+  // Quem ainda não bateu entrada hoje
+  const comEntrada = new Set((pontosHoje||[]).filter(p=>p.tipo==='entrada').map(p=>p.funcionario_id));
+  const semEntrada = funcAtivos.filter(f=>!comEntrada.has(f.id));
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">
+      <div class="dash-metric"><div class="dash-metric-label">Funcionários</div><div class="dash-metric-val">${totalFuncs}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Presente hoje</div><div class="dash-metric-val" style="color:var(--green);">${bateramPonto}</div></div>
+      <div class="dash-metric"><div class="dash-metric-label">Falta hoje</div><div class="dash-metric-val" style="color:${faltasHoje>0?'var(--red)':'var(--green)'};">${faltasHoje}</div></div>
+    </div>
+    ${atestados&&atestados.length?`<div style="background:#fff7ed;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:#b45309;margin-bottom:0.75rem;">🟡 ${atestados.length} atestado(s) aguardando aprovação</div>`:''}
+    ${semEntrada.length?`<div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Sem entrada hoje</div>
+    ${semEntrada.slice(0,4).map(f=>`<div class="dash-rank-item"><span>${f.nome}</span><span style="font-size:11px;color:var(--red);">Sem registro</span></div>`).join('')}`:'<div style="font-size:13px;color:var(--green);">✓ Todos registraram entrada hoje.</div>'}
+  `;
+}
+
+/* ── VENDEDORES ── */
+async function loadDashVendedores(mes) {
+  const cont = document.getElementById('dash-vend-content');
+  const {data: ats} = await db.from('atendimentos').select('vendedor_id,vendedor_nome,ambientes,status').eq('mes_ref',mes);
+  if(!ats||!ats.length) { cont.innerHTML='<div class="empty-state"><p>Sem dados de atendimento.</p></div>'; return; }
+
+  const ranking = {};
+  ats.forEach(a => {
+    if(!ranking[a.vendedor_id]) ranking[a.vendedor_id] = {nome:a.vendedor_nome||'—', valTotal:0, vendido:0, ats:0};
+    ranking[a.vendedor_id].ats++;
+    const ambs = a.ambientes?JSON.parse(a.ambientes):[];
+    ambs.forEach(am => {
+      ranking[a.vendedor_id].valTotal += (am.valor||0);
+      if(am.vendeu===true) ranking[a.vendedor_id].vendido += (am.valor||0);
+    });
+  });
+
+  const sorted = Object.values(ranking).sort((a,b)=>b.vendido-a.vendido);
+  const maxVal = sorted[0]?.vendido||1;
+
+  cont.innerHTML = sorted.map((v,i) => {
+    const pct = Math.round((v.vendido/maxVal)*100);
+    const badge = i===0?'🥇':i===sorted.length-1&&sorted.length>1?'🔴':'';
+    const corBar = i===0?'var(--green)':i===sorted.length-1&&sorted.length>1?'var(--red)':'var(--accent)';
+    return `<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:4px;">
+        <span>${badge} ${v.nome}</span>
+        <span style="color:var(--green);">${fmt(v.vendido)}</span>
+      </div>
+      <div style="height:5px;background:var(--bg);border-radius:3px;">
+        <div style="height:5px;border-radius:3px;background:${corBar};width:${pct}%;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">${v.ats} atend. · Total projetado: ${fmt(v.valTotal)}</div>
+    </div>`;
+  }).join('');
+}
 
 
 /* ═══════════════════════════════════════════
