@@ -305,6 +305,17 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <div id="solicitar" class="section active">
       <div class="card">
         <div class="card-header"><div><div class="card-title">Nova solicitação de orçamento</div><div class="card-sub">Preencha as informações para iniciarmos seu projeto</div></div></div>
+        <div style="margin-bottom:1.25rem;">
+          <label style="display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:8px;">Loja</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button id="orc-emp-mr" onclick="setEmpresaOrc('marcenario',this)" class="at-tipo-btn active" style="padding:10px;display:flex;align-items:center;justify-content:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;">
+            </button>
+            <button id="orc-emp-ct" onclick="setEmpresaOrc('conceptus',this)" class="at-tipo-btn" style="padding:10px;display:flex;align-items:center;justify-content:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:28px;object-fit:contain;max-width:100%;">
+            </button>
+          </div>
+        </div>
         <div class="form-grid">
           <div class="form-row"><label>Nome completo</label><input type="text" id="orc-nome" placeholder="Seu nome completo"></div>
           <div class="form-row"><label>Telefone / WhatsApp</label><input type="text" id="orc-tel" placeholder="(21) 99999-0000"></div>
@@ -464,6 +475,15 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div class="card-title" style="margin-bottom:0.75rem;">Registrar novo atendimento</div>
           <div class="info-box">O sistema distribui automaticamente para o vendedor mais disponível.</div>
 
+          <div style="font-size:13px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;">Empresa</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem;">
+            <button class="at-tipo-btn active" id="at-emp-mr" onclick="setEmpresaAt('marcenario',this)" style="display:flex;align-items:center;gap:8px;justify-content:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:24px;object-fit:contain;">
+            </button>
+            <button class="at-tipo-btn" id="at-emp-ct" onclick="setEmpresaAt('conceptus',this)" style="display:flex;align-items:center;gap:8px;justify-content:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:24px;object-fit:contain;">
+            </button>
+          </div>
           <div style="font-size:13px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;">Tipo de atendimento</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem;">
             <button class="at-tipo-btn active" data-tipo="lead" onclick="setTipoAt('lead',this)">🎯 Lead</button>
@@ -1261,6 +1281,24 @@ const ETAPAS=[
 ];
 const ETAPAS_TOTAL=ETAPAS.length;
 const {createClient}=supabase;
+const EMPRESAS={
+  marcenario:{
+    nome:'Marcena Rio',
+    subtitulo:'Marcenaria de Alto Padrão',
+    cor:'#6b4c2a',
+    corClara:'#f5efe8',
+    logo:'https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png',
+    email:'contato@marcenario.com.br'
+  },
+  conceptus:{
+    nome:'Italínea Conceptus',
+    subtitulo:'Ambientes Planejados',
+    cor:'#1a3a6e',
+    corClara:'#e8f0fc',
+    logo:'https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png',
+    email:'contato@conceptusitalinea.com.br'
+  }
+};
 const db=createClient(SUPABASE_URL,SUPABASE_ANON);
 let currentUser=null,userNivel='cliente',rdKey=localStorage.getItem('mr_rd_key')||'',ambsMt=[];
 
@@ -1421,6 +1459,13 @@ async function uploadArquivo(projetoId){
   return urlData.publicUrl;
 }
 
+let orcEmpresa='marcenario';
+function setEmpresaOrc(emp, btn){
+  orcEmpresa=emp;
+  document.getElementById('orc-emp-mr').classList.toggle('active', emp==='marcenario');
+  document.getElementById('orc-emp-ct').classList.toggle('active', emp==='conceptus');
+}
+
 async function enviarOrcamento(){
   const nome=document.getElementById('orc-nome').value.trim();
   const tel=document.getElementById('orc-tel').value.trim();
@@ -1430,7 +1475,7 @@ async function enviarOrcamento(){
   if(!nome||!ambiente){setAlert('orc-alert','Preencha nome e ambiente.','error');return}
   const btn=document.getElementById('btn-orc');btn.disabled=true;btn.textContent='Enviando...';
   setAlert('orc-alert','','');
-  const {data:proj,error}=await db.from('projetos').insert({titulo:ambiente+(desc?' — '+desc.substring(0,40):''),ambiente,descricao:desc,prazo_desejado:investimento,etapa_atual:1,cliente_email:currentUser.email,cliente_nome:nome,cliente_tel:tel,user_id:currentUser.id}).select().single();
+  const {data:proj,error}=await db.from('projetos').insert({titulo:ambiente+(desc?' — '+desc.substring(0,40):''),ambiente,descricao:desc,prazo_desejado:investimento,etapa_atual:1,cliente_email:currentUser.email,cliente_nome:nome,cliente_tel:tel,user_id:currentUser.id,empresa:orcEmpresa}).select().single();
   btn.disabled=false;btn.textContent='Enviar solicitação';
   if(error){setAlert('orc-alert','Erro ao enviar. Tente novamente.','error');return}
   const arquivoUrl=await uploadArquivo(proj.id);
@@ -3406,6 +3451,13 @@ function renderSimuladorResultado(pt,venda){
 ═══════════════════════════════════════════ */
 let atTipo='lead';
 let atAmbs=[];
+let atEmpresa='marcenario';
+
+function setEmpresaAt(emp, btn){
+  atEmpresa=emp;
+  document.getElementById('at-emp-mr').classList.toggle('active', emp==='marcenario');
+  document.getElementById('at-emp-ct').classList.toggle('active', emp==='conceptus');
+}
 
 function setTipoAt(tipo, btn){
   atTipo=tipo;
@@ -3535,6 +3587,7 @@ async function salvarAtendimento(){
     estimativa:estimativa,
     ambientes:JSON.stringify(atAmbs),
     vendedor_id:vendedor.id,vendedor_nome:vendedor.nome,
+    empresa:atEmpresa,
     etapa:'entrada',status:'em_andamento',
     mes_ref:mesRef,
     registrado_por:currentUser.id
@@ -3547,6 +3600,8 @@ async function salvarAtendimento(){
   document.getElementById('at-nome').value='';document.getElementById('at-tel').value='';
   document.getElementById('at-email').value='';document.getElementById('at-ambiente').value='';
   document.getElementById('at-estimativa').value='';
+  atEmpresa='marcenario';
+  setEmpresaAt('marcenario');
 }
 
 /* ── FUNIL ── */
