@@ -211,15 +211,21 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 /* ── ATENDIMENTO ── */
 .at-tipo-btn{padding:10px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;transition:all 0.15s;color:var(--text2);font-weight:500;}
 .at-tipo-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
-.funil-col{flex:0 0 220px;min-width:220px;}
-.funil-col-header{padding:10px 14px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;display:flex;align-items:center;justify-content:space-between;}
-.funil-col-body{background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:8px;min-height:200px;}
-.funil-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:box-shadow 0.15s;}
-.funil-card:hover{box-shadow:var(--shadow-lg);}
-.funil-card-nome{font-size:13px;font-weight:500;color:var(--text);}
-.funil-card-sub{font-size:11px;color:var(--text2);margin-top:3px;}
-.funil-card-val{font-size:12px;font-weight:500;color:var(--accent);margin-top:4px;}
-.funil-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:1rem;}
+.funil-col{flex:0 0 280px;min-width:280px;display:flex;flex-direction:column;}
+.funil-col-header{padding:12px 16px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.funil-col-header-info{display:flex;flex-direction:column;gap:2px;}
+.funil-col-header-count{display:flex;align-items:center;gap:6px;}
+.funil-col-body{background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:8px;min-height:400px;max-height:calc(100vh - 280px);overflow-y:auto;flex:1;}
+.funil-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;position:relative;}
+.funil-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px);border-color:var(--border2);}
+.funil-card-nome{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.funil-card-cod{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+.funil-card-sub{font-size:11px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px;}
+.funil-card-val{font-size:13px;font-weight:600;color:var(--accent);margin-top:8px;}
+.funil-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.funil-card-dias{font-size:10px;font-weight:500;padding:2px 7px;border-radius:8px;}
+.funil-card-empresa{font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;}
+.funil-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:1rem;align-items:flex-start;}
 .at-amb-row{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;align-items:center;}
 .btn-vende{padding:4px 10px;border:none;border-radius:4px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;}
 .btn-vende.sim{background:var(--green-bg);color:var(--green);border:1px solid #a8dfc0;}
@@ -3654,7 +3660,6 @@ async function loadFunil(){
   if(vdFiltro)query=query.eq('vendedor_id',vdFiltro);
   const {data}=await query.order('created_at',{ascending:false});
 
-  // Preencher filtro de vendedores
   const {data:vds}=await db.from('vendedores').select('id,nome').order('nome');
   const selVd=document.getElementById('at-filtro-vendedor');
   const atualVd=selVd.value;
@@ -3663,62 +3668,85 @@ async function loadFunil(){
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum atendimento encontrado.</p></div>';return}
 
   const todos=data||[];
-  // Colunas do funil
+  const hoje=new Date();
+
+  function buildColuna(label, cor, bg, cards, totalVal){
+    const cardHtml=cards.length
+      ?cards.map(a=>renderFunilCard(a,cor)).join('')
+      :`<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum atendimento</div>`;
+    return `<div class="funil-col">
+      <div class="funil-col-header" style="background:${bg};color:${cor};">
+        <div class="funil-col-header-info">
+          <span style="font-size:12px;font-weight:600;">${label}</span>
+          ${totalVal>0?`<span style="font-size:11px;font-weight:500;opacity:0.85;">${fmt(totalVal)}</span>`:''}
+        </div>
+        <div class="funil-col-header-count">
+          <span style="background:${cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
+        </div>
+      </div>
+      <div class="funil-col-body">${cardHtml}</div>
+    </div>`;
+  }
+
   let html='<div class="funil-wrap">';
+
   for(const etapa of AT_ETAPAS){
     const cards=todos.filter(a=>a.etapa===etapa.id&&a.status==='em_andamento');
     const totalVal=cards.reduce((s,a)=>{
       const ambs=a.ambientes?JSON.parse(a.ambientes):[];
       return s+ambs.reduce((ss,am)=>ss+(am.valor||0),0);
-    },0);
-    html+=`<div class="funil-col">
-      <div class="funil-col-header" style="background:${etapa.bg};color:${etapa.cor};">
-        <span>${etapa.label}</span>
-        <span style="background:${etapa.cor};color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;">${cards.length}</span>
-      </div>
-      <div class="funil-col-body">
-        ${cards.length?cards.map(a=>renderFunilCard(a,etapa)).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0;">Vazio</div>'}
-        ${totalVal?`<div style="font-size:11px;font-weight:600;color:${etapa.cor};text-align:right;padding:6px 4px;border-top:1px solid var(--border);margin-top:4px;">${fmt(totalVal)}</div>`:''}
-      </div>
-    </div>`;
+    },0)||cards.reduce((s,a)=>s+(a.estimativa||0),0);
+    html+=buildColuna(etapa.label, etapa.cor, etapa.bg, cards, totalVal);
   }
-  // Coluna Fechados
+
   const fechados=todos.filter(a=>a.status==='concluido_fechado');
   const valFechados=fechados.reduce((s,a)=>{const ambs=a.ambientes?JSON.parse(a.ambientes):[];return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);},0);
-  html+=`<div class="funil-col">
-    <div class="funil-col-header" style="background:var(--green-bg);color:var(--green);">
-      <span>✓ Fechados</span>
-      <span style="background:var(--green);color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;">${fechados.length}</span>
-    </div>
-    <div class="funil-col-body">
-      ${fechados.length?fechados.map(a=>renderFunilCard(a,{id:'fechado',cor:'var(--green)',bg:'var(--green-bg)'})).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0;">Vazio</div>'}
-      ${valFechados?`<div style="font-size:11px;font-weight:600;color:var(--green);text-align:right;padding:6px 4px;border-top:1px solid var(--border);margin-top:4px;">${fmt(valFechados)}</div>`:''}
-    </div>
-  </div>`;
-  // Coluna Perdidos
+  html+=buildColuna('✓ Fechados','var(--green)','var(--green-bg)',fechados,valFechados);
+
   const perdidos=todos.filter(a=>a.status==='concluido_perdido');
-  html+=`<div class="funil-col">
-    <div class="funil-col-header" style="background:var(--red-bg);color:var(--red);">
-      <span>✗ Perdidos</span>
-      <span style="background:var(--red);color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;">${perdidos.length}</span>
-    </div>
-    <div class="funil-col-body">
-      ${perdidos.length?perdidos.map(a=>renderFunilCard(a,{id:'perdido',cor:'var(--red)',bg:'var(--red-bg)'})).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px 0;">Vazio</div>'}
-    </div>
-  </div>`;
+  html+=buildColuna('✗ Perdidos','var(--red)','var(--red-bg)',perdidos,0);
+
   html+='</div>';
   cont.innerHTML=html;
 }
 
-function renderFunilCard(a,etapa){
-  const tipoLabel={lead:'🎯 Lead',porta:'🚶 Porta',retorno:'🔄 Retorno',indicacao:'👥 Indicação'}[a.tipo]||a.tipo;
+function renderFunilCard(a, cor){
+  const tipoLabel={lead:'Lead',porta:'Porta',retorno:'Retorno',indicacao:'Indicação'}[a.tipo]||a.tipo;
+  const tipoIcon={lead:'🎯',porta:'🚶',retorno:'🔄',indicacao:'👥'}[a.tipo]||'•';
   const ambs=a.ambientes?JSON.parse(a.ambientes):[];
-  const totalVal=ambs.reduce((s,am)=>s+(am.valor||0),0);
+  const totalVal=ambs.reduce((s,am)=>s+(am.valor||0),0)||(a.estimativa||0);
+  const vendidos=ambs.filter(am=>am.vendeu===true).length;
+  const naoVendidos=ambs.filter(am=>am.vendeu===false).length;
+
+  // Dias na etapa
+  const criado=new Date(a.created_at);
+  const dias=Math.floor((new Date()-criado)/(1000*60*60*24));
+  const corDias=dias>30?'color:var(--red);background:var(--red-bg)':dias>15?'color:#b45309;background:#fff7ed':'color:var(--green);background:var(--green-bg)';
+
+  // Empresa badge
+  const empLabel=a.empresa==='conceptus'?'Conceptus':'Marcena Rio';
+  const empCor=a.empresa==='conceptus'?'color:#1a3a6e;background:#e8f0fc':'color:#6b4c2a;background:#f5efe8';
+
+  // Ambientes resumo
+  const ambResumo=ambs.length?ambs.slice(0,2).map(am=>am.nome).join(', ')+(ambs.length>2?` +${ambs.length-2}`:''):(a.ambiente_desejado||'');
+
   return `<div class="funil-card" onclick="abrirModalAt('${a.id}')">
-    <div class="funil-card-nome">${a.cliente_nome}</div>
-    <div class="funil-card-sub">${tipoLabel} · ${a.vendedor_nome||'—'}</div>
-    <div class="funil-card-sub">${a.ambiente_desejado||''}</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:4px;">
+      <div class="funil-card-nome">${a.cliente_nome}</div>
+      <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;flex-shrink:0;${empCor}">${empLabel}</span>
+    </div>
+    ${ambResumo?`<div class="funil-card-sub">🏠 ${ambResumo}</div>`:''}
+    <div class="funil-card-sub">👤 ${a.vendedor_nome||'Sem vendedor'}</div>
+    <div class="funil-card-sub">${tipoIcon} ${tipoLabel}</div>
     ${totalVal?`<div class="funil-card-val">${fmt(totalVal)}</div>`:''}
+    ${ambs.length?`<div style="display:flex;gap:4px;margin-top:6px;">
+      ${vendidos>0?`<span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:6px;">✓ ${vendidos} vendido${vendidos>1?'s':''}</span>`:''}
+      ${naoVendidos>0?`<span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:6px;">✗ ${naoVendidos} não</span>`:''}
+    </div>`:''}
+    <div class="funil-card-footer">
+      <span style="font-size:11px;color:var(--text3);">${new Date(a.created_at).toLocaleDateString('pt-BR')}</span>
+      <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;${corDias}">${dias}d</span>
+    </div>
   </div>`;
 }
 
