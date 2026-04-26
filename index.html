@@ -3598,6 +3598,21 @@ function renderAmbsAt(){
 }
 
 /* ── SALVAR ATENDIMENTO ── */
+async function gerarNumeroAtendimento(empresa){
+  const hoje = new Date();
+  const dia = String(hoje.getDate()).padStart(2,'0');
+  const mes = String(hoje.getMonth()+1).padStart(2,'0');
+  const prefixo = dia+mes;
+  // Busca quantos atendimentos já existem hoje nesta empresa
+  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+  const {data} = await db.from('atendimentos')
+    .select('id')
+    .eq('empresa', empresa)
+    .gte('created_at', inicioHoje);
+  const seq = String((data?.length||0)+1).padStart(2,'0');
+  return `${prefixo}-${seq}`;
+}
+
 async function salvarAtendimento(){
   const nome=document.getElementById('at-nome').value.trim();
   const tel=document.getElementById('at-tel').value.trim();
@@ -3610,7 +3625,9 @@ async function salvarAtendimento(){
   const vendedor=await distribuirVendedor();
   if(!vendedor){setAlert('at-novo-alert','Cadastre pelo menos um vendedor antes.','error');btn.disabled=false;btn.textContent='Registrar e distribuir para vendedor';return}
   const mesRef=new Date().toISOString().slice(0,7);
+  const numeroAt = await gerarNumeroAtendimento(atEmpresa);
   const {error}=await db.from('atendimentos').insert({
+    numero:numeroAt,
     tipo:atTipo,
     cliente_nome:nome,cliente_tel:tel,cliente_email:email,
     ambiente_desejado:ambiente,
@@ -3739,7 +3756,10 @@ function renderFunilCard(a, cor){
 
   return `<div class="funil-card" onclick="abrirModalAt('${a.id}')">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:4px;">
-      <div class="funil-card-nome">${a.cliente_nome}</div>
+      <div>
+        ${a.numero?`<div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;margin-bottom:2px;">#${a.numero}</div>`:''}
+        <div class="funil-card-nome">${a.cliente_nome}</div>
+      </div>
       <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;flex-shrink:0;${empCor}">${empLabel}</span>
     </div>
     ${ambResumo?`<div class="funil-card-sub">🏠 ${ambResumo}</div>`:''}
@@ -3803,6 +3823,19 @@ async function abrirModalAt(id){
     </div>
     ${ambsHtml}
     ${statusAtual==='em_andamento'?`
+    <!-- Adicionar novo ambiente no modal -->
+    <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;">+ Adicionar ambiente</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:end;">
+        <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Nome</label>
+        <input type="text" id="modal-amb-nome-${id}" placeholder="Ex: Cozinha" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Valor (R$)</label>
+        <input type="text" id="modal-amb-valor-${id}" placeholder="Ex: 15000" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>
+        <button onclick="addAmbModal('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">+ Add</button>
+      </div>
+    </div>
+    `:''}
+    ${statusAtual==='em_andamento'?`
     <div class="divider"></div>
     <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Avançar etapa do funil</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
@@ -3826,6 +3859,20 @@ async function abrirModalAt(id){
   `;
   // Guarda referência dos ambientes para toggleVendeuModal
   window._atModalAmbs={id,ambs};
+}
+
+async function addAmbModal(atId){
+  const nome = document.getElementById(`modal-amb-nome-${atId}`)?.value.trim();
+  const valorStr = document.getElementById(`modal-amb-valor-${atId}`)?.value;
+  const valor = parseMoney(valorStr);
+  if(!nome){notify('Informe o nome do ambiente.','error');return}
+  const ref = window._atModalAmbs;
+  if(!ref||ref.id!==atId)return;
+  ref.ambs.push({nome, valor:valor||0, vendeu:null});
+  await db.from('atendimentos').update({ambientes:JSON.stringify(ref.ambs)}).eq('id',atId);
+  notify('Ambiente adicionado!');
+  abrirModalAt(atId);
+  loadFunil();
 }
 
 async function toggleVendeuModal(atId,idx,val){
