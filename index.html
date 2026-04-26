@@ -508,7 +508,15 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
     <!-- FINANCEIRO -->
     <div id="financeiro" class="section">
-      <div class="sub-nav">
+      <!-- Seletor de empresa -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0 0 0;margin-bottom:0;">
+        <span style="font-size:12px;font-weight:500;color:var(--text2);">Empresa:</span>
+        <div style="display:flex;gap:6px;">
+          <button id="fin-emp-mr" onclick="setEmpresaFin('marcenario',this)" style="padding:6px 16px;border-radius:20px;border:1.5px solid var(--brand);background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
+          <button id="fin-emp-ct" onclick="setEmpresaFin('conceptus',this)" style="padding:6px 16px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus Italínea</button>
+        </div>
+      </div>
+      <div class="sub-nav" style="margin-top:0;">
         <button class="nav-item active" id="fin-nav-dre" onclick="showSubFin('fin-dre',this)">DRE</button>
         <button class="nav-item" id="fin-nav-despesas" onclick="showSubFin('fin-despesas',this)">Contas a pagar</button>
         <button class="nav-item" id="fin-nav-receitas" onclick="showSubFin('fin-receitas',this)">Receitas</button>
@@ -1808,6 +1816,27 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worke
    FINANCEIRO
 ═══════════════════════════════════════════ */
 
+let finEmpresa='marcenario';
+
+function setEmpresaFin(empresa, btn){
+  finEmpresa=empresa;
+  // Atualiza visual dos botões
+  document.getElementById('fin-emp-mr').style.background=empresa==='marcenario'?'var(--brand)':'transparent';
+  document.getElementById('fin-emp-mr').style.color=empresa==='marcenario'?'#fff':'var(--text2)';
+  document.getElementById('fin-emp-mr').style.borderColor=empresa==='marcenario'?'var(--brand)':'var(--border2)';
+  document.getElementById('fin-emp-ct').style.background=empresa==='conceptus'?'var(--brand)':'transparent';
+  document.getElementById('fin-emp-ct').style.color=empresa==='conceptus'?'#fff':'var(--text2)';
+  document.getElementById('fin-emp-ct').style.borderColor=empresa==='conceptus'?'var(--brand)':'var(--border2)';
+  // Recarrega a aba atual
+  const abaAtiva=document.querySelector('#financeiro .sub-nav .nav-item.active');
+  const abaId=abaAtiva?abaAtiva.id.replace('fin-nav-','fin-'):'fin-dre';
+  if(abaId==='fin-dre')loadDRE();
+  if(abaId==='fin-despesas'){loadDespesas();loadAlertasDespesas();}
+  if(abaId==='fin-receitas')loadReceitas();
+  if(abaId==='fin-pe')loadPontoEquilibrio();
+  if(abaId==='fin-config')loadCargos();
+}
+
 function showSubFin(id,btn){
   ['fin-dre','fin-despesas','fin-receitas','fin-pe','fin-config'].forEach(s=>{
     const el=document.getElementById(s);if(el)el.style.display='none';
@@ -1850,7 +1879,7 @@ async function salvarCargo(){
   const sal=parseMoney(document.getElementById('fin-cargo-sal').value);
   const cat=document.getElementById('fin-cargo-cat').value;
   if(!nome){notify('Informe o nome do cargo.','error');return}
-  const {error}=await db.from('fin_cargos').insert({nome,tipo,comissao_pct:pct,salario_fixo:sal,categoria:cat});
+  const {error}=await db.from('fin_cargos').insert({nome,tipo,comissao_pct:pct,salario_fixo:sal,categoria:cat,empresa:finEmpresa});
   if(error){notify('Erro ao salvar cargo.','error');return}
   notify('Cargo cadastrado!');
   document.getElementById('fin-cargo-nome').value='';
@@ -1861,7 +1890,7 @@ async function salvarCargo(){
 
 async function loadCargos(){
   const cont=document.getElementById('fin-cargos-content');
-  const {data}=await db.from('fin_cargos').select('*').order('categoria').order('nome');
+  const {data}=await db.from('fin_cargos').select('*').eq('empresa',finEmpresa).order('categoria').order('nome');
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum cargo cadastrado.</p></div>';return}
   const loja=data.filter(c=>c.categoria==='loja');
   const pv=data.filter(c=>c.categoria==='posvenda');
@@ -1903,17 +1932,17 @@ async function salvarConfigFin(){
     icms_pct:parseFloat(document.getElementById('fin-cfg-icms').value)||0,
     impostos_pct:parseFloat(document.getElementById('fin-cfg-imp').value)||0,
   };
-  const {data:exist}=await db.from('fin_config').select('id').limit(1);
+  const {data:exist}=await db.from('fin_config').select('id').eq('empresa',finEmpresa).limit(1);
   if(exist&&exist.length){
     await db.from('fin_config').update(cfg).eq('id',exist[0].id);
   } else {
-    await db.from('fin_config').insert(cfg);
+    await db.from('fin_config').insert({...cfg,empresa:finEmpresa});
   }
   notify('Configurações salvas!');
 }
 
 async function loadConfigFin(){
-  const {data}=await db.from('fin_config').select('*').limit(1);
+  const {data}=await db.from('fin_config').select('*').eq('empresa',finEmpresa).limit(1);
   if(!data||!data.length)return{cmv_pct:0,frete_pct:0,icms_pct:0,impostos_pct:0};
   const c=data[0];
   if(document.getElementById('fin-cfg-cmv')){
@@ -1935,7 +1964,7 @@ async function salvarDespesa(){
   const cat=document.getElementById('fin-desp-cat').value.trim();
   if(!desc||!valor){notify('Preencha descrição e valor.','error');return}
   const mes=venc?venc.slice(0,7):new Date().toISOString().slice(0,7);
-  const {error}=await db.from('fin_despesas').insert({descricao:desc,valor,tipo,vencimento:venc||null,recorrencia:recorr,categoria:cat,mes_ref:mes,pago:false});
+  const {error}=await db.from('fin_despesas').insert({descricao:desc,valor,tipo,vencimento:venc||null,recorrencia:recorr,categoria:cat,mes_ref:mes,pago:false,empresa:finEmpresa});
   if(error){notify('Erro ao salvar.','error');return}
   notify('Despesa adicionada!');
   document.getElementById('fin-desp-desc').value='';
@@ -1950,7 +1979,7 @@ async function loadDespesas(){
   cont.innerHTML='<div class="loader">Carregando...</div>';
   const mes=document.getElementById('fin-desp-filtro-mes').value;
   const tipo=document.getElementById('fin-desp-filtro-tipo').value;
-  let query=db.from('fin_despesas').select('*').eq('mes_ref',mes);
+  let query=db.from('fin_despesas').select('*').eq('mes_ref',mes).eq('empresa',finEmpresa);
   if(tipo)query=query.eq('tipo',tipo);
   const {data}=await query.order('vencimento',{ascending:true,nullsFirst:false});
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma despesa encontrada.</p></div>';return}
@@ -2013,7 +2042,7 @@ async function loadAlertasDespesas(){
   if(!cont)return;
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const em7=new Date(hoje);em7.setDate(em7.getDate()+7);
-  const {data}=await db.from('fin_despesas').select('*').eq('pago',false).lte('vencimento',em7.toISOString().split('T')[0]);
+  const {data}=await db.from('fin_despesas').select('*').eq('pago',false).eq('empresa',finEmpresa).lte('vencimento',em7.toISOString().split('T')[0]);
   if(!data||!data.length){cont.innerHTML='';return}
   const vencidas=data.filter(d=>{const v=new Date(d.vencimento+'T12:00:00');return v<hoje;});
   const hoje_=data.filter(d=>{const v=new Date(d.vencimento+'T12:00:00');v.setHours(0,0,0,0);return v.getTime()===hoje.getTime();});
@@ -2033,7 +2062,7 @@ async function salvarReceita(){
   const data_rec=document.getElementById('fin-rec-data').value||new Date().toISOString().split('T')[0];
   if(!desc||!valor){notify('Preencha descrição e valor.','error');return}
   const mes=data_rec.slice(0,7);
-  const {error}=await db.from('fin_receitas').insert({descricao:desc,valor,tipo,data_recebimento:data_rec,mes_ref:mes});
+  const {error}=await db.from('fin_receitas').insert({descricao:desc,valor,tipo,data_recebimento:data_rec,mes_ref:mes,empresa:finEmpresa});
   if(error){notify('Erro ao salvar.','error');return}
   notify('Receita lançada!');
   document.getElementById('fin-rec-desc').value='';
@@ -2046,7 +2075,7 @@ async function loadReceitas(){
   const cont=document.getElementById('fin-receitas-content');
   cont.innerHTML='<div class="loader">Carregando...</div>';
   const mes=document.getElementById('fin-rec-filtro-mes').value;
-  const {data}=await db.from('fin_receitas').select('*').eq('mes_ref',mes).order('data_recebimento',{ascending:false});
+  const {data}=await db.from('fin_receitas').select('*').eq('mes_ref',mes).eq('empresa',finEmpresa).order('data_recebimento',{ascending:false});
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma receita encontrada.</p></div>';return}
   const total=data.reduce((s,r)=>s+r.valor,0);
   const tipoLabel={contrato:'Contrato',montagem:'Montagem avulsa',vistoria:'Vistoria',outro:'Outro'};
@@ -2077,8 +2106,8 @@ async function loadDRE(){
   const ano=mes.slice(0,4);
 
   // Buscar dados
-  let qRec=db.from('fin_receitas').select('valor,mes_ref');
-  let qDesp=db.from('fin_despesas').select('valor,tipo,mes_ref,pago');
+  let qRec=db.from('fin_receitas').select('valor,mes_ref').eq('empresa',finEmpresa);
+  let qDesp=db.from('fin_despesas').select('valor,tipo,mes_ref,pago').eq('empresa',finEmpresa);
   let qAt=db.from('atendimentos').select('ambientes,mes_ref');
 
   if(tipo==='mensal'){
@@ -2089,8 +2118,8 @@ async function loadDRE(){
 
   const [{data:recs},{data:desps},{data:ats},{data:cargos},{data:cfgArr}]=await Promise.all([
     qRec,qDesp,qAt,
-    db.from('fin_cargos').select('*'),
-    db.from('fin_config').select('*').limit(1)
+    db.from('fin_cargos').select('*').eq('empresa',finEmpresa),
+    db.from('fin_config').select('*').eq('empresa',finEmpresa).limit(1)
   ]);
 
   const cfg=cfgArr&&cfgArr.length?cfgArr[0]:{cmv_pct:0,frete_pct:0,icms_pct:0,impostos_pct:0};
@@ -2176,9 +2205,9 @@ async function loadPontoEquilibrio(){
   cont.innerHTML='<div class="loader">Carregando...</div>';
   const mes=new Date().toISOString().slice(0,7);
   const [{data:desps},{data:cargos},{data:cfgArr}]=await Promise.all([
-    db.from('fin_despesas').select('valor,tipo').eq('mes_ref',mes),
-    db.from('fin_cargos').select('*'),
-    db.from('fin_config').select('*').limit(1)
+    db.from('fin_despesas').select('valor,tipo').eq('mes_ref',mes).eq('empresa',finEmpresa),
+    db.from('fin_cargos').select('*').eq('empresa',finEmpresa),
+    db.from('fin_config').select('*').eq('empresa',finEmpresa).limit(1)
   ]);
   const cfg=cfgArr&&cfgArr.length?cfgArr[0]:{cmv_pct:0,frete_pct:0,icms_pct:0,impostos_pct:0};
   const despFixas=(desps||[]).filter(d=>d.tipo==='fixa').reduce((s,d)=>s+d.valor,0);
