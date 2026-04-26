@@ -167,6 +167,19 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .audit-depois{background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:4px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .oc-edit-item{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
 
+
+/* ── FINANCEIRO ── */
+.fin-semaforo-verde{background:var(--green-bg);border-left:3px solid var(--green);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;}
+.fin-semaforo-laranja{background:#fff7ed;border-left:3px solid #f59e0b;border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;}
+.fin-semaforo-vermelho{background:var(--red-bg);border-left:3px solid var(--red);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;}
+.fin-semaforo-pago{background:var(--bg);border-left:3px solid var(--border2);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;opacity:0.6;}
+.dre-row{display:grid;grid-template-columns:1fr auto;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.dre-row.total{font-weight:500;font-size:14px;border-top:2px solid var(--border);border-bottom:none;margin-top:4px;padding-top:10px;}
+.dre-row.lucro{font-weight:500;font-size:15px;color:var(--green);border-top:2px solid var(--green);border-bottom:none;margin-top:4px;padding-top:10px;}
+.dre-row.prejuizo{font-weight:500;font-size:15px;color:var(--red);border-top:2px solid var(--red);border-bottom:none;margin-top:4px;padding-top:10px;}
+.dre-section-title{font-size:11px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;padding:12px 0 4px;}
+.pe-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:8px;display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:12px;align-items:center;}
+
 /* ── ATENDIMENTO ── */
 .at-tipo-btn{padding:10px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;transition:all 0.15s;color:var(--text2);font-weight:500;}
 .at-tipo-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
@@ -252,6 +265,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <button class="nav-item" id="nav-montagem" style="display:none" onclick="showSection('montagem',this)">Montagem</button>
     <button class="nav-item" id="nav-ocorrencias" style="display:none" onclick="showSection('ocorrencias',this)">Ocorrências</button>
     <button class="nav-item" id="nav-vistoria" style="display:none" onclick="showSection('vistoria',this)">Vistoria Final</button>
+    <button class="nav-item" id="nav-financeiro" style="display:none" onclick="showSection('financeiro',this)">Financeiro</button>
     <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin',this)">Painel admin</button>
     <button class="nav-item" id="nav-usuarios" style="display:none" onclick="showSection('usuarios',this)">Usuários</button>
   </div>
@@ -488,6 +502,149 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           </div>
           <div id="at-motivos-content" style="margin-top:1rem;"></div>
         </div>
+      </div>
+    </div>
+
+
+    <!-- FINANCEIRO -->
+    <div id="financeiro" class="section">
+      <div class="sub-nav">
+        <button class="nav-item active" id="fin-nav-dre" onclick="showSubFin('fin-dre',this)">DRE</button>
+        <button class="nav-item" id="fin-nav-despesas" onclick="showSubFin('fin-despesas',this)">Contas a pagar</button>
+        <button class="nav-item" id="fin-nav-receitas" onclick="showSubFin('fin-receitas',this)">Receitas</button>
+        <button class="nav-item" id="fin-nav-pe" onclick="showSubFin('fin-pe',this)">Ponto de equilíbrio</button>
+        <button class="nav-item" id="fin-nav-config" style="display:none" onclick="showSubFin('fin-config',this)">Configurações</button>
+      </div>
+
+      <!-- DRE -->
+      <div id="fin-dre">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
+          <select id="fin-dre-mes" onchange="loadDRE()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></select>
+          <select id="fin-dre-tipo" onchange="loadDRE()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+            <option value="mensal">Mensal</option>
+            <option value="acumulado">Acumulado (ano)</option>
+          </select>
+        </div>
+        <div id="fin-dre-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- CONTAS A PAGAR -->
+      <div id="fin-despesas" style="display:none">
+        <div id="fin-alertas" style="margin-bottom:1rem;"></div>
+        <div class="card" id="fin-desp-form-wrap">
+          <div class="card-title" style="margin-bottom:1rem;">Nova despesa</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Descrição</label><input type="text" id="fin-desp-desc" placeholder="Ex: Aluguel"></div>
+            <div class="form-row"><label>Valor (R$)</label><input type="text" id="fin-desp-valor" placeholder="Ex: 5000"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>Tipo</label>
+              <select id="fin-desp-tipo" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+                <option value="fixa">Despesa fixa</option>
+                <option value="variavel">Despesa variável</option>
+                <option value="extra">Despesa extra</option>
+              </select>
+            </div>
+            <div class="form-row"><label>Vencimento</label><input type="date" id="fin-desp-venc"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>Recorrência</label>
+              <select id="fin-desp-recorr" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+                <option value="unica">Única</option>
+                <option value="mensal">Mensal (repete todo mês)</option>
+              </select>
+            </div>
+            <div class="form-row"><label>Categoria</label><input type="text" id="fin-desp-cat" placeholder="Ex: Infraestrutura, RH..."></div>
+          </div>
+          <button class="btn-submit" onclick="salvarDespesa()">Adicionar despesa</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+          <select id="fin-desp-filtro-mes" onchange="loadDespesas()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></select>
+          <select id="fin-desp-filtro-tipo" onchange="loadDespesas()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+            <option value="">Todos os tipos</option>
+            <option value="fixa">Fixas</option>
+            <option value="variavel">Variáveis</option>
+            <option value="extra">Extras</option>
+          </select>
+        </div>
+        <div id="fin-despesas-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- RECEITAS -->
+      <div id="fin-receitas" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Lançar receita</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Descrição</label><input type="text" id="fin-rec-desc" placeholder="Ex: Contrato #123, Montagem avulsa..."></div>
+            <div class="form-row"><label>Valor (R$)</label><input type="text" id="fin-rec-valor" placeholder="Ex: 15000"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>Tipo</label>
+              <select id="fin-rec-tipo" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+                <option value="contrato">Contrato de venda</option>
+                <option value="montagem">Montagem avulsa</option>
+                <option value="vistoria">Vistoria</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+            <div class="form-row"><label>Data de recebimento</label><input type="date" id="fin-rec-data"></div>
+          </div>
+          <button class="btn-submit" onclick="salvarReceita()">Lançar receita</button>
+        </div>
+        <div style="margin-bottom:1rem;">
+          <select id="fin-rec-filtro-mes" onchange="loadReceitas()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></select>
+        </div>
+        <div id="fin-receitas-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- PONTO DE EQUILÍBRIO -->
+      <div id="fin-pe" style="display:none">
+        <div id="fin-pe-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- CONFIGURAÇÕES (admin only) -->
+      <div id="fin-config" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Cadastrar cargo / colaborador</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Nome do cargo</label><input type="text" id="fin-cargo-nome" placeholder="Ex: Vendedor, Montador..."></div>
+            <div class="form-row">
+              <label>Tipo de remuneração</label>
+              <select id="fin-cargo-tipo" onchange="toggleComissao()" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+                <option value="comissao">Comissionado</option>
+                <option value="fixo">Salário fixo</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row" id="fin-cargo-pct-wrap"><label>% de comissão sobre vendas</label><input type="number" id="fin-cargo-pct" placeholder="Ex: 3" min="0" max="100" step="0.1"></div>
+            <div class="form-row" id="fin-cargo-sal-wrap" style="display:none"><label>Salário fixo (R$)</label><input type="text" id="fin-cargo-sal" placeholder="Ex: 2500"></div>
+          </div>
+          <div class="form-row"><label>Categoria</label>
+            <select id="fin-cargo-cat" style="width:100%;max-width:300px;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+              <option value="loja">Loja (vendas)</option>
+              <option value="posvenda">Pós-venda (montagem)</option>
+            </select>
+          </div>
+          <button class="btn-submit" onclick="salvarCargo()">Cadastrar cargo</button>
+        </div>
+
+        <div class="card" style="margin-top:1rem;">
+          <div class="card-title" style="margin-bottom:1rem;">Custos sobre produto</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Custo sobre produto (%)</label><input type="number" id="fin-cfg-cmv" placeholder="Ex: 50" step="0.1"></div>
+            <div class="form-row"><label>Frete (%)</label><input type="number" id="fin-cfg-frete" placeholder="Ex: 2" step="0.1"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row"><label>Diferença ICMS (%)</label><input type="number" id="fin-cfg-icms" placeholder="Ex: 1.5" step="0.1"></div>
+            <div class="form-row"><label>Impostos sobre faturamento (%)</label><input type="number" id="fin-cfg-imp" placeholder="Ex: 6" step="0.1"></div>
+          </div>
+          <button class="btn-submit" onclick="salvarConfigFin()">Salvar configurações</button>
+        </div>
+        <div id="fin-cargos-content" style="margin-top:1rem;"><div class="loader">Carregando...</div></div>
       </div>
     </div>
 
@@ -942,6 +1099,7 @@ async function onLogin(user){
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
+  document.getElementById('nav-financeiro').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-admin').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-usuarios').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('mt-nav-equipes').style.display=userNivel==='admin'?'block':'none';
@@ -971,6 +1129,7 @@ function showSection(id,btn){
   if(id==='admin')loadAdmin();
   if(id==='montagem')loadFilaMt();
   if(id==='usuarios')loadUsuarios();
+  if(id==='financeiro'){preencherFiltroFinMes('fin-dre-mes');loadDRE();loadAlertasDespesas();document.getElementById('fin-nav-config').style.display=userNivel==='admin'?'block':'none';}
   if(id==='atendimento'){preencherFiltroMes();loadFunil();}
   if(id==='ocorrencias'){loadOcorrencias();carregarPedidosSelect()}
   if(id==='vistoria'){loadVistorias();carregarPedidosSelectVistoria()}
@@ -1117,7 +1276,16 @@ async function avancarEtapa(id,novaEtapa){
   if(novaEtapa<1||novaEtapa>ETAPAS_TOTAL)return;
   const {error}=await db.from('projetos').update({etapa_atual:novaEtapa}).eq('id',id);
   if(error){notify('Erro ao atualizar.','error');return}
-  notify(`Etapa: ${ETAPAS[novaEtapa-1].nome}`);loadProjetos();
+  notify(`Etapa: ${ETAPAS[novaEtapa-1].nome}`);
+  loadProjetos();
+  // Enviar e-mail de notificação ao cliente
+  try{
+    await fetch(`${SUPABASE_URL}/functions/v1/notificar-etapa`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({projeto_id:id})
+    });
+  }catch(e){console.warn('Notificação não enviada:',e);}
 }
 
 async function salvarCampoEtapa(projetoId,campo,valor){
@@ -1633,6 +1801,417 @@ function tipoLabel(t){
 db.auth.onAuthStateChange((event,session)=>{if(session&&session.user)onLogin(session.user)});
 db.auth.getSession().then(({data})=>{if(data.session)onLogin(data.session.user)});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js');
+
+
+
+/* ═══════════════════════════════════════════
+   FINANCEIRO
+═══════════════════════════════════════════ */
+
+function showSubFin(id,btn){
+  ['fin-dre','fin-despesas','fin-receitas','fin-pe','fin-config'].forEach(s=>{
+    const el=document.getElementById(s);if(el)el.style.display='none';
+  });
+  document.querySelectorAll('#financeiro .sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.style.display='block';
+  if(btn)btn.classList.add('active');
+  if(id==='fin-dre'){preencherFiltroFinMes('fin-dre-mes');loadDRE();}
+  if(id==='fin-despesas'){preencherFiltroFinMes('fin-desp-filtro-mes');loadDespesas();loadAlertasDespesas();}
+  if(id==='fin-receitas'){preencherFiltroFinMes('fin-rec-filtro-mes');loadReceitas();}
+  if(id==='fin-pe')loadPontoEquilibrio();
+  if(id==='fin-config')loadCargos();
+}
+
+function preencherFiltroFinMes(elId){
+  const sel=document.getElementById(elId);
+  if(!sel)return;
+  const atual=new Date();
+  let opts='';
+  for(let i=0;i<12;i++){
+    const d=new Date(atual.getFullYear(),atual.getMonth()-i,1);
+    const val=d.toISOString().slice(0,7);
+    const lbl=d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    opts+=`<option value="${val}" ${i===0?'selected':''}>${lbl.charAt(0).toUpperCase()+lbl.slice(1)}</option>`;
+  }
+  sel.innerHTML=opts;
+}
+
+function toggleComissao(){
+  const tipo=document.getElementById('fin-cargo-tipo').value;
+  document.getElementById('fin-cargo-pct-wrap').style.display=tipo==='comissao'?'block':'none';
+  document.getElementById('fin-cargo-sal-wrap').style.display=tipo==='fixo'?'block':'none';
+}
+
+/* ── CARGOS ── */
+async function salvarCargo(){
+  const nome=document.getElementById('fin-cargo-nome').value.trim();
+  const tipo=document.getElementById('fin-cargo-tipo').value;
+  const pct=parseFloat(document.getElementById('fin-cargo-pct').value)||0;
+  const sal=parseMoney(document.getElementById('fin-cargo-sal').value);
+  const cat=document.getElementById('fin-cargo-cat').value;
+  if(!nome){notify('Informe o nome do cargo.','error');return}
+  const {error}=await db.from('fin_cargos').insert({nome,tipo,comissao_pct:pct,salario_fixo:sal,categoria:cat});
+  if(error){notify('Erro ao salvar cargo.','error');return}
+  notify('Cargo cadastrado!');
+  document.getElementById('fin-cargo-nome').value='';
+  document.getElementById('fin-cargo-pct').value='';
+  document.getElementById('fin-cargo-sal').value='';
+  loadCargos();
+}
+
+async function loadCargos(){
+  const cont=document.getElementById('fin-cargos-content');
+  const {data}=await db.from('fin_cargos').select('*').order('categoria').order('nome');
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum cargo cadastrado.</p></div>';return}
+  const loja=data.filter(c=>c.categoria==='loja');
+  const pv=data.filter(c=>c.categoria==='posvenda');
+  let html='';
+  if(loja.length){
+    html+=`<div class="card"><div class="card-title" style="margin-bottom:0.75rem;">Equipe Loja</div>`;
+    html+=loja.map(c=>renderCargo(c)).join('');
+    html+='</div>';
+  }
+  if(pv.length){
+    html+=`<div class="card" style="margin-top:1rem;"><div class="card-title" style="margin-bottom:0.75rem;">Pós-venda / Montagem</div>`;
+    html+=pv.map(c=>renderCargo(c)).join('');
+    html+='</div>';
+  }
+  cont.innerHTML=html;
+}
+
+function renderCargo(c){
+  const badge=c.tipo==='comissao'
+    ?`<span class="badge badge-amber">${c.comissao_pct}% comissão</span>`
+    :`<span class="badge badge-blue">Fixo: ${fmt(c.salario_fixo)}/mês</span>`;
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+    <div><div style="font-size:13px;font-weight:500;">${c.nome}</div></div>
+    <div style="display:flex;gap:8px;align-items:center;">${badge}<button onclick="excluirCargo('${c.id}')" class="btn-red-sm">✕</button></div>
+  </div>`;
+}
+
+async function excluirCargo(id){
+  if(!confirm('Excluir este cargo?'))return;
+  await db.from('fin_cargos').delete().eq('id',id);
+  notify('Cargo excluído.');loadCargos();
+}
+
+/* ── CONFIG CUSTOS ── */
+async function salvarConfigFin(){
+  const cfg={
+    cmv_pct:parseFloat(document.getElementById('fin-cfg-cmv').value)||0,
+    frete_pct:parseFloat(document.getElementById('fin-cfg-frete').value)||0,
+    icms_pct:parseFloat(document.getElementById('fin-cfg-icms').value)||0,
+    impostos_pct:parseFloat(document.getElementById('fin-cfg-imp').value)||0,
+  };
+  const {data:exist}=await db.from('fin_config').select('id').limit(1);
+  if(exist&&exist.length){
+    await db.from('fin_config').update(cfg).eq('id',exist[0].id);
+  } else {
+    await db.from('fin_config').insert(cfg);
+  }
+  notify('Configurações salvas!');
+}
+
+async function loadConfigFin(){
+  const {data}=await db.from('fin_config').select('*').limit(1);
+  if(!data||!data.length)return{cmv_pct:0,frete_pct:0,icms_pct:0,impostos_pct:0};
+  const c=data[0];
+  if(document.getElementById('fin-cfg-cmv')){
+    document.getElementById('fin-cfg-cmv').value=c.cmv_pct||'';
+    document.getElementById('fin-cfg-frete').value=c.frete_pct||'';
+    document.getElementById('fin-cfg-icms').value=c.icms_pct||'';
+    document.getElementById('fin-cfg-imp').value=c.impostos_pct||'';
+  }
+  return c;
+}
+
+/* ── DESPESAS ── */
+async function salvarDespesa(){
+  const desc=document.getElementById('fin-desp-desc').value.trim();
+  const valor=parseMoney(document.getElementById('fin-desp-valor').value);
+  const tipo=document.getElementById('fin-desp-tipo').value;
+  const venc=document.getElementById('fin-desp-venc').value;
+  const recorr=document.getElementById('fin-desp-recorr').value;
+  const cat=document.getElementById('fin-desp-cat').value.trim();
+  if(!desc||!valor){notify('Preencha descrição e valor.','error');return}
+  const mes=venc?venc.slice(0,7):new Date().toISOString().slice(0,7);
+  const {error}=await db.from('fin_despesas').insert({descricao:desc,valor,tipo,vencimento:venc||null,recorrencia:recorr,categoria:cat,mes_ref:mes,pago:false});
+  if(error){notify('Erro ao salvar.','error');return}
+  notify('Despesa adicionada!');
+  document.getElementById('fin-desp-desc').value='';
+  document.getElementById('fin-desp-valor').value='';
+  document.getElementById('fin-desp-venc').value='';
+  document.getElementById('fin-desp-cat').value='';
+  loadDespesas();loadAlertasDespesas();
+}
+
+async function loadDespesas(){
+  const cont=document.getElementById('fin-despesas-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const mes=document.getElementById('fin-desp-filtro-mes').value;
+  const tipo=document.getElementById('fin-desp-filtro-tipo').value;
+  let query=db.from('fin_despesas').select('*').eq('mes_ref',mes);
+  if(tipo)query=query.eq('tipo',tipo);
+  const {data}=await query.order('vencimento',{ascending:true,nullsFirst:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma despesa encontrada.</p></div>';return}
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const total=data.reduce((s,d)=>s+d.valor,0);
+  const totalPago=data.filter(d=>d.pago).reduce((s,d)=>s+d.valor,0);
+  const totalPend=data.filter(d=>!d.pago).reduce((s,d)=>s+d.valor,0);
+  let html=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1rem;">
+    <div class="metric-card"><div class="metric-label">Total</div><div class="metric-val">${fmt(total)}</div></div>
+    <div class="metric-card"><div class="metric-label">Pago</div><div class="metric-val" style="color:var(--green);">${fmt(totalPago)}</div></div>
+    <div class="metric-card"><div class="metric-label">Pendente</div><div class="metric-val" style="color:var(--red);">${fmt(totalPend)}</div></div>
+  </div>`;
+  data.forEach(d=>{
+    const venc=d.vencimento?new Date(d.vencimento+'T12:00:00'):null;
+    let cls='fin-semaforo-pago';
+    let badge='';
+    if(!d.pago){
+      if(!venc){cls='fin-semaforo-verde';badge='<span style="font-size:11px;color:var(--text3);">Sem vencimento</span>';}
+      else{
+        const diff=Math.floor((venc-hoje)/(1000*60*60*24));
+        if(diff<0){cls='fin-semaforo-vermelho';badge=`<span style="font-size:11px;font-weight:500;color:var(--red);">Vencida há ${Math.abs(diff)} dia(s)</span>`;}
+        else if(diff===0){cls='fin-semaforo-laranja';badge='<span style="font-size:11px;font-weight:500;color:#b45309;">Vence hoje!</span>';}
+        else if(diff<=5){cls='fin-semaforo-laranja';badge=`<span style="font-size:11px;color:#b45309;">Vence em ${diff} dia(s)</span>`;}
+        else{cls='fin-semaforo-verde';badge=`<span style="font-size:11px;color:var(--green);">Vence em ${diff} dia(s)</span>`;}
+      }
+    } else {badge='<span style="font-size:11px;color:var(--text3);">✓ Pago</span>';}
+    const tipoLabel={fixa:'Fixa',variavel:'Variável',extra:'Extra'}[d.tipo]||d.tipo;
+    const vencStr=venc?venc.toLocaleDateString('pt-BR'):'—';
+    html+=`<div class="${cls}">
+      <div>
+        <div style="font-size:13px;font-weight:500;">${d.descricao}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${tipoLabel}${d.categoria?' · '+d.categoria:''} · Venc: ${vencStr}</div>
+        <div style="margin-top:4px;">${badge}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div style="font-size:14px;font-weight:500;">${fmt(d.valor)}</div>
+        <div style="display:flex;gap:4px;">
+          ${!d.pago?`<button onclick="marcarPago('${d.id}')" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">✓ Pagar</button>`:''}
+          <button onclick="excluirDespesa('${d.id}')" class="btn-red-sm">✕</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  cont.innerHTML=html;
+}
+
+async function marcarPago(id){
+  await db.from('fin_despesas').update({pago:true,data_pagamento:new Date().toISOString()}).eq('id',id);
+  notify('Marcado como pago!');loadDespesas();loadAlertasDespesas();
+}
+
+async function excluirDespesa(id){
+  if(!confirm('Excluir esta despesa?'))return;
+  await db.from('fin_despesas').delete().eq('id',id);
+  notify('Despesa excluída.');loadDespesas();
+}
+
+async function loadAlertasDespesas(){
+  const cont=document.getElementById('fin-alertas');
+  if(!cont)return;
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const em7=new Date(hoje);em7.setDate(em7.getDate()+7);
+  const {data}=await db.from('fin_despesas').select('*').eq('pago',false).lte('vencimento',em7.toISOString().split('T')[0]);
+  if(!data||!data.length){cont.innerHTML='';return}
+  const vencidas=data.filter(d=>{const v=new Date(d.vencimento+'T12:00:00');return v<hoje;});
+  const hoje_=data.filter(d=>{const v=new Date(d.vencimento+'T12:00:00');v.setHours(0,0,0,0);return v.getTime()===hoje.getTime();});
+  const proximas=data.filter(d=>{const v=new Date(d.vencimento+'T12:00:00');return v>hoje;});
+  let html='';
+  if(vencidas.length)html+=`<div class="alert alert-error" style="margin-bottom:6px;">🔴 ${vencidas.length} conta(s) vencida(s): ${vencidas.map(d=>d.descricao).join(', ')}</div>`;
+  if(hoje_.length)html+=`<div class="alert alert-error" style="margin-bottom:6px;background:#fff7ed;border-color:#f59e0b;color:#b45309;">🟡 ${hoje_.length} conta(s) vence(m) hoje: ${hoje_.map(d=>d.descricao).join(', ')}</div>`;
+  if(proximas.length)html+=`<div class="alert alert-info" style="margin-bottom:6px;">🟢 ${proximas.length} conta(s) nos próximos 7 dias: ${proximas.map(d=>d.descricao).join(', ')}</div>`;
+  cont.innerHTML=html;
+}
+
+/* ── RECEITAS ── */
+async function salvarReceita(){
+  const desc=document.getElementById('fin-rec-desc').value.trim();
+  const valor=parseMoney(document.getElementById('fin-rec-valor').value);
+  const tipo=document.getElementById('fin-rec-tipo').value;
+  const data_rec=document.getElementById('fin-rec-data').value||new Date().toISOString().split('T')[0];
+  if(!desc||!valor){notify('Preencha descrição e valor.','error');return}
+  const mes=data_rec.slice(0,7);
+  const {error}=await db.from('fin_receitas').insert({descricao:desc,valor,tipo,data_recebimento:data_rec,mes_ref:mes});
+  if(error){notify('Erro ao salvar.','error');return}
+  notify('Receita lançada!');
+  document.getElementById('fin-rec-desc').value='';
+  document.getElementById('fin-rec-valor').value='';
+  document.getElementById('fin-rec-data').value='';
+  loadReceitas();
+}
+
+async function loadReceitas(){
+  const cont=document.getElementById('fin-receitas-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const mes=document.getElementById('fin-rec-filtro-mes').value;
+  const {data}=await db.from('fin_receitas').select('*').eq('mes_ref',mes).order('data_recebimento',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma receita encontrada.</p></div>';return}
+  const total=data.reduce((s,r)=>s+r.valor,0);
+  const tipoLabel={contrato:'Contrato',montagem:'Montagem avulsa',vistoria:'Vistoria',outro:'Outro'};
+  let html=`<div class="metric-card" style="margin-bottom:1rem;"><div class="metric-label">Total recebido no mês</div><div class="metric-val" style="color:var(--green);">${fmt(total)}</div></div>`;
+  html+=data.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;">
+    <div><div style="font-size:13px;font-weight:500;">${r.descricao}</div>
+    <div style="font-size:11px;color:var(--text2);margin-top:2px;">${tipoLabel[r.tipo]||r.tipo} · ${new Date(r.data_recebimento+'T12:00:00').toLocaleDateString('pt-BR')}</div></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="font-size:14px;font-weight:500;color:var(--green);">${fmt(r.valor)}</div>
+      <button onclick="excluirReceita('${r.id}')" class="btn-red-sm">✕</button>
+    </div>
+  </div>`).join('');
+  cont.innerHTML=html;
+}
+
+async function excluirReceita(id){
+  if(!confirm('Excluir esta receita?'))return;
+  await db.from('fin_receitas').delete().eq('id',id);
+  notify('Receita excluída.');loadReceitas();
+}
+
+/* ── DRE ── */
+async function loadDRE(){
+  const cont=document.getElementById('fin-dre-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const mes=document.getElementById('fin-dre-mes').value;
+  const tipo=document.getElementById('fin-dre-tipo').value;
+  const ano=mes.slice(0,4);
+
+  // Buscar dados
+  let qRec=db.from('fin_receitas').select('valor,mes_ref');
+  let qDesp=db.from('fin_despesas').select('valor,tipo,mes_ref,pago');
+  let qAt=db.from('atendimentos').select('ambientes,mes_ref');
+
+  if(tipo==='mensal'){
+    qRec=qRec.eq('mes_ref',mes);qDesp=qDesp.eq('mes_ref',mes);qAt=qAt.eq('mes_ref',mes);
+  } else {
+    qRec=qRec.like('mes_ref',`${ano}%`);qDesp=qDesp.like('mes_ref',`${ano}%`);qAt=qAt.like('mes_ref',`${ano}%`);
+  }
+
+  const [{data:recs},{data:desps},{data:ats},{data:cargos},{data:cfgArr}]=await Promise.all([
+    qRec,qDesp,qAt,
+    db.from('fin_cargos').select('*'),
+    db.from('fin_config').select('*').limit(1)
+  ]);
+
+  const cfg=cfgArr&&cfgArr.length?cfgArr[0]:{cmv_pct:0,frete_pct:0,icms_pct:0,impostos_pct:0};
+
+  // Receita total
+  const recTotal=(recs||[]).reduce((s,r)=>s+r.valor,0);
+
+  // Valor vendido (ambientes com vendeu===true)
+  let vendaTotal=0;
+  (ats||[]).forEach(a=>{
+    const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+    vendaTotal+=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0);
+  });
+  const baseCalc=recTotal||vendaTotal;
+
+  // CMV
+  const cmv=baseCalc*(cfg.cmv_pct/100);
+  const frete=baseCalc*(cfg.frete_pct/100);
+  const icms=baseCalc*(cfg.icms_pct/100);
+  const impostos=baseCalc*(cfg.impostos_pct/100);
+  const cmvTotal=cmv+frete+icms;
+
+  // Comissões
+  const comLoja=(cargos||[]).filter(c=>c.categoria==='loja'&&c.tipo==='comissao').reduce((s,c)=>s+baseCalc*(c.comissao_pct/100),0);
+  const comPV=(cargos||[]).filter(c=>c.categoria==='posvenda'&&c.tipo==='comissao').reduce((s,c)=>s+baseCalc*(c.comissao_pct/100),0);
+  const comTotal=comLoja+comPV;
+
+  // Salários fixos
+  const salFixos=(cargos||[]).filter(c=>c.tipo==='fixo').reduce((s,c)=>s+c.salario_fixo,0);
+
+  // Despesas
+  const despFixas=(desps||[]).filter(d=>d.tipo==='fixa').reduce((s,d)=>s+d.valor,0);
+  const despVar=(desps||[]).filter(d=>d.tipo==='variavel').reduce((s,d)=>s+d.valor,0);
+  const despExtra=(desps||[]).filter(d=>d.tipo==='extra').reduce((s,d)=>s+d.valor,0);
+  const despTotal=despFixas+despVar+despExtra;
+
+  // Lucro
+  const totalCustos=cmvTotal+impostos+comTotal+salFixos+despTotal;
+  const lucro=baseCalc-totalCustos;
+  const margem=baseCalc>0?Math.round((lucro/baseCalc)*100):0;
+
+  const periodo=tipo==='mensal'?mes:ano;
+  let html=`<div class="card">
+    <div class="card-header" style="margin-bottom:1rem;">
+      <div class="card-title">DRE — ${tipo==='mensal'?new Date(mes+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Acumulado '+ano}</div>
+    </div>
+    <div class="dre-section-title">Receitas</div>
+    <div class="dre-row"><span>Faturamento total</span><span style="color:var(--green);font-weight:500;">${fmt(baseCalc)}</span></div>
+    <div class="dre-section-title">Custo do produto (CMV)</div>
+    <div class="dre-row"><span>Custo sobre produto (${cfg.cmv_pct}%)</span><span>- ${fmt(cmv)}</span></div>
+    <div class="dre-row"><span>Frete (${cfg.frete_pct}%)</span><span>- ${fmt(frete)}</span></div>
+    <div class="dre-row"><span>Diferença ICMS (${cfg.icms_pct}%)</span><span>- ${fmt(icms)}</span></div>
+    <div class="dre-row total"><span>CMV Total</span><span>- ${fmt(cmvTotal)}</span></div>
+    <div class="dre-section-title">Impostos</div>
+    <div class="dre-row"><span>Impostos s/ faturamento (${cfg.impostos_pct}%)</span><span>- ${fmt(impostos)}</span></div>
+    <div class="dre-section-title">Comissões</div>
+    <div class="dre-row"><span>Comissões equipe loja</span><span>- ${fmt(comLoja)}</span></div>
+    <div class="dre-row"><span>Comissões pós-venda</span><span>- ${fmt(comPV)}</span></div>
+    <div class="dre-row total"><span>Total comissões</span><span>- ${fmt(comTotal)}</span></div>
+    <div class="dre-section-title">Despesas</div>
+    <div class="dre-row"><span>Salários fixos</span><span>- ${fmt(salFixos)}</span></div>
+    <div class="dre-row"><span>Despesas fixas</span><span>- ${fmt(despFixas)}</span></div>
+    <div class="dre-row"><span>Despesas variáveis</span><span>- ${fmt(despVar)}</span></div>
+    <div class="dre-row"><span>Despesas extras</span><span>- ${fmt(despExtra)}</span></div>
+    <div class="dre-row total"><span>Total despesas</span><span>- ${fmt(despTotal)}</span></div>
+    <div class="dre-row ${lucro>=0?'lucro':'prejuizo'}"><span>${lucro>=0?'Lucro líquido':'Prejuízo'}</span><span>${fmt(lucro)} (${margem}%)</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:1rem;">
+    <div class="metric-card"><div class="metric-label">Faturamento</div><div class="metric-val">${fmt(baseCalc)}</div></div>
+    <div class="metric-card"><div class="metric-label">Total custos</div><div class="metric-val" style="color:var(--red);">${fmt(totalCustos)}</div></div>
+    <div class="metric-card"><div class="metric-label">${lucro>=0?'Lucro':'Prejuízo'}</div><div class="metric-val" style="color:${lucro>=0?'var(--green)':'var(--red)'};">${fmt(Math.abs(lucro))}</div></div>
+  </div>`;
+  cont.innerHTML=html;
+}
+
+/* ── PONTO DE EQUILÍBRIO ── */
+async function loadPontoEquilibrio(){
+  const cont=document.getElementById('fin-pe-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const mes=new Date().toISOString().slice(0,7);
+  const [{data:desps},{data:cargos},{data:cfgArr}]=await Promise.all([
+    db.from('fin_despesas').select('valor,tipo').eq('mes_ref',mes),
+    db.from('fin_cargos').select('*'),
+    db.from('fin_config').select('*').limit(1)
+  ]);
+  const cfg=cfgArr&&cfgArr.length?cfgArr[0]:{cmv_pct:0,frete_pct:0,icms_pct:0,impostos_pct:0};
+  const despFixas=(desps||[]).filter(d=>d.tipo==='fixa').reduce((s,d)=>s+d.valor,0);
+  const despExtra=(desps||[]).filter(d=>d.tipo==='extra').reduce((s,d)=>s+d.valor,0);
+  const salFixos=(cargos||[]).filter(c=>c.tipo==='fixo').reduce((s,c)=>s+c.salario_fixo,0);
+  const despTotal=despFixas+despExtra+salFixos;
+  const pctCom=(cargos||[]).filter(c=>c.tipo==='comissao').reduce((s,c)=>s+c.comissao_pct,0);
+  const pctCustos=cfg.cmv_pct+cfg.frete_pct+cfg.icms_pct+cfg.impostos_pct+pctCom;
+  const margemContrib=(100-pctCustos)/100;
+  const pe=margemContrib>0?despTotal/margemContrib:0;
+
+  const pontuacoes=[1.5,1.8,1.9,2,2.3,2.5,3,4];
+  let html=`<div class="card">
+    <div class="card-title" style="margin-bottom:1rem;">Ponto de equilíbrio — ${new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</div>
+    <div class="info-box" style="margin-bottom:1rem;">Baseado nas despesas fixas, salários e percentuais configurados.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem;">
+      <div class="metric-card"><div class="metric-label">Despesas fixas totais</div><div class="metric-val">${fmt(despTotal)}</div></div>
+      <div class="metric-card"><div class="metric-label">% custos variáveis</div><div class="metric-val">${pctCustos.toFixed(1)}%</div></div>
+      <div class="metric-card"><div class="metric-label">Ponto de equilíbrio</div><div class="metric-val" style="color:var(--accent);">${fmt(pe)}</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:0.75rem;">Análise por cenário de pontuação</div>`;
+
+  pontuacoes.forEach(pt=>{
+    const venda=pe*pt;
+    const resultado=venda-despTotal-(venda*(pctCustos/100));
+    const cor=resultado>=0?'var(--green)':'var(--red)';
+    html+=`<div class="pe-card">
+      <div style="font-size:16px;font-weight:500;color:var(--accent);min-width:32px;">${pt}x</div>
+      <div><div style="font-size:11px;color:var(--text2);">Venda necessária</div><div style="font-size:14px;font-weight:500;">${fmt(venda)}</div></div>
+      <div><div style="font-size:11px;color:var(--text2);">Resultado</div><div style="font-size:14px;font-weight:500;color:${cor};">${fmt(resultado)}</div></div>
+      <div><div style="font-size:11px;color:var(--text2);">Retorno invest.</div><div style="font-size:13px;color:var(--text2);">${resultado>0?Math.round(despTotal/resultado)+' meses':'—'}</div></div>
+    </div>`;
+  });
+  html+='</div>';
+  cont.innerHTML=html;
+}
 
 
 /* ═══════════════════════════════════════════
