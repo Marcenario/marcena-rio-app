@@ -2168,6 +2168,9 @@ async function loadDRE(){
 }
 
 /* ── PONTO DE EQUILÍBRIO ── */
+// Guarda dados do PE para o simulador
+let _peDespTotal=0, _pePctCustos=0, _pePe=0;
+
 async function loadPontoEquilibrio(){
   const cont=document.getElementById('fin-pe-content');
   cont.innerHTML='<div class="loader">Carregando...</div>';
@@ -2187,6 +2190,9 @@ async function loadPontoEquilibrio(){
   const margemContrib=(100-pctCustos)/100;
   const pe=margemContrib>0?despTotal/margemContrib:0;
 
+  // Salva para o simulador
+  _peDespTotal=despTotal; _pePctCustos=pctCustos; _pePe=pe;
+
   const pontuacoes=[1.5,1.8,1.9,2,2.3,2.5,3,4];
   let html=`<div class="card">
     <div class="card-title" style="margin-bottom:1rem;">Ponto de equilíbrio — ${new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</div>
@@ -2196,7 +2202,25 @@ async function loadPontoEquilibrio(){
       <div class="metric-card"><div class="metric-label">% custos variáveis</div><div class="metric-val">${pctCustos.toFixed(1)}%</div></div>
       <div class="metric-card"><div class="metric-label">Ponto de equilíbrio</div><div class="metric-val" style="color:var(--accent);">${fmt(pe)}</div></div>
     </div>
-    <div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:0.75rem;">Análise por cenário de pontuação</div>`;
+
+    <!-- SIMULADOR PERSONALIZADO -->
+    <div style="background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:16px;margin-bottom:1.5rem;">
+      <div style="font-size:12px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">🎯 Simular pontuação personalizada</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="pe-sim-pt" placeholder="Ex: 2.1" step="0.1" min="0.1" style="width:100px;padding:8px 12px;border:1px solid var(--accent);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:#fff;outline:none;" oninput="simularPE()">
+          <span style="font-size:14px;font-weight:500;color:var(--text2);">x</span>
+        </div>
+        <span style="font-size:13px;color:var(--text2);">ou informe a venda esperada:</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:13px;color:var(--text2);">R$</span>
+          <input type="text" id="pe-sim-venda" placeholder="Ex: 150000" style="width:130px;padding:8px 12px;border:1px solid var(--accent);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:#fff;outline:none;" oninput="simularPEVenda()">
+        </div>
+      </div>
+      <div id="pe-sim-resultado" style="margin-top:12px;"></div>
+    </div>
+
+    <div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:0.75rem;">Cenários padrão</div>`;
 
   pontuacoes.forEach(pt=>{
     const venda=pe*pt;
@@ -2211,6 +2235,38 @@ async function loadPontoEquilibrio(){
   });
   html+='</div>';
   cont.innerHTML=html;
+}
+
+function simularPE(){
+  const pt=parseFloat(document.getElementById('pe-sim-pt').value);
+  if(!pt||pt<=0)return;
+  // Atualiza o campo de venda correspondente
+  const venda=_pePe*pt;
+  document.getElementById('pe-sim-venda').value=Math.round(venda);
+  renderSimuladorResultado(pt,venda);
+}
+
+function simularPEVenda(){
+  const venda=parseMoney(document.getElementById('pe-sim-venda').value);
+  if(!venda||venda<=0)return;
+  const pt=_pePe>0?venda/_pePe:0;
+  document.getElementById('pe-sim-pt').value=pt.toFixed(2);
+  renderSimuladorResultado(pt,venda);
+}
+
+function renderSimuladorResultado(pt,venda){
+  const resultado=venda-_peDespTotal-(venda*(_pePctCustos/100));
+  const margem=venda>0?Math.round((resultado/venda)*100):0;
+  const retorno=resultado>0?Math.round(_peDespTotal/resultado):null;
+  const cor=resultado>=0?'var(--green)':'var(--red)';
+  const bg=resultado>=0?'var(--green-bg)':'var(--red-bg)';
+  document.getElementById('pe-sim-resultado').innerHTML=`
+    <div style="background:${bg};border-radius:var(--radius-sm);padding:12px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+      <div><div style="font-size:10px;color:var(--text2);font-weight:500;text-transform:uppercase;">Pontuação</div><div style="font-size:16px;font-weight:500;color:var(--accent);">${pt.toFixed(2)}x</div></div>
+      <div><div style="font-size:10px;color:var(--text2);font-weight:500;text-transform:uppercase;">Venda</div><div style="font-size:14px;font-weight:500;">${fmt(venda)}</div></div>
+      <div><div style="font-size:10px;color:var(--text2);font-weight:500;text-transform:uppercase;">Resultado</div><div style="font-size:14px;font-weight:500;color:${cor};">${fmt(resultado)}</div></div>
+      <div><div style="font-size:10px;color:var(--text2);font-weight:500;text-transform:uppercase;">Margem / Retorno</div><div style="font-size:13px;font-weight:500;color:${cor};">${margem}% ${retorno?'· '+retorno+'m':''}</div></div>
+    </div>`;
 }
 
 
