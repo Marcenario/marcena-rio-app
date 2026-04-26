@@ -50,7 +50,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .nav-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;overflow-x:auto}
 .nav-item{padding:14px 16px;font-size:13px;font-family:'DM Sans',sans-serif;border:none;background:transparent;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap}
 .nav-item.active{color:var(--text);border-bottom-color:var(--accent);font-weight:500}
-.main-content{max-width:900px;margin:0 auto;padding:2rem}
+.main-content{max-width:900px;margin:0 auto;padding:2rem}.main-content.funil-mode{max-width:100%;padding:1.5rem 1.5rem}
 .section{display:none}
 .section.active{display:block}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1rem;box-shadow:var(--shadow)}
@@ -215,7 +215,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .funil-col-header{padding:12px 16px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
 .funil-col-header-info{display:flex;flex-direction:column;gap:2px;}
 .funil-col-header-count{display:flex;align-items:center;gap:6px;}
-.funil-col-body{background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:8px;min-height:400px;max-height:calc(100vh - 280px);overflow-y:auto;flex:1;}
+.funil-col-body{background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:8px;min-height:500px;max-height:calc(100vh - 220px);overflow-y:auto;flex:1;}
 .funil-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;position:relative;}
 .funil-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px);border-color:var(--border2);}
 .funil-card-nome{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
@@ -1421,7 +1421,11 @@ function showSection(id,btn){
     document.getElementById('rh-nav-folgas').style.display=isAdm?'block':'none';
   }
   if(id==='financeiro'){preencherFiltroFinMes('fin-dre-mes');loadDRE();loadAlertasDespesas();document.getElementById('fin-nav-config').style.display=userNivel==='admin'?'block':'none';}
-  if(id==='atendimento'){preencherFiltroMes();loadFunil();}
+  if(id==='atendimento'){
+    preencherFiltroMes();loadFunil();
+    const mc=document.querySelector('.main-content');
+    if(mc)mc.classList.add('funil-mode');
+  }
   if(id==='ocorrencias'){loadOcorrencias();carregarPedidosSelect()}
   if(id==='vistoria'){loadVistorias();carregarPedidosSelectVistoria()}
 }
@@ -3495,6 +3499,9 @@ function showSubAt(id,btn){
   document.querySelectorAll('#atendimento .sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
   const el=document.getElementById(id);if(el)el.style.display='block';
   if(btn)btn.classList.add('active');
+  // Expandir para tela cheia no funil
+  const mc=document.querySelector('.main-content');
+  if(mc){mc.classList.toggle('funil-mode', id==='at-funil');}
   if(id==='at-funil'){preencherFiltroMes();loadFunil();}
   if(id==='at-vendedores')loadVendedores();
   if(id==='at-relatorio')loadRelatorioAt();
