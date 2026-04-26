@@ -846,7 +846,30 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 const SUPABASE_URL='https://gnjykqkqtcqqdadhyvcw.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImduanlrcWtxdGNxcWRhZGh5dmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NzY3ODAsImV4cCI6MjA5MjA1Mjc4MH0.w34JaXnu_7cEJ_tNYfjkd0rC_kG0sf5fIunqy2s3sWk';
 const ADMIN_EMAIL='contato@marcenario.com.br';
-const ETAPAS=['Briefing / Envio de planta','Elaboração do projeto','Apresentação do projeto','Orçamento','Negociação e fechamento','Conferência de medidas','Elaboração do projeto executivo','Apresentação do projeto executivo','Produção','Entrega','Montagem'];
+const ETAPAS=[
+  {nome:'Medição / Briefing',       campo:'data',  key:'data_medicao'},
+  {nome:'Envio de planta / Briefing',campo:'data', key:'data_envio_planta'},
+  {nome:'Elaboração do projeto',     campo:null,   key:null},
+  {nome:'Apresentação do projeto',   campo:'data', key:'data_apres_projeto'},
+  {nome:'Orçamento',                 campo:'arquivo', key:'orcamento_url'},
+  {nome:'Negociação e fechamento',   campo:null,   key:null},
+  {nome:'Conferência de medidas',    campo:'data', key:'data_conf_medidas'},
+  {nome:'Elaboração do projeto executivo', campo:null, key:null},
+  {nome:'Apresentação do projeto executivo', campo:'data', key:'data_apres_exec'},
+  {nome:'Produção',                  campo:null,   key:null},
+  {nome:'Saída da fábrica',          campo:'data', key:'data_saida_fabrica'},
+  {nome:'Chegada na Transportadora', campo:'data', key:'data_chegada_transp'},
+  {nome:'Entrega',                   campo:'data', key:'data_entrega'},
+  {nome:'Montagem',                  campo:'data', key:'data_montagem'},
+  {nome:'Vistoria Final',            campo:'data', key:'data_vistoria'},
+  {nome:'2ª Produção',               campo:null,   key:null},
+  {nome:'2ª Saída da fábrica',       campo:'data', key:'data_saida_fabrica2'},
+  {nome:'2ª Chegada na Transportadora', campo:'data', key:'data_chegada_transp2'},
+  {nome:'2ª Entrega',                campo:'data', key:'data_entrega2'},
+  {nome:'2ª Montagem',               campo:'data', key:'data_montagem2'},
+  {nome:'ASTECA',                    campo:'data', key:'data_asteca'},
+];
+const ETAPAS_TOTAL=ETAPAS.length;
 const {createClient}=supabase;
 const db=createClient(SUPABASE_URL,SUPABASE_ANON);
 let currentUser=null,userNivel='cliente',rdKey=localStorage.getItem('mr_rd_key')||'',ambsMt=[];
@@ -1028,54 +1051,113 @@ async function loadProjetos(){
 function renderProjeto(p){
   const isStaff=userNivel==='admin'||userNivel==='funcionario';
   const etapaIdx=(p.etapa_atual||1)-1;
-  const pct=Math.round(((p.etapa_atual||1)/11)*100);
-  const concluido=p.etapa_atual>=11;
+  const pct=Math.round(((p.etapa_atual||1)/ETAPAS_TOTAL)*100);
+  const concluido=p.etapa_atual>=ETAPAS_TOTAL;
   const badgeClass=concluido?'badge-green':p.etapa_atual>=5?'badge-amber':'badge-blue';
   const badgeText=concluido?'Concluído':'Em andamento';
-  const tl=ETAPAS.map((nome,i)=>{
+
+  // Timeline com campos extras
+  const tl=ETAPAS.map((et,i)=>{
     const st=i<etapaIdx?'done':i===etapaIdx?'active':'pending';
     const sl=st==='done'?'Concluído':st==='active'?'Em andamento':'Aguardando';
     const isLast=i===ETAPAS.length-1;
-    return `<div class="tl-item"><div class="tl-left"><div class="tl-dot ${st}">${i+1}</div>${!isLast?'<div class="tl-line"></div>':''}</div><div class="tl-content"><div class="tl-name ${st}">${nome}</div><div class="tl-status ${st}">${sl}</div></div></div>`;
+    // Mostrar valor do campo se existir
+    let extraHtml='';
+    if(et.campo==='data'&&et.key&&p[et.key]){
+      const d=new Date(p[et.key]+'T12:00:00').toLocaleDateString('pt-BR');
+      extraHtml=`<div style="font-size:11px;color:var(--accent);margin-top:2px;">📅 ${d}</div>`;
+    }
+    if(et.campo==='arquivo'&&et.key&&p[et.key]){
+      extraHtml=`<div style="margin-top:4px;"><a href="${p[et.key]}" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;">📎 Ver orçamento</a></div>`;
+    }
+    // Separador visual para 2ª produção
+    const sep=(i===15)?'<div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px 0;padding-left:32px;">2ª Produção</div>':'';
+    return `${sep}<div class="tl-item"><div class="tl-left"><div class="tl-dot ${st}">${i+1}</div>${!isLast?'<div class="tl-line"></div>':''}</div><div class="tl-content"><div class="tl-name ${st}">${et.nome}</div><div class="tl-status ${st}">${sl}</div>${extraHtml}</div></div>`;
   }).join('');
+
+  // Controles staff — inclui campo de data/arquivo para etapa atual
+  let campoExtra='';
+  const etAtual=ETAPAS[etapaIdx];
+  if(isStaff&&etAtual){
+    if(etAtual.campo==='data'){
+      const valAtual=etAtual.key&&p[etAtual.key]?p[etAtual.key]:'';
+      campoExtra=`<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <label style="font-size:12px;color:var(--text2);font-weight:500;">📅 Data de ${etAtual.nome}:</label>
+        <input type="date" id="campo-data-${p.id}" value="${valAtual}" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+        <button onclick="salvarCampoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-data-${p.id}').value)" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar data</button>
+      </div>`;
+    }
+    if(etAtual.campo==='arquivo'){
+      const linkAtual=etAtual.key&&p[etAtual.key]?`<a href="${p[etAtual.key]}" target="_blank" style="font-size:12px;color:var(--blue);">📎 Ver orçamento atual</a>`:'';
+      campoExtra=`<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <label style="font-size:12px;color:var(--text2);font-weight:500;">📎 Orçamento (PDF/imagem):</label>
+        <input type="file" id="campo-arquivo-${p.id}" accept=".pdf,.jpg,.jpeg,.png" style="font-size:12px;">
+        <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Enviar</button>
+        ${linkAtual}
+      </div>`;
+    }
+  }
+
   const staffCtrl=isStaff?`<div class="step-control">
     <button class="btn-step-back" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)-1})" ${(p.etapa_atual||1)<=1?'disabled':''}>← Voltar</button>
-    <button class="btn-step" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1)>=11?'disabled':''}>Avançar →</button>
+    <button class="btn-step" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1)>=ETAPAS_TOTAL?'disabled':''}>Avançar →</button>
     ${p.arquivo_url?`<a href="${p.arquivo_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);color:#7a5c2a;border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;text-decoration:none;font-family:'DM Sans',sans-serif;">📄 Ver planta</a>`:'<span style="font-size:12px;color:var(--text3);">Sem planta</span>'}
-  </div>`:'<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe o andamento do seu projeto.</div>';
+  </div>${campoExtra}`:'<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe o andamento do seu projeto.</div>';
   const dataStr=new Date(p.created_at).toLocaleDateString('pt-BR');
   return `<div class="card"><div class="card-header"><div><div class="card-title">${p.titulo||p.ambiente}</div><div class="card-sub">${p.cliente_nome||''} · ${dataStr}</div></div><span class="badge ${badgeClass}">${badgeText}</span></div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Etapa: <strong style="color:var(--text)">${ETAPAS[etapaIdx]}</strong></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Etapa: <strong style="color:var(--text)">${ETAPAS[etapaIdx].nome}</strong></div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:1rem">${p.etapa_atual||1} de 11 · ${pct}%</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:1rem">${p.etapa_atual||1} de ${ETAPAS_TOTAL} · ${pct}%</div>
     ${staffCtrl}
     <div style="margin-top:${isStaff?'16px':'0'};border-top:1px solid var(--border);padding-top:14px">${tl}</div>
   </div>`;
 }
 
 async function avancarEtapa(id,novaEtapa){
-  if(novaEtapa<1||novaEtapa>11)return;
+  if(novaEtapa<1||novaEtapa>ETAPAS_TOTAL)return;
   const {error}=await db.from('projetos').update({etapa_atual:novaEtapa}).eq('id',id);
   if(error){notify('Erro ao atualizar.','error');return}
-  notify(`Etapa: ${ETAPAS[novaEtapa-1]}`);loadProjetos();
+  notify(`Etapa: ${ETAPAS[novaEtapa-1].nome}`);loadProjetos();
+}
+
+async function salvarCampoEtapa(projetoId,campo,valor){
+  if(!campo||!valor){notify('Informe a data.','error');return}
+  const {error}=await db.from('projetos').update({[campo]:valor}).eq('id',projetoId);
+  if(error){notify('Erro ao salvar data.','error');return}
+  notify('Data salva!');loadProjetos();
+}
+
+async function salvarArquivoEtapa(projetoId,campo,inputEl){
+  const file=inputEl.files[0];
+  if(!file){notify('Selecione um arquivo.','error');return}
+  notify('Enviando arquivo...','info');
+  const ext=file.name.split('.').pop();
+  const path=`orcamentos/${projetoId}_${Date.now()}.${ext}`;
+  const {error:upErr}=await db.storage.from('arquivos').upload(path,file,{upsert:true});
+  if(upErr){notify('Erro ao enviar arquivo.','error');return}
+  const {data:urlData}=db.storage.from('arquivos').getPublicUrl(path);
+  const url=urlData.publicUrl;
+  const {error}=await db.from('projetos').update({[campo]:url}).eq('id',projetoId);
+  if(error){notify('Erro ao salvar URL.','error');return}
+  notify('Orçamento enviado!');loadProjetos();
 }
 
 async function loadAdmin(){
   const {data}=await db.from('projetos').select('*').order('created_at',{ascending:false});
   if(!data)return;
-  document.getElementById('stat-ativos').textContent=data.filter(p=>p.etapa_atual<11&&p.etapa_atual>1).length;
+  document.getElementById('stat-ativos').textContent=data.filter(p=>p.etapa_atual<ETAPAS_TOTAL&&p.etapa_atual>1).length;
   document.getElementById('stat-pendentes').textContent=data.filter(p=>p.etapa_atual===1).length;
-  document.getElementById('stat-concluidos').textContent=data.filter(p=>p.etapa_atual>=11).length;
+  document.getElementById('stat-concluidos').textContent=data.filter(p=>p.etapa_atual>=ETAPAS_TOTAL).length;
   const cont=document.getElementById('admin-projetos');
   if(!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum projeto.</p></div>';return}
   cont.innerHTML=data.map(p=>{
     const etapaIdx=(p.etapa_atual||1)-1;
-    const pct=Math.round(((p.etapa_atual||1)/11)*100);
-    const badgeClass=p.etapa_atual>=11?'badge-green':p.etapa_atual===1?'badge-accent':'badge-blue';
-    const badgeText=p.etapa_atual>=11?'Concluído':p.etapa_atual===1?'Novo':'Em andamento';
+    const pct=Math.round(((p.etapa_atual||1)/ETAPAS_TOTAL)*100);
+    const badgeClass=p.etapa_atual>=ETAPAS_TOTAL?'badge-green':p.etapa_atual===1?'badge-accent':'badge-blue';
+    const badgeText=p.etapa_atual>=ETAPAS_TOTAL?'Concluído':p.etapa_atual===1?'Novo':'Em andamento';
     const dataStr=new Date(p.created_at).toLocaleDateString('pt-BR');
     return `<div class="proj-row" onclick="showSection('projetos',document.getElementById('nav-projetos'))">
-      <div><div class="proj-name">${p.cliente_nome||p.cliente_email} — ${p.ambiente||p.titulo}</div><div class="proj-meta">${ETAPAS[etapaIdx]} · ${dataStr}</div><div class="progress-bar" style="max-width:200px;margin-top:6px"><div class="progress-fill" style="width:${pct}%"></div></div></div>
+      <div><div class="proj-name">${p.cliente_nome||p.cliente_email} — ${p.ambiente||p.titulo}</div><div class="proj-meta">${ETAPAS[etapaIdx].nome} · ${dataStr}</div><div class="progress-bar" style="max-width:200px;margin-top:6px"><div class="progress-fill" style="width:${pct}%"></div></div></div>
       <span class="badge ${badgeClass}">${badgeText}</span>
     </div>`;
   }).join('');
