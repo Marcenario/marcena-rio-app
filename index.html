@@ -356,7 +356,30 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
     <!-- PROJETOS -->
     <div id="projetos" class="section">
-      <div id="projetos-content"><div class="loader">Carregando projetos...</div></div>
+      <!-- LISTA de projetos -->
+      <div id="proj-lista-view">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;flex-wrap:wrap;">
+          <div style="position:relative;flex:1;min-width:220px;">
+            <input type="text" id="proj-busca" placeholder="🔍 Buscar por nome, telefone ou e-mail..." oninput="filtrarProjetos(this.value)"
+              style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+          </div>
+          <select id="proj-filtro-status" onchange="filtrarProjetos(document.getElementById('proj-busca').value)"
+            style="padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+            <option value="">Todos</option>
+            <option value="andamento">Em andamento</option>
+            <option value="concluido">Concluídos</option>
+          </select>
+          <div id="proj-contador" style="font-size:13px;color:var(--text2);white-space:nowrap;"></div>
+        </div>
+        <div id="projetos-content"><div class="loader">Carregando projetos...</div></div>
+      </div>
+      <!-- DETALHE de um projeto -->
+      <div id="proj-detalhe-view" style="display:none;">
+        <button onclick="voltarListaProjetos()" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--text);margin-bottom:1.25rem;">
+          ← Voltar para lista
+        </button>
+        <div id="proj-detalhe-content"></div>
+      </div>
     </div>
 
     <!-- MONTAGEM -->
@@ -1500,14 +1523,107 @@ async function enviarOrcamento(){
   document.getElementById('orc-desc').value='';removeFile();prefillOrcamento();notify('Solicitação enviada!');
 }
 
+let _todosProj=[];
+
 async function loadProjetos(){
   const cont=document.getElementById('projetos-content');
   cont.innerHTML='<div class="loader">Carregando...</div>';
   const isStaff=userNivel==='admin'||userNivel==='funcionario';
-  const query=isStaff?db.from('projetos').select('*').order('created_at',{ascending:false}):db.from('projetos').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  const query=isStaff
+    ?db.from('projetos').select('*').order('created_at',{ascending:false})
+    :db.from('projetos').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
   const {data,error}=await query;
-  if(error||!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum projeto encontrado.</p></div>';return}
-  cont.innerHTML=data.map(p=>renderProjeto(p)).join('');
+  if(error||!data||!data.length){
+    cont.innerHTML='<div class="empty-state"><p>Nenhum projeto encontrado.</p></div>';
+    return;
+  }
+  _todosProj=data;
+  renderListaProjetos(data);
+}
+
+function renderListaProjetos(lista){
+  const cont=document.getElementById('projetos-content');
+  const count=document.getElementById('proj-contador');
+  if(count) count.textContent=lista.length+' projeto(s)';
+  if(!lista.length){
+    cont.innerHTML='<div class="empty-state"><p>Nenhum projeto encontrado.</p></div>';
+    return;
+  }
+  // Renderizar como tabela/lista compacta para staff, normal para cliente
+  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  if(isStaff){
+    cont.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+      <div style="display:grid;grid-template-columns:2fr 1.5fr 1.2fr 1fr 80px;gap:0;background:var(--brand);padding:10px 16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.4px;">Projeto / Cliente</div>
+        <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.4px;">Contato</div>
+        <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.4px;">Etapa atual</div>
+        <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.4px;">Status</div>
+        <div></div>
+      </div>
+      ${lista.map((p,i)=>{
+        const etapaIdx=(p.etapa_atual||1)-1;
+        const etapaNome=ETAPAS[etapaIdx]?.nome||'—';
+        const pct=Math.round(((p.etapa_atual||1)/ETAPAS_TOTAL)*100);
+        const concluido=p.etapa_atual>=ETAPAS_TOTAL;
+        const bg=i%2===0?'var(--bg2)':'var(--bg)';
+        return `<div style="display:grid;grid-template-columns:2fr 1.5fr 1.2fr 1fr 80px;gap:0;background:${bg};padding:12px 16px;border-top:1px solid var(--border);align-items:center;cursor:pointer;" onclick="abrirDetalheProjeto('${p.id}')" onmouseover="this.style.background='var(--accent-light)'" onmouseout="this.style.background='${bg}'">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);">${p.titulo||p.ambiente||'—'}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;">${p.cliente_nome||'—'}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text2);">${p.cliente_tel||'—'}</div>
+            <div style="font-size:11px;color:var(--text3);">${p.cliente_email||''}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text);">${etapaNome}</div>
+            <div style="height:4px;background:var(--border);border-radius:2px;margin-top:4px;"><div style="height:4px;width:${pct}%;background:var(--accent);border-radius:2px;"></div></div>
+          </div>
+          <div><span class="badge ${concluido?'badge-green':p.etapa_atual>=5?'badge-amber':'badge-blue'}">${concluido?'Concluído':'Em andamento'}</span></div>
+          <div style="text-align:center;"><button onclick="event.stopPropagation();abrirDetalheProjeto('${p.id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Abrir →</button></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  } else {
+    cont.innerHTML=lista.map(p=>renderProjetoCard(p)).join('');
+  }
+}
+
+function filtrarProjetos(busca){
+  const status=document.getElementById('proj-filtro-status')?.value||'';
+  let lista=_todosProj;
+  if(busca&&busca.trim()){
+    const q=busca.toLowerCase().trim();
+    lista=lista.filter(p=>
+      (p.cliente_nome||'').toLowerCase().includes(q)||
+      (p.cliente_tel||'').toLowerCase().includes(q)||
+      (p.cliente_email||'').toLowerCase().includes(q)||
+      (p.titulo||'').toLowerCase().includes(q)||
+      (p.ambiente||'').toLowerCase().includes(q)
+    );
+  }
+  if(status==='andamento') lista=lista.filter(p=>p.etapa_atual<ETAPAS_TOTAL);
+  if(status==='concluido') lista=lista.filter(p=>p.etapa_atual>=ETAPAS_TOTAL);
+  renderListaProjetos(lista);
+}
+
+function abrirDetalheProjeto(id){
+  const p=_todosProj.find(x=>x.id===id);
+  if(!p)return;
+  document.getElementById('proj-lista-view').style.display='none';
+  document.getElementById('proj-detalhe-view').style.display='block';
+  document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(p);
+  window.scrollTo(0,0);
+}
+
+function voltarListaProjetos(){
+  document.getElementById('proj-lista-view').style.display='block';
+  document.getElementById('proj-detalhe-view').style.display='none';
+  loadProjetos();
+}
+
+function renderProjetoCard(p){
+  return renderProjeto(p);
 }
 
 function renderProjeto(p){
@@ -1667,7 +1783,11 @@ async function sincronizarProjetoProj(projetoId, tipo, docId){
     } else {
       notify(`Aguardando assinatura (${json.assinados||0}/${json.total||1})`, 'info');
     }
-    loadProjetos();
+    const _dv4=document.getElementById('proj-detalhe-view');
+    if(_dv4&&_dv4.style.display!=='none'){
+      const {data:_p4}=await db.from('projetos').select('*').eq('id',projetoId).single();
+      if(_p4){_todosProj=_todosProj.map(x=>x.id===_p4.id?_p4:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p4);}
+    } else {loadProjetos();}
   }catch(e){
     notify('Erro: '+e.message,'error');
   }
@@ -1676,7 +1796,11 @@ async function sincronizarProjetoProj(projetoId, tipo, docId){
 async function definirEmpresaProjeto(id, empresa){
   await db.from('projetos').update({empresa}).eq('id',id);
   notify(`Empresa definida: ${empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio'}`);
-  loadProjetos();
+  const _dv3=document.getElementById('proj-detalhe-view');
+  if(_dv3&&_dv3.style.display!=='none'){
+    const {data:_p3}=await db.from('projetos').select('*').eq('id',id).single();
+    if(_p3){_todosProj=_todosProj.map(x=>x.id===_p3.id?_p3:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p3);}
+  } else {loadProjetos();}
 }
 
 async function avancarEtapa(id,novaEtapa){
@@ -1699,7 +1823,12 @@ async function salvarCampoEtapa(projetoId,campo,valor){
   if(!campo||!valor){notify('Informe a data.','error');return}
   const {error}=await db.from('projetos').update({[campo]:valor}).eq('id',projetoId);
   if(error){notify('Erro ao salvar data.','error');return}
-  notify('Data salva!');loadProjetos();
+  notify('Data salva!');
+  const _dv=document.getElementById('proj-detalhe-view');
+  if(_dv&&_dv.style.display!=='none'){
+    const {data:_p}=await db.from('projetos').select('*').eq('id',projetoId).single();
+    if(_p){_todosProj=_todosProj.map(x=>x.id===_p.id?_p:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p);}
+  } else {loadProjetos();}
 }
 
 async function salvarArquivoEtapa(projetoId,campo,inputEl){
@@ -1720,7 +1849,12 @@ async function salvarArquivoEtapa(projetoId,campo,inputEl){
     const campoStatus=campo==='projeto_venda_url'?'projeto_venda_status':'projeto_exec_status';
     await db.from('projetos').update({[campoStatus]:'carregado'}).eq('id',projetoId);
   }
-  notify('Arquivo enviado com sucesso!');loadProjetos();
+  notify('Arquivo enviado com sucesso!');
+  const _dv2=document.getElementById('proj-detalhe-view');
+  if(_dv2&&_dv2.style.display!=='none'){
+    const {data:_p2}=await db.from('projetos').select('*').eq('id',projetoId).single();
+    if(_p2){_todosProj=_todosProj.map(x=>x.id===_p2.id?_p2:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p2);}
+  } else {loadProjetos();}
 }
 
 async function loadAdmin(){
