@@ -1647,6 +1647,20 @@ function renderProjeto(p){
       const h=et.keyHorario&&p[et.keyHorario]?` às ${p[et.keyHorario]}`:'';
       extraHtml=`<div style="font-size:11px;color:var(--accent);margin-top:2px;">📅 ${d}${h}</div>`;
     }
+    // Arquivos das etapas concluídas — visível para todos incluindo clientes
+    if(st==='done'||st==='active'){
+      if(et.campo==='arquivo_simples'&&et.key&&p[et.key]){
+        extraHtml=`<div style="margin-top:4px;"><a href="${p[et.key]}" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📎 Ver orçamento</a></div>`;
+      }
+      if(et.campo==='assinatura'&&et.key&&p[et.key]){
+        const labelArq=et.key==='projeto_venda_url'?'Projeto de Venda':'Projeto Executivo';
+        const statusAss=et.key==='projeto_venda_url'?(p.projeto_venda_status||''):(p.projeto_exec_status||'');
+        const badgeAss=statusAss==='assinado'
+          ?`<span style="font-size:10px;font-weight:600;color:#15803d;background:#dcfce7;padding:2px 7px;border-radius:8px;">✅ Assinado</span>`
+          :`<span style="font-size:10px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 7px;border-radius:8px;">⏳ Aguardando assinatura</span>`;
+        extraHtml=`<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><a href="${p[et.key]}" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;">📎 Ver ${labelArq}</a>${badgeAss}</div>`;
+      }
+    }
     // Prazo de conferência — aparece na etapa Elaboração do projeto executivo (idx 8), só para staff
     if(i===8&&isStaff&&p.prazo_conferencia){
       const hoje=new Date(); hoje.setHours(0,0,0,0);
