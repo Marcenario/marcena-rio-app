@@ -1813,6 +1813,27 @@ async function definirEmpresaProjeto(id, empresa){
 
 async function avancarEtapa(id,novaEtapa){
   if(novaEtapa<1||novaEtapa>ETAPAS_TOTAL)return;
+
+  // Verificar se é avanço (não voltar) e se a etapa atual exige data/horário
+  const etapaAtualIdx=novaEtapa-2; // etapa que está sendo concluída
+  if(etapaAtualIdx>=0){
+    const etAtual=ETAPAS[etapaAtualIdx];
+    if(etAtual&&etAtual.campo==='data'&&etAtual.key){
+      // Buscar dados do projeto para verificar campos
+      const {data:proj}=await db.from('projetos').select('*').eq('id',id).single();
+      if(proj){
+        if(!proj[etAtual.key]){
+          notify(`Informe a data de ${etAtual.nome} antes de avançar.`,'error');
+          return;
+        }
+        if(etAtual.keyHorario&&!proj[etAtual.keyHorario]){
+          notify(`Informe o horário de ${etAtual.nome} antes de avançar.`,'error');
+          return;
+        }
+      }
+    }
+  }
+
   const {error}=await db.from('projetos').update({etapa_atual:novaEtapa}).eq('id',id);
   if(error){notify('Erro ao atualizar.','error');return}
   notify(`Etapa: ${ETAPAS[novaEtapa-1].nome}`);
