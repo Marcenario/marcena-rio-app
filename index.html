@@ -62,7 +62,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .badge-green{background:var(--green-bg);color:var(--green)}
 .badge-amber{background:var(--amber-bg);color:var(--amber)}
 .badge-accent{background:var(--accent-light);color:#7a5c2a}
-.tl-item{display:flex;gap:14px}
+.tl-item{display:flex;gap:14px;width:100%}
 .tl-left{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
 .tl-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
 .tl-dot.done{background:var(--green-bg);color:var(--green)}
@@ -1667,7 +1667,7 @@ function renderProjeto(p){
     const sep=(i===15)?'<div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px 0;padding-left:32px;">2ª Produção</div>':'';
     const isProd=et.campo==='data_producao';
     const nomeHtml=isProd
-      ?`<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;"><span class="tl-name ${st}">${et.nome}</span>${extraHtml}</div>`
+      ?`<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;"><span class="tl-name ${st}">${et.nome}</span>${p.data_producao?extraHtml:''}</div>`
       :`<div class="tl-name ${st}">${et.nome}</div>${extraHtml}`;
     return `${sep}<div class="tl-item"><div class="tl-left"><div class="tl-dot ${st}">${i+1}</div>${!isLast?'<div class="tl-line"></div>':''}</div><div class="tl-content">${nomeHtml}<div class="tl-status ${st}">${sl}</div></div></div>`;
   }).join('');
