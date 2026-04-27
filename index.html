@@ -1654,11 +1654,11 @@ function renderProjeto(p){
       const diff=dataProd-hoje;
       let corProd,estiloProd,iconeProd='';
       if(diff>0){
-        corProd='#1a6b35'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:11px;`;
+        corProd='#1a6b35'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:22px;`;
       } else if(diff===0){
-        corProd='#e07b00'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:11px;`;
+        corProd='#e07b00'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:22px;`;
       } else {
-        corProd='#cc0000'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:11px;animation:pisca 1s infinite;`; iconeProd='⚠️ ';
+        corProd='#cc0000'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:22px;animation:pisca 1s infinite;`; iconeProd='⚠️ ';
       }
       const dProd=new Date(p.data_producao+'T12:00:00').toLocaleDateString('pt-BR');
       extraHtml=`<span style="${estiloProd}">${iconeProd}ENTREGA: ${dProd}</span>`;
@@ -1667,7 +1667,7 @@ function renderProjeto(p){
     const sep=(i===15)?'<div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px 0;padding-left:32px;">2ª Produção</div>':'';
     const isProd=et.campo==='data_producao';
     const nomeHtml=isProd
-      ?`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span class="tl-name ${st}">${et.nome}</span>${extraHtml}</div>`
+      ?`<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;"><span class="tl-name ${st}">${et.nome}</span>${extraHtml}</div>`
       :`<div class="tl-name ${st}">${et.nome}</div>${extraHtml}`;
     return `${sep}<div class="tl-item"><div class="tl-left"><div class="tl-dot ${st}">${i+1}</div>${!isLast?'<div class="tl-line"></div>':''}</div><div class="tl-content">${nomeHtml}<div class="tl-status ${st}">${sl}</div></div></div>`;
   }).join('');
