@@ -1654,14 +1654,14 @@ function renderProjeto(p){
       const diff=dataProd-hoje;
       let corProd,estiloProd,iconeProd='';
       if(diff>0){
-        corProd='#1a6b35'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:22px;`;
+        corProd='#1a6b35'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:15px;`;
       } else if(diff===0){
-        corProd='#e07b00'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:22px;`;
+        corProd='#e07b00'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:15px;`;
       } else {
-        corProd='#cc0000'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:22px;animation:pisca 1s infinite;`; iconeProd='⚠️ ';
+        corProd='#cc0000'; estiloProd=`color:${corProd};font-weight:700;text-transform:uppercase;font-size:15px;animation:pisca 1s infinite;`; iconeProd='⚠️ ';
       }
       const dProd=new Date(p.data_producao+'T12:00:00').toLocaleDateString('pt-BR');
-      extraHtml=`<span style="${estiloProd}">${iconeProd}ENTREGA: ${dProd}</span>`;
+      extraHtml=`<span style="${estiloProd}">${iconeProd}PRAZO CONTRATUAL: ${dProd}</span>`;
     }
     // Separador visual para 2ª produção
     const sep=(i===15)?'<div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px 0;padding-left:32px;">2ª Produção</div>':'';
