@@ -1880,7 +1880,16 @@ async function avancarEtapa(id,novaEtapa){
   const {error}=await db.from('projetos').update({etapa_atual:novaEtapa}).eq('id',id);
   if(error){notify('Erro ao atualizar.','error');return}
   notify(`Etapa: ${ETAPAS[novaEtapa-1].nome}`);
-  loadProjetos();
+  // Sempre recarrega a lista E atualiza o detalhe se estiver aberto
+  await loadProjetos();
+  const {data:_p}=await db.from('projetos').select('*').eq('id',id).single();
+  if(_p){
+    _todosProj=_todosProj.map(x=>x.id===_p.id?_p:x);
+    const _dv=document.getElementById('proj-detalhe-view');
+    if(_dv&&_dv.style.display!=='none'){
+      document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p);
+    }
+  }
   // Enviar e-mail de notificação ao cliente
   try{
     await fetch(`${SUPABASE_URL}/functions/v1/notificar-etapa`,{
