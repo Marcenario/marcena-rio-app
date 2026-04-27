@@ -1269,9 +1269,9 @@ const ETAPAS=[
   {nome:'Envio de planta / Briefing',campo:'data', key:'data_envio_planta'},
   {nome:'Elaboração do projeto',     campo:null,   key:null},
   {nome:'Apresentação do projeto',   campo:'data', key:'data_apres_projeto'},
-  {nome:'Orçamento',                 campo:'arquivo', key:'orcamento_url'},
+  {nome:'Orçamento',                 campo:'arquivo_simples', key:'orcamento_url'},
   {nome:'Negociação e fechamento',   campo:null,   key:null},
-  {nome:'Projeto de Venda',          campo:'arquivo', key:'projeto_venda_url'},
+  {nome:'Projeto de Venda',          campo:'assinatura', key:'projeto_venda_url'},
   {nome:'Conferência de medidas',    campo:'data', key:'data_conf_medidas'},
   {nome:'Elaboração do projeto executivo', campo:null, key:null},
   {nome:'Apresentação do projeto executivo', campo:'data', key:'data_apres_exec'},
@@ -1549,53 +1549,54 @@ function renderProjeto(p){
         <button onclick="salvarCampoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-data-${p.id}').value)" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar data</button>
       </div>`;
     }
-    if(etAtual.campo==='arquivo'){
-      // Etapas com assinatura digital
-      const etapasAssinatura = ['projeto_venda_url','projeto_exec_url'];
-      const precisaAssinatura = etapasAssinatura.includes(etAtual.key);
-
-      if(precisaAssinatura){
-        // Determinar tipo de assinatura e campos
-        const tipoAss = etAtual.key==='projeto_venda_url'?'projeto_venda':'projeto_executivo';
-        const campoDoc = etAtual.key==='projeto_venda_url'?'projeto_venda_doc_id':'projeto_exec_doc_id';
-        const campoStatus = etAtual.key==='projeto_venda_url'?'projeto_venda_status':'projeto_exec_status';
-        const statusAss = p[campoStatus]||'pendente';
-        const docId = p[campoDoc]||'';
-        const pdfAtual = p[etAtual.key]||'';
-        const labelAss = etAtual.nome;
-
-        campoExtra=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
-          <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📄 ${labelAss}</div>
-          ${pdfAtual?`
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-              <a href="${pdfAtual}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none;">📎 Ver PDF</a>
-              ${statusAss==='assinado'
-                ?`<span style="font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);padding:2px 8px;border-radius:8px;">✓ Assinado</span>`
-                :statusAss==='enviado'
-                ?`<span style="font-size:11px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 8px;border-radius:8px;">⏳ Aguardando assinatura</span>`
-                :`<span style="font-size:11px;color:var(--text3);">PDF carregado</span>`}
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              ${statusAss!=='assinado'?`<button onclick="enviarProjetoAssinatura('${p.id}','${tipoAss}','proj')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✉ Enviar para assinatura</button>`:''}
-              ${statusAss==='enviado'&&docId?`<button onclick="sincronizarProjetoProj('${p.id}','${tipoAss}','${docId}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Sincronizar</button>`:''}
-              ${statusAss==='assinado'?`<a href="${pdfAtual}" target="_blank" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;text-decoration:none;">⬇ Baixar assinado</a>`:''}
-            </div>`
-          :`
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <input type="file" id="campo-arquivo-${p.id}" accept="application/pdf" style="font-size:11px;flex:1;">
-              <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">📤 Enviar PDF</button>
-            </div>`}
-        </div>`;
-      } else {
-        // Campo de arquivo simples (ex: orçamento)
-        const linkAtual=etAtual.key&&p[etAtual.key]?`<a href="${p[etAtual.key]}" target="_blank" style="font-size:12px;color:var(--blue);">📎 Ver orçamento atual</a>`:'';
-        campoExtra=`<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
-          <label style="font-size:12px;color:var(--text2);font-weight:500;">📎 Orçamento (PDF/imagem):</label>
-          <input type="file" id="campo-arquivo-${p.id}" accept=".pdf,.jpg,.jpeg,.png" style="font-size:12px;">
-          <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Enviar</button>
+    if(etAtual.campo==='arquivo_simples'){
+      // Orçamento — upload simples para consulta
+      const linkAtual=etAtual.key&&p[etAtual.key]
+        ?`<a href="${p[etAtual.key]}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none;">📎 Ver orçamento</a>`:'' ;
+      campoExtra=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
+        <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📎 Orçamento</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="campo-arquivo-${p.id}" accept=".pdf,.jpg,.jpeg,.png" style="font-size:11px;flex:1;">
+          <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">📤 Enviar</button>
           ${linkAtual}
-        </div>`;
-      }
+        </div>
+      </div>`;
+    }
+    if(etAtual.campo==='assinatura'){
+      // Projeto de Venda ou Projeto Executivo — upload + assinatura eletrônica
+      const tipoAss = etAtual.key==='projeto_venda_url'?'projeto_venda':'projeto_executivo';
+      const campoDoc = etAtual.key==='projeto_venda_url'?'projeto_venda_doc_id':'projeto_exec_doc_id';
+      const campoStatus = etAtual.key==='projeto_venda_url'?'projeto_venda_status':'projeto_exec_status';
+      const statusAss = p[campoStatus]||'pendente';
+      const docId = p[campoDoc]||'';
+      const pdfAtual = p[etAtual.key]||'';
+
+      campoExtra=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
+        <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📄 ${etAtual.nome}</div>
+        ${pdfAtual?`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            <a href="${pdfAtual}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none;">📎 Ver PDF</a>
+            ${statusAss==='assinado'
+              ?`<span style="font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);padding:2px 8px;border-radius:8px;">✓ Assinado</span>`
+              :statusAss==='enviado'
+              ?`<span style="font-size:11px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 8px;border-radius:8px;">⏳ Aguardando assinatura</span>`
+              :`<span style="font-size:11px;color:var(--text3);">PDF carregado — pronto para enviar</span>`}
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${statusAss!=='assinado'?`<button onclick="enviarProjetoAssinatura('${p.id}','${tipoAss}','proj')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✉ Enviar para assinatura</button>`:''}
+            ${statusAss==='enviado'&&docId?`<button onclick="sincronizarProjetoProj('${p.id}','${tipoAss}','${docId}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Sincronizar</button>`:''}
+            ${statusAss==='assinado'?`<a href="${pdfAtual}" target="_blank" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;text-decoration:none;">⬇ Baixar assinado</a>`:''}
+            <label style="cursor:pointer;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;">
+              📎 Trocar PDF
+              <input type="file" id="campo-arquivo-${p.id}" accept="application/pdf" style="display:none;" onchange="salvarArquivoEtapa('${p.id}','${etAtual.key}',this)">
+            </label>
+          </div>`
+        :`
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="file" id="campo-arquivo-${p.id}" accept="application/pdf" style="font-size:11px;flex:1;">
+            <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">📤 Enviar PDF</button>
+          </div>`}
+      </div>`;
     }
   }
 
