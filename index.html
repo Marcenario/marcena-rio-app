@@ -1706,13 +1706,19 @@ async function salvarArquivoEtapa(projetoId,campo,inputEl){
   notify('Enviando arquivo...','info');
   const ext=file.name.split('.').pop();
   const path=`orcamentos/${projetoId}_${Date.now()}.${ext}`;
-  const {error:upErr}=await db.storage.from('arquivos').upload(path,file,{upsert:true});
-  if(upErr){notify('Erro ao enviar arquivo.','error');return}
-  const {data:urlData}=db.storage.from('arquivos').getPublicUrl(path);
+  const {error:upErr}=await db.storage.from('projetos').upload(path,file,{upsert:true});
+  if(upErr){notify('Erro ao enviar arquivo: '+upErr.message,'error');return}
+  const {data:urlData}=db.storage.from('projetos').getPublicUrl(path);
   const url=urlData.publicUrl;
   const {error}=await db.from('projetos').update({[campo]:url}).eq('id',projetoId);
   if(error){notify('Erro ao salvar URL.','error');return}
-  notify('Orçamento enviado!');loadProjetos();
+  // Para etapas de assinatura, atualizar status
+  const etapasAss=['projeto_venda_url','projeto_exec_url'];
+  if(etapasAss.includes(campo)){
+    const campoStatus=campo==='projeto_venda_url'?'projeto_venda_status':'projeto_exec_status';
+    await db.from('projetos').update({[campoStatus]:'carregado'}).eq('id',projetoId);
+  }
+  notify('Arquivo enviado com sucesso!');loadProjetos();
 }
 
 async function loadAdmin(){
