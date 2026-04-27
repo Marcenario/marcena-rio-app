@@ -1628,9 +1628,9 @@ async function enviarProjetoAssinatura(projetoId, tipo, origem){
   // origem: 'proj' = timeline de projetos, 'at' = atendimento
   const tabela = origem==='proj'?'projetos':'atendimentos';
   const {data:item} = await db.from(tabela).select('*').eq('id',projetoId).single();
-  if(!item){notify('Não encontrado.','error');return}
+  if(!item){notify('Registro não encontrado.','error');return}
   const email = item.cliente_email;
-  if(!email){notify('E-mail do cliente não cadastrado.','error');return}
+  if(!email){notify('E-mail do cliente não cadastrado neste projeto.','error');return}
   const campoUrl = tipo==='projeto_venda'?'projeto_venda_url':'projeto_exec_url';
   const pdfUrl = item[campoUrl];
   if(!pdfUrl){notify('Faça o upload do PDF primeiro.','error');return}
@@ -1639,11 +1639,12 @@ async function enviarProjetoAssinatura(projetoId, tipo, origem){
     const res = await fetch(`${SUPABASE_URL}/functions/v1/assinar-projeto-atendimento`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({atendimento_id:projetoId, tipo, pdf_url:pdfUrl, tabela})
+      body:JSON.stringify({registro_id:projetoId, tipo, pdf_url:pdfUrl, tabela,
+        cliente_email:email, cliente_nome:item.cliente_nome||'Cliente'})
     });
     const json = await res.json();
     if(!res.ok) throw new Error(json.error||'Erro desconhecido');
-    notify('Enviado para assinatura! O cliente receberá um e-mail.');
+    notify('Enviado para assinatura! O cliente receberá um e-mail. ✅');
     if(origem==='proj') loadProjetos();
     else abrirModalAt(projetoId);
   }catch(e){
@@ -4003,28 +4004,7 @@ async function uploadProjetoAt(atId, tipo){
   abrirModalAt(atId);
 }
 
-async function enviarProjetoAssinatura(atId, tipo){
-  const {data:at} = await db.from('atendimentos').select('*').eq('id',atId).single();
-  if(!at){notify('Atendimento não encontrado.','error');return}
-  const campo = tipo==='projeto_venda'?'projeto_venda_url':'projeto_exec_url';
-  const pdfUrl = at[campo];
-  if(!pdfUrl){notify('Faça o upload do PDF primeiro.','error');return}
-  if(!at.cliente_email){notify('Cadastre o e-mail do cliente primeiro.','error');return}
-  notify('Enviando para assinatura...','info');
-  try{
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/assinar-projeto-atendimento`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({atendimento_id:atId, tipo, pdf_url:pdfUrl})
-    });
-    const json = await res.json();
-    if(!res.ok) throw new Error(json.error||'Erro desconhecido');
-    notify('Enviado para assinatura! O cliente receberá um e-mail.');
-    abrirModalAt(atId);
-  }catch(e){
-    notify('Erro: '+e.message,'error');
-  }
-}
+/* enviarProjetoAssinatura consolidada acima */
 
 async function sincronizarProjetoAt(atId, tipo){
   const {data:at} = await db.from('atendimentos').select('*').eq('id',atId).single();
