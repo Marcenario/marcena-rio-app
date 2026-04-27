@@ -1647,6 +1647,22 @@ function renderProjeto(p){
       const h=et.keyHorario&&p[et.keyHorario]?` às ${p[et.keyHorario]}`:'';
       extraHtml=`<div style="font-size:11px;color:var(--accent);margin-top:2px;">📅 ${d}${h}</div>`;
     }
+    // Prazo de conferência — aparece na etapa Elaboração do projeto executivo (idx 8), só para staff
+    if(i===8&&isStaff&&p.prazo_conferencia){
+      const hoje=new Date(); hoje.setHours(0,0,0,0);
+      const dataPrazo=new Date(p.prazo_conferencia+'T12:00:00'); dataPrazo.setHours(0,0,0,0);
+      const diffP=dataPrazo-hoje;
+      let estiloP,iconeP='';
+      if(diffP>0){
+        estiloP=`color:#1a6b35;font-weight:700;text-transform:uppercase;font-size:15px;`;
+      } else if(diffP===0){
+        estiloP=`color:#e07b00;font-weight:700;text-transform:uppercase;font-size:15px;`;
+      } else {
+        estiloP=`color:#cc0000;font-weight:700;text-transform:uppercase;font-size:15px;animation:pisca 1s infinite;`; iconeP='⚠️ ';
+      }
+      const dP=new Date(p.prazo_conferencia+'T12:00:00').toLocaleDateString('pt-BR');
+      extraHtml=`<span style="${estiloP}">${iconeP}PRAZO PARA CONFERÊNCIA: ${dP}</span>`;
+    }
     // Data de Produção — exibida ao lado direito com cor dinâmica
     if(et.campo==='data_producao'&&p.data_producao){
       const hoje=new Date(); hoje.setHours(0,0,0,0);
@@ -1666,8 +1682,9 @@ function renderProjeto(p){
     // Separador visual para 2ª produção
     const sep=(i===15)?'<div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px 0;padding-left:32px;">2ª Produção</div>':'';
     const isProd=et.campo==='data_producao';
-    const nomeHtml=isProd
-      ?`<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;"><span class="tl-name ${st}">${et.nome}</span>${p.data_producao?extraHtml:''}</div>`
+    const isPrazoConf=i===8&&isStaff&&p.prazo_conferencia;
+    const nomeHtml=(isProd||isPrazoConf)
+      ?`<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;"><span class="tl-name ${st}">${et.nome}</span>${extraHtml}</div>`
       :`<div class="tl-name ${st}">${et.nome}</div>${extraHtml}`;
     return `${sep}<div class="tl-item"><div class="tl-left"><div class="tl-dot ${st}">${i+1}</div>${!isLast?'<div class="tl-line"></div>':''}</div><div class="tl-content">${nomeHtml}<div class="tl-status ${st}">${sl}</div></div></div>`;
   }).join('');
@@ -1879,6 +1896,12 @@ async function salvarCampoEtapa(projetoId,campo,valor,campoHorario,horario){
   if(campoHorario&&!horario){notify('Informe o horário.','error');return}
   const update={[campo]:valor};
   if(campoHorario&&horario)update[campoHorario]=horario;
+  // Se for data da conferência de medidas, calcular +15 dias para prazo de conferência
+  if(campo==='data_conf_medidas'){
+    const dataConf=new Date(valor+'T12:00:00');
+    dataConf.setDate(dataConf.getDate()+15);
+    update['prazo_conferencia']=dataConf.toISOString().split('T')[0];
+  }
   const {error}=await db.from('projetos').update(update).eq('id',projetoId);
   if(error){notify('Erro ao salvar data.','error');return}
   notify('Data salva!');
