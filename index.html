@@ -1288,28 +1288,28 @@ const SUPABASE_URL='https://gnjykqkqtcqqdadhyvcw.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImduanlrcWtxdGNxcWRhZGh5dmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NzY3ODAsImV4cCI6MjA5MjA1Mjc4MH0.w34JaXnu_7cEJ_tNYfjkd0rC_kG0sf5fIunqy2s3sWk';
 const ADMIN_EMAIL='contato@marcenario.com.br';
 const ETAPAS=[
-  {nome:'Medição / Briefing',       campo:'data',  key:'data_medicao'},
-  {nome:'Envio de planta / Briefing',campo:'data', key:'data_envio_planta'},
-  {nome:'Elaboração do projeto',     campo:null,   key:null},
-  {nome:'Apresentação do projeto',   campo:'data', key:'data_apres_projeto'},
-  {nome:'Orçamento',                 campo:'arquivo_simples', key:'orcamento_url'},
-  {nome:'Negociação e fechamento',   campo:null,   key:null},
-  {nome:'Projeto de Venda',          campo:'assinatura', key:'projeto_venda_url'},
-  {nome:'Conferência de medidas',    campo:'data', key:'data_conf_medidas'},
-  {nome:'Elaboração do projeto executivo', campo:null, key:null},
-  {nome:'Apresentação do projeto executivo', campo:'data', key:'data_apres_exec'},
-  {nome:'Produção',                  campo:null,   key:null},
-  {nome:'Saída da fábrica',          campo:'data', key:'data_saida_fabrica'},
-  {nome:'Chegada na Transportadora', campo:'data', key:'data_chegada_transp'},
-  {nome:'Entrega',                   campo:'data', key:'data_entrega'},
-  {nome:'Montagem',                  campo:'data', key:'data_montagem'},
-  {nome:'Vistoria Final',            campo:'data', key:'data_vistoria'},
-  {nome:'2ª Produção',               campo:null,   key:null},
-  {nome:'2ª Saída da fábrica',       campo:'data', key:'data_saida_fabrica2'},
-  {nome:'2ª Chegada na Transportadora', campo:'data', key:'data_chegada_transp2'},
-  {nome:'2ª Entrega',                campo:'data', key:'data_entrega2'},
-  {nome:'2ª Montagem',               campo:'data', key:'data_montagem2'},
-  {nome:'ASTECA',                    campo:'data', key:'data_asteca'},
+  {nome:'Medição / Briefing',       campo:'data',  key:'data_medicao',        keyHorario:'horario_medicao'},
+  {nome:'Envio de planta / Briefing',campo:'data', key:'data_envio_planta',    keyHorario:null},
+  {nome:'Elaboração do projeto',     campo:null,   key:null,                   keyHorario:null},
+  {nome:'Apresentação do projeto',   campo:'data', key:'data_apres_projeto',   keyHorario:'horario_apres_projeto'},
+  {nome:'Orçamento',                 campo:'arquivo_simples', key:'orcamento_url', keyHorario:null},
+  {nome:'Negociação e fechamento',   campo:null,   key:null,                   keyHorario:null},
+  {nome:'Projeto de Venda',          campo:'assinatura', key:'projeto_venda_url', keyHorario:null},
+  {nome:'Conferência de medidas',    campo:'data', key:'data_conf_medidas',    keyHorario:'horario_conf_medidas'},
+  {nome:'Elaboração do projeto executivo', campo:null, key:null,              keyHorario:null},
+  {nome:'Apresentação do projeto executivo', campo:'data', key:'data_apres_exec', keyHorario:'horario_apres_exec'},
+  {nome:'Produção',                  campo:null,   key:null,                   keyHorario:null},
+  {nome:'Saída da fábrica',          campo:'data', key:'data_saida_fabrica',   keyHorario:null},
+  {nome:'Chegada na Transportadora', campo:'data', key:'data_chegada_transp',  keyHorario:null},
+  {nome:'Entrega',                   campo:'data', key:'data_entrega',         keyHorario:'horario_entrega'},
+  {nome:'Montagem',                  campo:'data', key:'data_montagem',        keyHorario:'horario_montagem'},
+  {nome:'Vistoria Final',            campo:'data', key:'data_vistoria',        keyHorario:'horario_vistoria'},
+  {nome:'2ª Produção',               campo:null,   key:null,                   keyHorario:null},
+  {nome:'2ª Saída da fábrica',       campo:'data', key:'data_saida_fabrica2',  keyHorario:null},
+  {nome:'2ª Chegada na Transportadora', campo:'data', key:'data_chegada_transp2', keyHorario:null},
+  {nome:'2ª Entrega',                campo:'data', key:'data_entrega2',        keyHorario:'horario_entrega2'},
+  {nome:'2ª Montagem',               campo:'data', key:'data_montagem2',       keyHorario:'horario_montagem2'},
+  {nome:'ASTECA',                    campo:'data', key:'data_asteca',          keyHorario:null},
 ];
 const ETAPAS_TOTAL=ETAPAS.length;
 const {createClient}=supabase;
@@ -1643,7 +1643,8 @@ function renderProjeto(p){
     let extraHtml='';
     if(et.campo==='data'&&et.key&&p[et.key]){
       const d=new Date(p[et.key]+'T12:00:00').toLocaleDateString('pt-BR');
-      extraHtml=`<div style="font-size:11px;color:var(--accent);margin-top:2px;">📅 ${d}</div>`;
+      const h=et.keyHorario&&p[et.keyHorario]?` às ${p[et.keyHorario]}`:'';
+      extraHtml=`<div style="font-size:11px;color:var(--accent);margin-top:2px;">📅 ${d}${h}</div>`;
     }
     if(et.campo==='arquivo'&&et.key&&p[et.key]){
       extraHtml=`<div style="margin-top:4px;"><a href="${p[et.key]}" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;">📎 Ver orçamento</a></div>`;
@@ -1659,10 +1660,17 @@ function renderProjeto(p){
   if(isStaff&&etAtual){
     if(etAtual.campo==='data'){
       const valAtual=etAtual.key&&p[etAtual.key]?p[etAtual.key]:'';
+      const temHorario=!!etAtual.keyHorario;
+      const valHorario=temHorario&&p[etAtual.keyHorario]?p[etAtual.keyHorario]:'';
+      const campoHorarioHtml=temHorario?`
+        <input type="time" id="campo-hora-${p.id}" value="${valHorario}" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+      `:'';
+      const keyHorarioParam=temHorario?`'${etAtual.keyHorario}'`:'null';
       campoExtra=`<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
         <label style="font-size:12px;color:var(--text2);font-weight:500;">📅 Data de ${etAtual.nome}:</label>
         <input type="date" id="campo-data-${p.id}" value="${valAtual}" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
-        <button onclick="salvarCampoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-data-${p.id}').value)" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar data</button>
+        ${campoHorarioHtml}
+        <button onclick="salvarCampoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-data-${p.id}').value,${keyHorarioParam},${temHorario}?document.getElementById('campo-hora-${p.id}').value:null)" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar data</button>
       </div>`;
     }
     if(etAtual.campo==='arquivo_simples'){
@@ -1774,7 +1782,7 @@ async function sincronizarProjetoProj(projetoId, tipo, docId){
     const res = await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({projeto_id:projetoId, tipo, doc_id:docId})
+      body:JSON.stringify({projeto_id:projetoId, tipo:tipo, doc_id:docId})
     });
     const json = await res.json();
     if(!res.ok) throw new Error(json.error||'Erro desconhecido');
@@ -1819,9 +1827,12 @@ async function avancarEtapa(id,novaEtapa){
   }catch(e){console.warn('Notificação não enviada:',e);}
 }
 
-async function salvarCampoEtapa(projetoId,campo,valor){
+async function salvarCampoEtapa(projetoId,campo,valor,campoHorario,horario){
   if(!campo||!valor){notify('Informe a data.','error');return}
-  const {error}=await db.from('projetos').update({[campo]:valor}).eq('id',projetoId);
+  if(campoHorario&&!horario){notify('Informe o horário.','error');return}
+  const update={[campo]:valor};
+  if(campoHorario&&horario)update[campoHorario]=horario;
+  const {error}=await db.from('projetos').update(update).eq('id',projetoId);
   if(error){notify('Erro ao salvar data.','error');return}
   notify('Data salva!');
   const _dv=document.getElementById('proj-detalhe-view');
