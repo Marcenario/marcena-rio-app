@@ -1774,7 +1774,7 @@ async function sincronizarProjetoProj(projetoId, tipo, docId){
     const res = await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({projeto_id:projetoId, tipo:tipo, doc_id:docId})
+      body:JSON.stringify({projeto_id:projetoId, tipo, doc_id:docId})
     });
     const json = await res.json();
     if(!res.ok) throw new Error(json.error||'Erro desconhecido');
