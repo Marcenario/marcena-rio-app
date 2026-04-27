@@ -3600,17 +3600,15 @@ function renderAmbsAt(){
 /* ── SALVAR ATENDIMENTO ── */
 async function gerarNumeroAtendimento(empresa){
   const hoje = new Date();
-  const dia = String(hoje.getDate()).padStart(2,'0');
   const mes = String(hoje.getMonth()+1).padStart(2,'0');
-  const prefixo = dia+mes;
-  // Busca quantos atendimentos já existem hoje nesta empresa
-  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+  const mesRef = hoje.toISOString().slice(0,7);
+  // Busca quantos atendimentos já existem no mês nesta empresa
   const {data} = await db.from('atendimentos')
     .select('id')
     .eq('empresa', empresa)
-    .gte('created_at', inicioHoje);
-  const seq = String((data?.length||0)+1).padStart(2,'0');
-  return `${prefixo}-${seq}`;
+    .eq('mes_ref', mesRef);
+  const seq = String((data?.length||0)+1).padStart(3,'0');
+  return `${seq}${mes}`;
 }
 
 async function salvarAtendimento(){
