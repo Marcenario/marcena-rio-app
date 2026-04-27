@@ -2636,14 +2636,14 @@ async function loadDashProjetos() {
 async function loadDashMontagem(mes) {
   const cont = document.getElementById('dash-mont-content');
   const [{data: pedidos},{data: equipes},{data: ocorrs}] = await Promise.all([
-    db.from('pedidos_montagem').select('status,tipo_servico,equipe_id'),
+    db.from('pedidos_montagem').select('status,tipo,equipe_id'),
     db.from('equipes_montagem').select('id,nome,produtividade_atual'),
-    db.from('ocorrencias').select('tipo,created_at').gte('created_at', mes+'-01')
+    db.from('ocorrencias_montagem').select('tipo,created_at').gte('created_at', mes+'-01')
   ]);
 
   const pends = (pedidos||[]).filter(p=>p.status==='pendente'||p.status==='agendado');
-  const montagem = pends.filter(p=>!p.tipo_servico||p.tipo_servico!=='asteca');
-  const asteca = pends.filter(p=>p.tipo_servico==='asteca');
+  const montagem = pends.filter(p=>!p.tipo||p.tipo!=='asteca');
+  const asteca = pends.filter(p=>p.tipo==='asteca');
 
   // Carga por equipe
   const carga = {};
