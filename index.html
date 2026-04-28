@@ -687,6 +687,12 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
       <!-- ATESTADO -->
       <div id="rh-atestado" style="display:none">
+        <div id="rh-atestados-admin" style="margin-bottom:1rem;display:none;">
+          <div class="card" style="border-left:3px solid var(--accent);">
+            <div class="card-title" style="margin-bottom:0.75rem;">📋 Atestados aguardando aprovação</div>
+            <div id="rh-atestados-admin-list"><div class="loader">Carregando...</div></div>
+          </div>
+        </div>
         <div class="card">
           <div class="card-title" style="margin-bottom:0.75rem;">Solicitar abono por atestado</div>
           <div class="info-box">Envie a foto do atestado médico. O administrador irá analisar e aprovar o abono.</div>
@@ -3226,6 +3232,32 @@ async function enviarAtestado() {
 
 async function loadMeusAtestados() {
   const cont = document.getElementById('rh-atestados-list');
+
+  // Se admin, carrega todos os pendentes
+  if(userNivel === 'admin'){
+    const adminCont = document.getElementById('rh-atestados-admin');
+    const adminList = document.getElementById('rh-atestados-admin-list');
+    const {data: pendentes} = await db.from('rh_atestados').select('*,rh_funcionarios(nome)').eq('status','pendente').order('created_at',{ascending:false});
+    if(pendentes && pendentes.length > 0){
+      adminCont.style.display = 'block';
+      adminList.innerHTML = pendentes.map(a => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:600;">${a.rh_funcionarios?.nome||'Funcionário'}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px;">A partir de ${new Date(a.data_inicial+'T12:00:00').toLocaleDateString('pt-BR')} · ${a.dias} dia(s)</div>
+            <div style="font-size:11px;color:var(--text3);">${a.observacao||''}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            ${a.foto_url?`<a href="${a.foto_url}" target="_blank" style="font-size:12px;color:var(--blue);">📎 Ver atestado</a>`:''}
+            <button onclick="aprovarAtestado('${a.id}','aprovado')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✅ Aprovar</button>
+            <button onclick="aprovarAtestado('${a.id}','rejeitado')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">❌ Rejeitar</button>
+          </div>
+        </div>`).join('');
+    } else {
+      adminCont.style.display = 'none';
+    }
+  }
+
   const {data: func} = await db.from('rh_funcionarios').select('id').eq('user_id', currentUser.id).single();
   if(!func) return;
   const {data} = await db.from('rh_atestados').select('*').eq('funcionario_id', func.id).order('created_at', {ascending: false});
@@ -3488,7 +3520,8 @@ async function loadRelatoriosRH() {
 /* ── ATESTADOS ADMIN ── */
 async function aprovarAtestado(id, acao) {
   await db.from('rh_atestados').update({status: acao}).eq('id', id);
-  notify(acao === 'aprovado' ? 'Atestado aprovado!' : 'Atestado rejeitado.');
+  notify(acao === 'aprovado' ? '✅ Atestado aprovado!' : '❌ Atestado rejeitado.');
+  loadMeusAtestados();
 }
 
 
