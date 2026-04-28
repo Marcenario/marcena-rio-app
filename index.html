@@ -1833,7 +1833,7 @@ async function enviarProjetoAssinatura(projetoId, tipo, origem){
 async function sincronizarProjetoProj(projetoId, tipo, docId){
   notify('Verificando assinatura...','info');
   try{
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`,{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura-projetos`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
       body:JSON.stringify({projeto_id:projetoId, tipo:tipo, doc_id:docId})
@@ -4248,7 +4248,7 @@ async function sincronizarProjetoAt(atId, tipo){
   if(!docId){notify('Nenhum documento enviado para assinatura.','error');return}
   notify('Verificando assinatura...','info');
   try{
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`,{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura-projetos`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
       body:JSON.stringify({atendimento_id:atId, tipo, doc_id:docId})
