@@ -381,6 +381,17 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <button class="nav-item" id="mt-nav-relatorio" style="display:none" onclick="showSubMontagem('mt-relatorio',this)">Relatório</button>
       </div>
       <div id="mt-fila">
+        <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
+          <input type="text" id="mt-busca" placeholder="🔍 Buscar por nome, contrato..." oninput="filtrarFilaMt(this.value)"
+            style="flex:1;min-width:200px;padding:9px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+          <select id="mt-filtro-status" onchange="filtrarFilaMt(document.getElementById('mt-busca').value)"
+            style="padding:9px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+            <option value="">Todos</option>
+            <option value="agendado">Aguardando</option>
+            <option value="em_montagem">Em montagem</option>
+            <option value="concluido">Concluídos</option>
+          </select>
+        </div>
         <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
           <div class="stat-card"><div class="stat-num" id="mt-st-ag">—</div><div class="stat-label">Aguardando</div></div>
           <div class="stat-card"><div class="stat-num" id="mt-st-em">—</div><div class="stat-label">Em montagem</div></div>
@@ -477,6 +488,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <div id="at-funil">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="at-busca" placeholder="🔍 Buscar por nome, telefone, e-mail..." oninput="filtrarFunil(this.value)"
+              style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;min-width:220px;">
             <select id="at-filtro-mes" onchange="loadFunil()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
             </select>
             <select id="at-filtro-vendedor" onchange="loadFunil()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
@@ -2189,11 +2202,31 @@ async function loadFilaMt(){
   const {data}=await db.from('pedidos_montagem').select('*').order('created_at',{ascending:true});
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum pedido na fila.</p></div>';
     ['mt-st-ag','mt-st-em','mt-st-co','mt-st-vl'].forEach(id=>document.getElementById(id).textContent='0');return}
+  window._todosPedidosMt=data;
   document.getElementById('mt-st-ag').textContent=data.filter(p=>p.status==='aguardando').length;
   document.getElementById('mt-st-em').textContent=data.filter(p=>p.status==='em_montagem').length;
   document.getElementById('mt-st-co').textContent=data.filter(p=>p.status==='concluido').length;
   document.getElementById('mt-st-vl').textContent=fmt(data.filter(p=>p.status!=='concluido').reduce((s,p)=>s+p.valor_total,0));
-  // ASTECA aparece primeiro (urgente)
+  renderFilaMtLista(data);
+}
+
+function filtrarFilaMt(busca){
+  let lista=window._todosPedidosMt||[];
+  const status=document.getElementById('mt-filtro-status')?.value||'';
+  if(busca&&busca.trim()){
+    const q=busca.toLowerCase().trim();
+    lista=lista.filter(p=>
+      (p.cliente_nome||'').toLowerCase().includes(q)||
+      (p.numero_contrato||'').toLowerCase().includes(q)||
+      (p.equipe_nome||'').toLowerCase().includes(q)
+    );
+  }
+  if(status) lista=lista.filter(p=>p.status===status);
+  renderFilaMtLista(lista);
+}
+
+function renderFilaMtLista(data){
+  const cont=document.getElementById('mt-fila-content');
   const ativos=data.filter(p=>p.status!=='concluido').sort((a,b)=>{
     if(a.tipo==='asteca'&&b.tipo!=='asteca')return -1;
     if(a.tipo!=='asteca'&&b.tipo==='asteca')return 1;
@@ -2203,6 +2236,7 @@ async function loadFilaMt(){
   let html='';
   if(ativos.length)html+=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Em andamento (${ativos.length})</div>`+ativos.map(p=>renderPedidoMt(p)).join('');
   if(concl.length)html+=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin:16px 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Concluídos (${concl.length})</div>`+concl.map(p=>renderPedidoMt(p)).join('');
+  if(!html)html='<div class="empty-state"><p>Nenhum resultado encontrado.</p></div>';
   cont.innerHTML=html;
 }
 
@@ -4211,10 +4245,33 @@ async function loadFunil(){
 
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum atendimento encontrado.</p></div>';return}
 
-  const todos=data||[];
+  window._todosAtendimentos=data||[];
+  const busca=document.getElementById('at-busca')?.value||'';
+  renderFunilLista(filtrarAtendimentos(window._todosAtendimentos, busca));
+}
+
+function filtrarAtendimentos(lista, busca){
+  if(!busca||!busca.trim())return lista;
+  const q=busca.toLowerCase().trim();
+  return lista.filter(a=>
+    (a.cliente_nome||'').toLowerCase().includes(q)||
+    (a.cliente_tel||'').toLowerCase().includes(q)||
+    (a.cliente_email||'').toLowerCase().includes(q)||
+    (a.ambiente_desejado||'').toLowerCase().includes(q)||
+    (a.vendedor_nome||'').toLowerCase().includes(q)
+  );
+}
+
+function filtrarFunil(busca){
+  const lista=window._todosAtendimentos||[];
+  renderFunilLista(filtrarAtendimentos(lista, busca));
+}
+
+function renderFunilLista(todos){
+  const cont=document.getElementById('at-funil-content');
   const hoje=new Date();
 
-  function buildColuna(label, cor, bg, cards, totalVal){
+function buildColuna(label, cor, bg, cards, totalVal){
     const cardHtml=cards.length
       ?cards.map(a=>renderFunilCard(a,cor)).join('')
       :`<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum atendimento</div>`;
