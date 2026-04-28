@@ -312,17 +312,6 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <div id="solicitar" class="section active">
       <div class="card">
         <div class="card-header"><div><div class="card-title">Nova solicitação de orçamento</div><div class="card-sub">Preencha as informações para iniciarmos seu projeto</div></div></div>
-        <div style="margin-bottom:1.25rem;">
-          <label style="display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:8px;">Loja</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button id="orc-emp-mr" onclick="setEmpresaOrc('marcenario',this)" class="at-tipo-btn active" style="padding:10px;display:flex;align-items:center;justify-content:center;">
-              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;">
-            </button>
-            <button id="orc-emp-ct" onclick="setEmpresaOrc('conceptus',this)" class="at-tipo-btn" style="padding:10px;display:flex;align-items:center;justify-content:center;">
-              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:28px;object-fit:contain;max-width:100%;">
-            </button>
-          </div>
-        </div>
         <div class="form-grid">
           <div class="form-row"><label>Nome completo</label><input type="text" id="orc-nome" placeholder="Seu nome completo"></div>
           <div class="form-row"><label>Telefone / WhatsApp</label><input type="text" id="orc-tel" placeholder="(21) 99999-0000"></div>
@@ -946,6 +935,12 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <div class="stat-card"><div class="stat-num" id="stat-pendentes">—</div><div class="stat-label">Aguardando ação</div></div>
         <div class="stat-card"><div class="stat-num" id="stat-concluidos">—</div><div class="stat-label">Concluídos</div></div>
       </div>
+      <div class="card" id="sol-empresa-card" style="display:none;">
+        <div class="card-header">
+          <div class="card-title">🔄 Solicitações de mudança de empresa</div>
+        </div>
+        <div id="sol-empresa-content"><div class="loader">Carregando...</div></div>
+      </div>
       <div class="card">
         <div class="card-header"><div class="card-title">Todos os projetos</div></div>
         <div id="admin-projetos"><div class="loader">Carregando...</div></div>
@@ -1513,7 +1508,7 @@ async function enviarOrcamento(){
   if(!nome||!ambiente){setAlert('orc-alert','Preencha nome e ambiente.','error');return}
   const btn=document.getElementById('btn-orc');btn.disabled=true;btn.textContent='Enviando...';
   setAlert('orc-alert','','');
-  const {data:proj,error}=await db.from('projetos').insert({titulo:ambiente+(desc?' — '+desc.substring(0,40):''),ambiente,descricao:desc,prazo_desejado:investimento,etapa_atual:1,cliente_email:currentUser.email,cliente_nome:nome,cliente_tel:tel,user_id:currentUser.id,empresa:orcEmpresa}).select().single();
+  const {data:proj,error}=await db.from('projetos').insert({titulo:ambiente+(desc?' — '+desc.substring(0,40):''),ambiente,descricao:desc,prazo_desejado:investimento,etapa_atual:1,cliente_email:currentUser.email,cliente_nome:nome,cliente_tel:tel,user_id:currentUser.id,empresa:'marcenario'}).select().single();
   btn.disabled=false;btn.textContent='Enviar solicitação';
   if(error){setAlert('orc-alert','Erro ao enviar. Tente novamente.','error');return}
   const arquivoUrl=await uploadArquivo(proj.id);
@@ -1782,15 +1777,36 @@ function renderProjeto(p){
     }
   }
 
-  // Seletor de empresa para admin
-  const empAtual=p.empresa||'marcenario';
-  const seletorEmpresa=userNivel==='admin'?`
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-      <span style="font-size:11px;color:var(--text2);font-weight:500;">Empresa:</span>
-      <button onclick="definirEmpresaProjeto('${p.id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${empAtual==='marcenario'?'#6b4c2a':'var(--border2)'};background:${empAtual==='marcenario'?'#6b4c2a':'transparent'};color:${empAtual==='marcenario'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
-      <button onclick="definirEmpresaProjeto('${p.id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${empAtual==='conceptus'?'#1a3a6e':'var(--border2)'};background:${empAtual==='conceptus'?'#1a3a6e':'transparent'};color:${empAtual==='conceptus'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus Italínea</button>
-    </div>`:'';
-
+  // Seletor de empresa para staff
+  const empAtual=p.empresa||'';
+  const empNome=empAtual==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  let seletorEmpresa='';
+  if(isStaff){
+    if(!empAtual){
+      // Empresa ainda não definida — funcionário pode escolher
+      seletorEmpresa=`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;background:#fff8f0;border:1px solid var(--accent);border-radius:8px;padding:8px 12px;">
+          <span style="font-size:11px;color:var(--accent);font-weight:600;">Escolha a empresa:</span>
+          <button onclick="definirEmpresaProjeto('${p.id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid #6b4c2a;background:#6b4c2a;color:#fff;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
+          <button onclick="definirEmpresaProjeto('${p.id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid #1a3a6e;background:#1a3a6e;color:#fff;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus Italínea</button>
+        </div>`;
+    } else if(userNivel==='admin'){
+      // Admin pode trocar livremente
+      seletorEmpresa=`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:var(--text2);font-weight:500;">Empresa:</span>
+          <button onclick="definirEmpresaProjeto('${p.id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${empAtual==='marcenario'?'#6b4c2a':'var(--border2)'};background:${empAtual==='marcenario'?'#6b4c2a':'transparent'};color:${empAtual==='marcenario'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
+          <button onclick="definirEmpresaProjeto('${p.id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${empAtual==='conceptus'?'#1a3a6e':'var(--border2)'};background:${empAtual==='conceptus'?'#1a3a6e':'transparent'};color:${empAtual==='conceptus'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus Italínea</button>
+        </div>`;
+    } else {
+      // Funcionário — empresa já definida, só pode solicitar mudança
+      seletorEmpresa=`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:var(--text2);font-weight:500;">Empresa: <strong>${empNome}</strong></span>
+          <button onclick="solicitarMudancaEmpresa('${p.id}','${empAtual}')" style="padding:4px 12px;border-radius:16px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Solicitar mudança</button>
+        </div>`;
+    }
+  }
   const staffCtrl=isStaff?`${seletorEmpresa}<div class="step-control">
     <button class="btn-step-back" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)-1})" ${(p.etapa_atual||1)<=1?'disabled':''}>← Voltar</button>
     <button class="btn-step" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1)>=ETAPAS_TOTAL?'disabled':''}>Avançar →</button>
@@ -1854,6 +1870,60 @@ async function sincronizarProjetoProj(projetoId, tipo, docId){
   }catch(e){
     notify('Erro: '+e.message,'error');
   }
+}
+
+async function solicitarMudancaEmpresa(projetoId, empresaAtual){
+  const outra = empresaAtual==='marcenario'?'conceptus':'marcenario';
+  const outraNome = outra==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  const motivo = prompt(`Para solicitar mudança para ${outraNome}, informe o motivo:`);
+  if(!motivo) return;
+  const {error} = await db.from('solicitacoes_empresa').insert({
+    projeto_id: projetoId,
+    empresa_atual: empresaAtual,
+    empresa_solicitada: outra,
+    solicitado_por: currentUser.email,
+    motivo,
+    status: 'pendente'
+  });
+  if(error){ notify('Erro ao enviar solicitação.','error'); return; }
+  notify('Solicitação enviada ao administrador! ✅');
+}
+
+async function aprovarSolicitacaoEmpresa(solId, projetoId, empresaNova){
+  const {error} = await db.from('projetos').update({empresa: empresaNova}).eq('id', projetoId);
+  if(error){ notify('Erro ao atualizar empresa.','error'); return; }
+  await db.from('solicitacoes_empresa').update({status:'aprovado'}).eq('id', solId);
+  notify('Empresa atualizada com sucesso! ✅');
+  loadSolicitacoesEmpresa();
+  loadProjetos();
+}
+
+async function rejeitarSolicitacaoEmpresa(solId){
+  await db.from('solicitacoes_empresa').update({status:'rejeitado'}).eq('id', solId);
+  notify('Solicitação rejeitada.');
+  loadSolicitacoesEmpresa();
+}
+
+async function loadSolicitacoesEmpresa(){
+  const cont = document.getElementById('sol-empresa-content');
+  if(!cont) return;
+  const {data} = await db.from('solicitacoes_empresa').select('*').eq('status','pendente').order('created_at',{ascending:false});
+  if(!data||!data.length){ cont.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhuma solicitação pendente.</div>'; return; }
+  cont.innerHTML=data.map(s=>{
+    const empNova=s.empresa_solicitada==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+    const empAtual=s.empresa_atual==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+    const dataStr=new Date(s.created_at).toLocaleDateString('pt-BR');
+    return `<div class="card" style="margin-bottom:8px;">
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px;">Mudança de empresa solicitada</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">${empAtual} → <strong>${empNova}</strong></div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">Solicitado por: ${s.solicitado_por} · ${dataStr}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Motivo: ${s.motivo||'—'}</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="aprovarSolicitacaoEmpresa('${s.id}','${s.projeto_id}','${s.empresa_solicitada}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">✅ Aprovar</button>
+        <button onclick="rejeitarSolicitacaoEmpresa('${s.id}')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">❌ Rejeitar</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function definirEmpresaProjeto(id, empresa){
@@ -1965,6 +2035,17 @@ async function loadAdmin(){
   document.getElementById('stat-ativos').textContent=data.filter(p=>p.etapa_atual<ETAPAS_TOTAL&&p.etapa_atual>1).length;
   document.getElementById('stat-pendentes').textContent=data.filter(p=>p.etapa_atual===1).length;
   document.getElementById('stat-concluidos').textContent=data.filter(p=>p.etapa_atual>=ETAPAS_TOTAL).length;
+
+  // Carregar solicitações de mudança de empresa
+  const {data:sols}=await db.from('solicitacoes_empresa').select('*').eq('status','pendente');
+  const solCard=document.getElementById('sol-empresa-card');
+  if(sols&&sols.length>0){
+    solCard.style.display='block';
+    loadSolicitacoesEmpresa();
+  } else {
+    solCard.style.display='none';
+  }
+
   const cont=document.getElementById('admin-projetos');
   if(!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum projeto.</p></div>';return}
   cont.innerHTML=data.map(p=>{
