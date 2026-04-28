@@ -1812,16 +1812,17 @@ async function enviarProjetoAssinatura(projetoId, tipo, origem){
   if(!item){notify('Registro não encontrado.','error');return}
   const email = item.cliente_email;
   if(!email){notify('E-mail do cliente não cadastrado neste projeto.','error');return}
-  const campoUrl = tipo==='projeto_venda'?'projeto_venda_url':'projeto_exec_url';
-  const pdfUrl = item[campoUrl];
-  if(!pdfUrl){notify('Faça o upload do PDF primeiro.','error');return}
+  // Pegar e-mail e nome do usuário logado como responsável
+  const responsavel_email = currentUser?.email || '';
+  const {data:perfil} = await db.from('usuarios').select('nome').eq('email', responsavel_email).single();
+  const responsavel_nome = perfil?.nome || responsavel_email;
   notify('Enviando para assinatura...','info');
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/assinar-projeto-atendimento`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({registro_id:projetoId, tipo, pdf_url:pdfUrl, tabela,
-        cliente_email:email, cliente_nome:item.cliente_nome||'Cliente'})
+      body:JSON.stringify({registro_id:projetoId, tipo, tabela,
+        responsavel_email, responsavel_nome})
     });
     const json = await res.json();
     if(!res.ok) throw new Error(json.error||'Erro desconhecido');
