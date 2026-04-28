@@ -1299,6 +1299,7 @@ const ETAPAS=[
   {nome:'Conferência de medidas',    campo:'data', key:'data_conf_medidas',    keyHorario:'horario_conf_medidas'},
   {nome:'Elaboração do projeto executivo', campo:null, key:null,              keyHorario:null},
   {nome:'Apresentação do projeto executivo', campo:'data', key:'data_apres_exec', keyHorario:'horario_apres_exec'},
+  {nome:'Projeto Executivo',               campo:'assinatura', key:'projeto_exec_url', keyHorario:null},
   {nome:'Produção',                  campo:'data_producao', key:'data_producao', keyHorario:null},
   {nome:'Saída da fábrica',          campo:'data', key:'data_saida_fabrica',   keyHorario:null},
   {nome:'Chegada na Transportadora', campo:'data', key:'data_chegada_transp',  keyHorario:null},
@@ -1694,7 +1695,7 @@ function renderProjeto(p){
       extraHtml=`<span style="${estiloProd}">${iconeProd}PRAZO CONTRATUAL: ${dProd}</span>`;
     }
     // Separador visual para 2ª produção
-    const sep=(i===15)?'<div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px 0;padding-left:32px;">2ª Produção</div>':'';
+    const sep=(i===16)?'<div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px 0;padding-left:32px;">2ª Produção</div>':'';
     const isProd=et.campo==='data_producao';
     const isPrazoConf=i===8&&isStaff&&p.prazo_conferencia;
     const nomeHtml=(isProd||isPrazoConf)
