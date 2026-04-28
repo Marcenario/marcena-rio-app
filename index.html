@@ -2258,7 +2258,10 @@ function renderPedidoMt(p){
       </div>`).join('')}
     </div>
     ${checklistHtml}
-    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">${btnC}${btnE}</div>
+    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;">
+      ${userNivel==='admin'?`<button onclick="abrirTrocarEquipe('${p.id}')" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;">👷 Trocar equipe</button>`:''}
+      ${btnC}${btnE}
+    </div>
   </div>`;
 }
 
@@ -2317,10 +2320,58 @@ async function loadEquipes(){
   }).join('')}</div>`;
 }
 
+async function abrirTrocarEquipe(pedidoId){
+  const {data:eqs}=await db.from('equipes_montagem').select('id,nome').order('nome');
+  const {data:p}=await db.from('pedidos_montagem').select('equipe_id,equipe_nome').eq('id',pedidoId).single();
+  if(!eqs||!eqs.length){notify('Nenhuma equipe cadastrada.','error');return;}
+  const opts=eqs.map(e=>`<option value="${e.id}" ${e.id===p?.equipe_id?'selected':''}>${e.nome}</option>`).join('');
+  const novoId=prompt(`Equipe atual: ${p?.equipe_nome||'—'}\nEscolha o número da equipe:\n${eqs.map((e,i)=>`${i+1}. ${e.nome}`).join('\n')}\n\nDigite o número:`);
+  if(!novoId)return;
+  const idx=parseInt(novoId)-1;
+  if(isNaN(idx)||idx<0||idx>=eqs.length){notify('Número inválido.','error');return;}
+  const novaEquipe=eqs[idx];
+  const {error}=await db.from('pedidos_montagem').update({equipe_id:novaEquipe.id,equipe_nome:novaEquipe.nome}).eq('id',pedidoId);
+  if(error){notify('Erro ao trocar equipe.','error');return;}
+  notify(`Equipe alterada para ${novaEquipe.nome}!`);
+  loadFilaMt();
+}
+
 async function excluirEquipe(id){
-  if(!confirm('Excluir esta equipe?'))return;
-  await db.from('equipes_montagem').delete().eq('id',id);
-  notify('Equipe excluída.');loadEquipes();
+  if(!confirm('Excluir esta equipe? As montagens em andamento serão redistribuídas automaticamente.'))return;
+
+  // Buscar pedidos em andamento desta equipe
+  const {data:pedidosAtivos}=await db.from('pedidos_montagem').select('id,valor_total').eq('equipe_id',id).in('status',['agendado','em_montagem']);
+
+  // Redistribuir pedidos ativos
+  if(pedidosAtivos&&pedidosAtivos.length>0){
+    const {data:eqs}=await db.from('equipes_montagem').select('*').neq('id',id).order('produtividade_atual',{ascending:false});
+    if(eqs&&eqs.length>0){
+      const {data:ativos}=await db.from('pedidos_montagem').select('equipe_id,valor_total').in('status',['agendado','em_montagem']).neq('equipe_id',id);
+      const carga={};eqs.forEach(e=>carga[e.id]=0);
+      if(ativos)ativos.forEach(p=>{if(carga[p.equipe_id]!==undefined)carga[p.equipe_id]+=p.valor_total});
+
+      for(const pedido of pedidosAtivos){
+        const sorted=[...eqs].sort((a,b)=>{
+          const ratioA=carga[a.id]/(a.produtividade_atual||1);
+          const ratioB=carga[b.id]/(b.produtividade_atual||1);
+          return ratioA-ratioB;
+        });
+        const novaEquipe=sorted[0];
+        await db.from('pedidos_montagem').update({equipe_id:novaEquipe.id,equipe_nome:novaEquipe.nome}).eq('id',pedido.id);
+        carga[novaEquipe.id]+=(pedido.valor_total||0);
+      }
+    } else {
+      await db.from('pedidos_montagem').update({equipe_id:null,equipe_nome:null}).eq('equipe_id',id).in('status',['agendado','em_montagem']);
+    }
+  }
+
+  // Dessvincular pedidos concluídos (mantém histórico)
+  await db.from('pedidos_montagem').update({equipe_id:null}).eq('equipe_id',id).eq('status','concluido');
+
+  const {error}=await db.from('equipes_montagem').delete().eq('id',id);
+  if(error){notify('Erro ao excluir equipe: '+error.message,'error');return;}
+  notify('Equipe excluída e montagens redistribuídas!');
+  loadEquipes();
 }
 
 async function loadRelatorio(){
