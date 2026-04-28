@@ -1783,10 +1783,10 @@ function renderProjeto(p){
   let seletorEmpresa='';
   if(isStaff){
     if(!empAtual){
-      // Empresa ainda não definida — funcionário pode escolher com logos
+      // Empresa ainda não definida — todos podem escolher com logos
       seletorEmpresa=`
         <div style="margin-bottom:10px;">
-          <label style="display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:8px;">Escolha a empresa:</label>
+          <label style="display:block;font-size:12px;color:var(--accent);font-weight:600;margin-bottom:8px;">⚠️ Escolha a empresa do cliente:</label>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <button onclick="definirEmpresaProjeto('${p.id}','marcenario')" class="at-tipo-btn" style="padding:10px;display:flex;align-items:center;justify-content:center;">
               <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;">
@@ -1797,18 +1797,14 @@ function renderProjeto(p){
           </div>
         </div>`;
     } else if(userNivel==='admin'){
-      // Admin pode trocar livremente com logos
+      // Admin — mostra empresa atual com opção de trocar
+      const outra=empAtual==='marcenario'?'conceptus':'marcenario';
+      const outraNome=outra==='conceptus'?'Conceptus Italínea':'Marcena Rio';
       seletorEmpresa=`
-        <div style="margin-bottom:10px;">
-          <label style="display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:8px;">Empresa:</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button onclick="definirEmpresaProjeto('${p.id}','marcenario')" class="at-tipo-btn ${empAtual==='marcenario'?'active':''}" style="padding:10px;display:flex;align-items:center;justify-content:center;">
-              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;">
-            </button>
-            <button onclick="definirEmpresaProjeto('${p.id}','conceptus')" class="at-tipo-btn ${empAtual==='conceptus'?'active':''}" style="padding:10px;display:flex;align-items:center;justify-content:center;">
-              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:28px;object-fit:contain;max-width:100%;">
-            </button>
-          </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:var(--text2);font-weight:500;">Empresa:</span>
+          <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_${empAtual==='marcenario'?'marcenario':'conceptus'}.png.png" style="height:22px;object-fit:contain;">
+          <button onclick="definirEmpresaProjeto('${p.id}','${outra}')" style="padding:3px 10px;border-radius:14px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;">🔄 Trocar para ${outraNome}</button>
         </div>`;
     } else {
       // Funcionário — empresa já definida, só pode solicitar mudança
