@@ -1814,8 +1814,7 @@ async function enviarProjetoAssinatura(projetoId, tipo, origem){
   if(!email){notify('E-mail do cliente não cadastrado neste projeto.','error');return}
   // Pegar e-mail e nome do usuário logado como responsável
   const responsavel_email = currentUser?.email || '';
-  const {data:perfil} = await db.from('usuarios').select('nome').eq('email', responsavel_email).single();
-  const responsavel_nome = perfil?.nome || responsavel_email;
+  const responsavel_nome = currentUser?.user_metadata?.nome || currentUser?.email || 'Responsável';
   notify('Enviando para assinatura...','info');
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/assinar-projeto-atendimento`,{
