@@ -1508,7 +1508,7 @@ async function enviarOrcamento(){
   if(!nome||!ambiente){setAlert('orc-alert','Preencha nome e ambiente.','error');return}
   const btn=document.getElementById('btn-orc');btn.disabled=true;btn.textContent='Enviando...';
   setAlert('orc-alert','','');
-  const {data:proj,error}=await db.from('projetos').insert({titulo:ambiente+(desc?' — '+desc.substring(0,40):''),ambiente,descricao:desc,prazo_desejado:investimento,etapa_atual:1,cliente_email:currentUser.email,cliente_nome:nome,cliente_tel:tel,user_id:currentUser.id,empresa:'marcenario'}).select().single();
+  const {data:proj,error}=await db.from('projetos').insert({titulo:ambiente+(desc?' — '+desc.substring(0,40):''),ambiente,descricao:desc,prazo_desejado:investimento,etapa_atual:1,cliente_email:currentUser.email,cliente_nome:nome,cliente_tel:tel,user_id:currentUser.id}).select().single();
   btn.disabled=false;btn.textContent='Enviar solicitação';
   if(error){setAlert('orc-alert','Erro ao enviar. Tente novamente.','error');return}
   const arquivoUrl=await uploadArquivo(proj.id);
@@ -1783,20 +1783,32 @@ function renderProjeto(p){
   let seletorEmpresa='';
   if(isStaff){
     if(!empAtual){
-      // Empresa ainda não definida — funcionário pode escolher
+      // Empresa ainda não definida — funcionário pode escolher com logos
       seletorEmpresa=`
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;background:#fff8f0;border:1px solid var(--accent);border-radius:8px;padding:8px 12px;">
-          <span style="font-size:11px;color:var(--accent);font-weight:600;">Escolha a empresa:</span>
-          <button onclick="definirEmpresaProjeto('${p.id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid #6b4c2a;background:#6b4c2a;color:#fff;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
-          <button onclick="definirEmpresaProjeto('${p.id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid #1a3a6e;background:#1a3a6e;color:#fff;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus Italínea</button>
+        <div style="margin-bottom:10px;">
+          <label style="display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:8px;">Escolha a empresa:</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button onclick="definirEmpresaProjeto('${p.id}','marcenario')" class="at-tipo-btn" style="padding:10px;display:flex;align-items:center;justify-content:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;">
+            </button>
+            <button onclick="definirEmpresaProjeto('${p.id}','conceptus')" class="at-tipo-btn" style="padding:10px;display:flex;align-items:center;justify-content:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:28px;object-fit:contain;max-width:100%;">
+            </button>
+          </div>
         </div>`;
     } else if(userNivel==='admin'){
-      // Admin pode trocar livremente
+      // Admin pode trocar livremente com logos
       seletorEmpresa=`
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-          <span style="font-size:11px;color:var(--text2);font-weight:500;">Empresa:</span>
-          <button onclick="definirEmpresaProjeto('${p.id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${empAtual==='marcenario'?'#6b4c2a':'var(--border2)'};background:${empAtual==='marcenario'?'#6b4c2a':'transparent'};color:${empAtual==='marcenario'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
-          <button onclick="definirEmpresaProjeto('${p.id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${empAtual==='conceptus'?'#1a3a6e':'var(--border2)'};background:${empAtual==='conceptus'?'#1a3a6e':'transparent'};color:${empAtual==='conceptus'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus Italínea</button>
+        <div style="margin-bottom:10px;">
+          <label style="display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:8px;">Empresa:</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button onclick="definirEmpresaProjeto('${p.id}','marcenario')" class="at-tipo-btn ${empAtual==='marcenario'?'active':''}" style="padding:10px;display:flex;align-items:center;justify-content:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;">
+            </button>
+            <button onclick="definirEmpresaProjeto('${p.id}','conceptus')" class="at-tipo-btn ${empAtual==='conceptus'?'active':''}" style="padding:10px;display:flex;align-items:center;justify-content:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:28px;object-fit:contain;max-width:100%;">
+            </button>
+          </div>
         </div>`;
     } else {
       // Funcionário — empresa já definida, só pode solicitar mudança
@@ -3952,10 +3964,60 @@ async function loadVendedores(){
   }).join('')+'</div>';
 }
 
+async function alterarVendedorAt(atId){
+  const sel=document.getElementById(`select-vendedor-${atId}`);
+  const novoId=sel.value;
+  const novoNome=novoId?sel.options[sel.selectedIndex].text:'';
+  const {error}=await db.from('atendimentos').update({
+    vendedor_id:novoId||null,
+    vendedor_nome:novoNome||null
+  }).eq('id',atId);
+  if(error){notify('Erro ao alterar vendedor.','error');return;}
+  notify('Vendedor atualizado!');
+  abrirModalAt(atId);
+  loadFunil();
+}
+
 async function excluirVendedor(id){
-  if(!confirm('Excluir este vendedor?'))return;
-  await db.from('vendedores').delete().eq('id',id);
-  notify('Vendedor excluído.');loadVendedores();
+  if(!confirm('Excluir este vendedor? Os atendimentos em andamento serão redistribuídos automaticamente.'))return;
+
+  // Buscar atendimentos em andamento deste vendedor
+  const {data:atsAtivos}=await db.from('atendimentos').select('id,estimativa').eq('vendedor_id',id).eq('status','em_andamento');
+
+  // Redistribuir atendimentos em andamento
+  if(atsAtivos&&atsAtivos.length>0){
+    // Buscar outros vendedores
+    const {data:vds}=await db.from('vendedores').select('*').neq('id',id).order('produtividade_atual',{ascending:false});
+    if(vds&&vds.length>0){
+      const mesAtual=new Date().toISOString().slice(0,7);
+      const {data:ativos}=await db.from('atendimentos').select('vendedor_id,estimativa').eq('mes_ref',mesAtual).neq('status','concluido_perdido').neq('vendedor_id',id);
+      const carga={};vds.forEach(v=>carga[v.id]=0);
+      if(ativos)ativos.forEach(a=>{if(carga[a.vendedor_id]!==undefined)carga[a.vendedor_id]+=(a.estimativa||0);});
+
+      for(const at of atsAtivos){
+        // Escolher vendedor com menor carga
+        const sorted=[...vds].sort((a,b)=>{
+          const ratioA=carga[a.id]/(a.produtividade_atual||1);
+          const ratioB=carga[b.id]/(b.produtividade_atual||1);
+          return ratioA-ratioB;
+        });
+        const novoVendedor=sorted[0];
+        await db.from('atendimentos').update({vendedor_id:novoVendedor.id,vendedor_nome:novoVendedor.nome}).eq('id',at.id);
+        carga[novoVendedor.id]+=(at.estimativa||0);
+      }
+    } else {
+      // Sem outros vendedores, desvincula
+      await db.from('atendimentos').update({vendedor_id:null,vendedor_nome:null}).eq('vendedor_id',id).eq('status','em_andamento');
+    }
+  }
+
+  // Dessvincular atendimentos concluídos (mantém histórico)
+  await db.from('atendimentos').update({vendedor_id:null}).eq('vendedor_id',id).neq('status','em_andamento');
+
+  const {error}=await db.from('vendedores').delete().eq('id',id);
+  if(error){notify('Erro ao excluir vendedor: '+error.message,'error');return;}
+  notify('Vendedor excluído e atendimentos redistribuídos!');
+  loadVendedores();
 }
 
 async function distribuirVendedor(){
@@ -4195,6 +4257,7 @@ async function abrirModalAt(id){
   const {data:a}=await db.from('atendimentos').select('*').eq('id',id).single();
   if(!a){document.getElementById('modal-at-body').innerHTML='<p>Erro ao carregar.</p>';return}
   const {data:motivos}=await db.from('motivos_perda').select('*').order('descricao');
+  const {data:vendedores}=await db.from('vendedores').select('id,nome').order('nome');
   const ambs=a.ambientes?JSON.parse(a.ambientes):[];
   const tipoLabel={lead:'🎯 Lead',porta:'🚶 Cliente de porta',retorno:'🔄 Já é cliente',indicacao:'👥 Indicação'}[a.tipo]||a.tipo;
   const etapaAtual=a.etapa||'entrada';
@@ -4224,6 +4287,15 @@ async function abrirModalAt(id){
       <span class="badge badge-amber">${a.vendedor_nome||'—'}</span>
       <span style="font-size:12px;color:var(--text3);">Registrado em ${dataStr}</span>
     </div>
+    ${userNivel==='admin'&&vendedores?.length?`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <label style="font-size:12px;color:var(--text2);font-weight:500;">👤 Vendedor:</label>
+      <select id="select-vendedor-${id}" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+        <option value="">Sem vendedor</option>
+        ${(vendedores||[]).map(v=>`<option value="${v.id}" ${v.id===a.vendedor_id?'selected':''}>${v.nome}</option>`).join('')}
+      </select>
+      <button onclick="alterarVendedorAt('${id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar</button>
+    </div>`:''}
     <div class="form-grid" style="margin-bottom:0.75rem;">
       <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Cliente</label><div style="font-size:14px;font-weight:500;">${a.cliente_nome}</div></div>
       <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Telefone</label><div style="font-size:14px;">${a.cliente_tel||'—'}</div></div>
