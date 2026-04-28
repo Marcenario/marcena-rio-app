@@ -1813,15 +1813,12 @@ async function enviarProjetoAssinatura(projetoId, tipo, origem){
   const email = item.cliente_email;
   if(!email){notify('E-mail do cliente não cadastrado neste projeto.','error');return}
   // Pegar e-mail e nome do usuário logado como responsável
-  const responsavel_email = currentUser?.email || '';
-  const responsavel_nome = currentUser?.user_metadata?.nome || currentUser?.email || 'Responsável';
   notify('Enviando para assinatura...','info');
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/assinar-projeto-atendimento`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({registro_id:projetoId, tipo, tabela,
-        responsavel_email, responsavel_nome})
+      body:JSON.stringify({registro_id:projetoId, tipo, tabela})
     });
     const json = await res.json();
     if(!res.ok) throw new Error(json.error||'Erro desconhecido');
