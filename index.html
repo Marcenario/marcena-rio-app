@@ -4730,7 +4730,7 @@ function toggleColunaFunil(etapaId){
 
 async function loadFunis(){
 
-  const vendas = _funis.filter(f=>['vendas','conferencia'].includes(f.tipo));
+  const vendas = _funis.filter(f=>f.tipo==='vendas');
   const historico = _funis.filter(f=>['vendas_ano','perdas_ano'].includes(f.tipo));
   const outros = _funis.filter(f=>f.tipo==='reclamacoes');
 
@@ -4790,8 +4790,14 @@ async function loadFunil(){
     return;
   }
 
-  // Funis de atendimento (vendas, conferencia, vendas_ano, perdas_ano)
-  let query = db.from('atendimentos').select('*').eq('funil_id', _funilAtual.id);
+  // Funis de atendimento — inclui atendimentos sem funil_id no funil de vendas
+  let query = db.from('atendimentos').select('*');
+  const funilNome = _funilAtual.nome;
+  if(funilNome === 'Funil de Vendas'){
+    query = query.or(`funil_id.eq.${_funilAtual.id},funil_id.is.null`);
+  } else {
+    query = query.eq('funil_id', _funilAtual.id);
+  }
 
   const mesFilter = document.getElementById('at-filtro-mes')?.value;
   if(mesFilter) query = query.eq('mes_ref', mesFilter);
