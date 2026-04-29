@@ -1592,7 +1592,7 @@ async function enviarOrcamento(){
       cliente_email: currentUser.email,
       ambiente_desejado: ambiente,
       estimativa: 0,
-      empresa: empresa,
+      empresa: null,
       etapa: 'entrada',
       status: 'em_andamento',
       mes_ref: mesRef,
@@ -4491,6 +4491,20 @@ async function loadVendedores(){
   }).join('')+'</div>';
 }
 
+async function definirEmpresaAt(atId, empresa){
+  // Só permitido se empresa ainda não foi definida
+  const {data:check}=await db.from('atendimentos').select('empresa').eq('id',atId).single();
+  if(check?.empresa){notify('Empresa já definida. Somente o administrador pode alterar.','error');return;}
+  const {error}=await db.from('atendimentos').update({empresa}).eq('id',atId);
+  if(error){notify('Erro ao definir empresa.','error');return;}
+  const {data:at}=await db.from('atendimentos').select('projeto_id').eq('id',atId).single();
+  if(at?.projeto_id) await db.from('projetos').update({empresa}).eq('id',at.projeto_id);
+  const empNome=empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  notify(`Empresa definida: ${empNome} ✅`);
+  abrirModalAt(atId);
+  loadFunil();
+}
+
 async function alterarEmpresaAt(atId, empresa){
   const {error}=await db.from('atendimentos').update({empresa}).eq('id',atId);
   if(error){notify('Erro ao alterar empresa.','error');return;}
@@ -5017,11 +5031,9 @@ async function gerarNumeroAtendimento(empresa){
   const hoje = new Date();
   const mes = String(hoje.getMonth()+1).padStart(2,'0');
   const mesRef = hoje.toISOString().slice(0,7);
-  // Busca quantos atendimentos já existem no mês nesta empresa
-  const {data} = await db.from('atendimentos')
-    .select('id')
-    .eq('empresa', empresa)
-    .eq('mes_ref', mesRef);
+  let query = db.from('atendimentos').select('id').eq('mes_ref', mesRef);
+  if(empresa) query = query.eq('empresa', empresa);
+  const {data} = await query;
   const seq = String((data?.length||0)+1).padStart(3,'0');
   return `${seq}${mes}`;
 }
@@ -5059,7 +5071,49 @@ async function salvarAtendimento(){
   });
   btn.disabled=false;btn.textContent='Registrar e distribuir para vendedor';
   if(error){setAlert('at-novo-alert','Erro ao salvar.','error');return}
-  setAlert('at-novo-alert',`Atendimento distribuído para ${vendedor.nome}!`,'success');
+
+  // ── Criar login do cliente e projeto vinculado ──
+  let projetoId = null;
+  if(email){
+    let clienteUserId = null;
+    // Tentar criar login com senha = número do atendimento
+    const {data:signUpData, error:signUpErr} = await db.auth.signUp({
+      email,
+      password: numeroAt,
+      options:{ data:{ nome, telefone:tel } }
+    });
+    if(!signUpErr && signUpData?.user?.id){
+      clienteUserId = signUpData.user.id;
+      // Inserir perfil
+      await db.from('perfis').upsert({id:clienteUserId, email, nome, nivel:'cliente'});
+    } else if(signUpErr){
+      // Usuário já existe — apenas loga o aviso, continua criando projeto sem user_id
+      console.warn('Login já existe para', email, signUpErr.message);
+    }
+
+    // Criar projeto vinculado ao cliente
+    const tituloProj = (ambiente||'Orçamento')+' (atendimento #'+numeroAt+')';
+    const {data:proj, error:projErr} = await db.from('projetos').insert({
+      titulo: tituloProj,
+      ambiente: ambiente||'',
+      descricao: '',
+      etapa_atual: 1,
+      cliente_email: email,
+      cliente_nome: nome,
+      cliente_tel: tel,
+      user_id: clienteUserId,
+      empresa: atEmpresa
+    }).select().single();
+
+    if(!projErr && proj?.id){
+      projetoId = proj.id;
+      // Vincular projeto ao atendimento
+      await db.from('atendimentos').update({projeto_id: projetoId}).eq('numero', numeroAt).eq('mes_ref', new Date().toISOString().slice(0,7));
+    }
+  }
+
+  const loginInfo = email ? ` · Login criado (senha: ${numeroAt})` : '';
+  setAlert('at-novo-alert',`Atendimento distribuído para ${vendedor.nome}!${loginInfo}`,'success');
   notify(`Distribuído para ${vendedor.nome}!`);
   atAmbs=[];renderAmbsAt();
   document.getElementById('at-nome').value='';document.getElementById('at-tel').value='';
@@ -5337,8 +5391,12 @@ async function abrirModalAt(id){
     ${userNivel==='admin'||userNivel==='funcionario'?`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
       <label style="font-size:12px;color:var(--text2);font-weight:500;">🏢 Empresa:</label>
-      ${userNivel==='admin'?`
-        <button onclick="alterarEmpresaAt('${id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${(a.empresa||'marcenario')==='marcenario'?'#6b4c2a':'var(--border2)'};background:${(a.empresa||'marcenario')==='marcenario'?'#6b4c2a':'transparent'};color:${(a.empresa||'marcenario')==='marcenario'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Marcena Rio</button>
+      ${!a.empresa?`
+        <span style="font-size:12px;color:var(--amber);font-weight:500;">⚠️ Não definida — escolha:</span>
+        <button onclick="definirEmpresaAt('${id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid #6b4c2a;background:transparent;color:#6b4c2a;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Marcena Rio</button>
+        <button onclick="definirEmpresaAt('${id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid #1a3a6e;background:transparent;color:#1a3a6e;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Conceptus Italínea</button>
+      `:userNivel==='admin'?`
+        <button onclick="alterarEmpresaAt('${id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${a.empresa==='marcenario'?'#6b4c2a':'var(--border2)'};background:${a.empresa==='marcenario'?'#6b4c2a':'transparent'};color:${a.empresa==='marcenario'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Marcena Rio</button>
         <button onclick="alterarEmpresaAt('${id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${a.empresa==='conceptus'?'#1a3a6e':'var(--border2)'};background:${a.empresa==='conceptus'?'#1a3a6e':'transparent'};color:${a.empresa==='conceptus'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Conceptus Italínea</button>
       `:`
         <strong style="font-size:13px;">${a.empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio'}</strong>
