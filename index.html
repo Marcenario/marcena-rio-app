@@ -5371,12 +5371,17 @@ async function abrirModalAt(id){
   // Buscar arquivos da timeline vinculados ao projeto
   let timelArquivos = [];
   if(a.projeto_id){
-    const {data:etapas}=await db.from('projeto_etapas').select('nome,arquivo_url,created_at').eq('projeto_id',a.projeto_id).not('arquivo_url','is',null).order('created_at',{ascending:false});
-    if(etapas) timelArquivos = etapas.map(e=>({
-      nome: e.nome||'Arquivo',
-      url: e.arquivo_url,
-      data: new Date(e.created_at).toLocaleDateString('pt-BR')
-    }));
+    const {data:proj}=await db.from('projetos').select('orcamento_url,projeto_venda_url,projeto_exec_url,asteca_url,arquivo_url').eq('id',a.projeto_id).single();
+    if(proj){
+      const mapa = [
+        {nome:'Orçamento',              url: proj.orcamento_url},
+        {nome:'Projeto de Venda',       url: proj.projeto_venda_url},
+        {nome:'Projeto Executivo',      url: proj.projeto_exec_url},
+        {nome:'ASTECA',                 url: proj.asteca_url},
+        {nome:'Planta / Arquivo geral', url: proj.arquivo_url},
+      ];
+      timelArquivos = mapa.filter(f=>f.url);
+    }
   }
 
   // Buscar etapas dinâmicas do funil deste atendimento
@@ -5600,8 +5605,8 @@ async function abrirModalAt(id){
     <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📎 Arquivos anexados na timeline</div>
     <div style="display:flex;flex-direction:column;gap:6px;">
       ${timelArquivos.map(f=>'<a href="'+f.url+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);text-decoration:none;font-size:12px;color:var(--text1);">'
-        +'<span>📄</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+f.nome+'</span>'
-        +'<span style="color:var(--text3);font-size:11px;">'+f.data+'</span>'
+        +'<span>📄</span>'
+        +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+f.nome+'</span>'
         +'<span style="background:var(--brand);color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:500;">⬇ Baixar</span></a>'
       ).join('')}
     </div>` : ''}
