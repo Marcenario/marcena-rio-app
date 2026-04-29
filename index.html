@@ -5463,8 +5463,18 @@ async function abrirModalAt(id){
       ${ambs.map((am,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:13px;align-items:center;gap:8px;">
         <span>${am.nome}</span><span style="color:var(--accent)">${fmt(am.valor)}</span>
         <div style="display:flex;gap:4px;">
-          <button class="btn-vende ${am.vendeu===true?'sim':'neutro'}" onclick="toggleVendeuModal('${id}',${i},true)">✓</button>
-          <button class="btn-vende ${am.vendeu===false?'nao':'neutro'}" onclick="toggleVendeuModal('${id}',${i},false)">✗</button>
+          ${am.vendeu===true
+            ? (userNivel==='admin'
+                ? `<button class="btn-vende sim" onclick="toggleVendeuModal('${id}',${i},true)" title="Admin: cancelar venda">✓</button>`
+                : `<span class="btn-vende sim" title="Venda confirmada — somente admin pode cancelar" style="cursor:default;">✓</span>`)
+            : `<button class="btn-vende ${am.vendeu===true?'sim':'neutro'}" onclick="toggleVendeuModal('${id}',${i},true)">✓</button>`
+          }
+          ${am.vendeu===false
+            ? (userNivel==='admin'
+                ? `<button class="btn-vende nao" onclick="toggleVendeuModal('${id}',${i},false)" title="Admin: cancelar perda">✗</button>`
+                : `<span class="btn-vende nao" title="Perda registrada — somente admin pode cancelar" style="cursor:default;">✗</span>`)
+            : `<button class="btn-vende ${am.vendeu===false?'nao':'neutro'}" onclick="toggleVendeuModal('${id}',${i},false)">✗</button>`
+          }
         </div>
       </div>`).join('')}
     </div>`;
@@ -5639,14 +5649,24 @@ async function abrirModalAt(id){
     <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">${isConferencia ? 'Concluir Conferência' : 'Concluir atendimento'}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       ${isConferencia
-        ? '<button onclick="concluirConferencia(' + JSON.stringify(id) + ',\'em_andamento\')" '
+        ? '<button onclick="concluirConferencia(\''+id+'\',\'em_andamento\')" '
           + 'style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#128260; Em andamento</button>'
-          + '<button onclick="concluirConferencia(' + JSON.stringify(id) + ',\'concluido\')" '
-          + 'style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#10003; Concluído</button>'
-        : '<button onclick="concluirAt(' + JSON.stringify(id) + ',\'fechado\')" '
-          + 'style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#10003; Fechado</button>'
-          + '<button onclick="document.getElementById(\'modal-at-perda\').style.display=\'block\'" '
-          + 'style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#10007; Perdido</button>'
+          + '<button onclick="concluirConferencia(\''+id+'\',\'concluido\')" '
+          + 'style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#10003; Conclu&#237;do</button>'
+        : (()=>{
+            const temVendidos = ambs.some(am=>am.vendeu===true);
+            const temAmbs = ambs.length > 0;
+            const podeFechado = temAmbs && temVendidos;
+            const motivoDisable = !temAmbs ? 'Adicione ambientes antes de fechar.'
+              : !temVendidos ? 'Marque pelo menos um ambiente como ✓ vendido.'
+              : '';
+            return '<button onclick="concluirAtVendas(\''+id+'\')" '
+              +(podeFechado?'':'disabled title="'+motivoDisable+'" ')
+              +'style="background:'+(podeFechado?'var(--green)':'#aaa')+';color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:'+(podeFechado?'pointer':'not-allowed')+';">&#10003; Fechado</button>'
+              + '<button onclick="document.getElementById(\'modal-at-perda\').style.display=\'block\'" '
+              + 'style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#10007; Perdido</button>'
+              +(motivoDisable?'<div style="font-size:11px;color:var(--red);margin-top:6px;width:100%;">⚠️ '+motivoDisable+'</div>':'');
+          })()
       }
     </div>
     ${!isConferencia
@@ -5654,7 +5674,7 @@ async function abrirModalAt(id){
         + '<div style="font-size:12px;font-weight:500;color:var(--red);margin-bottom:8px;">Selecione o motivo da perda</div>'
         + '<select id="modal-at-motivo" style="width:100%;padding:9px 12px;border:1px solid #f0a8a8;border-radius:var(--radius-sm);font-size:13px;background:#fff;outline:none;margin-bottom:8px;">'
         + '<option value="">Selecione...</option>' + motivosOpts + '</select>'
-        + '<button onclick="concluirAt(' + JSON.stringify(id) + ',\'perdido\')" '
+        + '<button onclick="concluirAt(\''+id+'\',\'perdido\')" '
         + 'style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;width:100%;">Confirmar perda</button></div>'
       : ''}
     `:`<div class="alert alert-${statusAtual==='concluido_fechado'?'success':'error'}">${statusAtual==='concluido_fechado'?'✓ Atendimento fechado':'✗ Atendimento perdido'+(a.motivo_perda?' — '+a.motivo_perda:'')}</div>`}
@@ -6099,6 +6119,51 @@ function renderBlocoProjetoAt(at, tipo){
         <button onclick="uploadProjetoAt('${at.id}','${tipo}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;">📤 Enviar PDF</button>
       </div>`}
   </div>`;
+}
+
+async function concluirAtVendas(id){
+  const {data:a}=await db.from('atendimentos').select('*').eq('id',id).single();
+  if(!a) return;
+  const ambs=(a.ambientes&&a.ambientes!=='')?JSON.parse(a.ambientes):[];
+  const vendidos=ambs.filter(am=>am.vendeu===true);
+  const perdidos=ambs.filter(am=>am.vendeu===false);
+  const neutros=ambs.filter(am=>am.vendeu===null||am.vendeu===undefined);
+
+  if(!vendidos.length){notify('Marque ao menos um ambiente como vendido.','error');return}
+
+  // Atualizar atendimento original: fechado com apenas os ambientes vendidos
+  await db.from('atendimentos').update({
+    status:'concluido_fechado',
+    data_conclusao:new Date().toISOString(),
+    ambientes:JSON.stringify(vendidos)
+  }).eq('id',id);
+
+  // Se há ambientes perdidos, criar card vinculado na coluna Perdas
+  if(perdidos.length){
+    // Buscar funil de vendas e etapa Perdas
+    const {data:funilV}=await db.from('funis').select('id').eq('nome','Funil de Vendas').limit(1).single();
+    const {data:etapaP}=funilV
+      ? await db.from('funis_etapas').select('id').eq('funil_id',funilV.id).ilike('nome','perdas').limit(1).single()
+      : {data:null};
+
+    const {id:_omit,created_at:_c,updated_at:_u,...dadosOrig}=a;
+    await db.from('atendimentos').insert({
+      ...dadosOrig,
+      status:'concluido_perdido',
+      data_conclusao:new Date().toISOString(),
+      ambientes:JSON.stringify(perdidos),
+      funil_id:funilV?.id||a.funil_id,
+      etapa_funil_id:etapaP?.id||null,
+      origem_at_id:id,
+      numero:a.numero+'-P',    // mesmo número + sufixo P para identificar
+    });
+    notify(`✅ Venda registrada! ${perdidos.length} ambiente(s) perdido(s) criados em card vinculado.`);
+  } else {
+    notify('✅ Atendimento fechado!');
+  }
+
+  if(a.vendedor_id) await atualizarProdutividadeVendedor(a.vendedor_id);
+  fecharModalAt(); loadFunil();
 }
 
 async function concluirAt(id,resultado){
