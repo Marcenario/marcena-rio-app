@@ -488,8 +488,24 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <div id="at-funil">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="text" id="at-busca" placeholder="🔍 Buscar por nome, telefone, e-mail..." oninput="filtrarFunil(this.value)"
-              style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;min-width:220px;">
+            <!-- Seletor de funil estilo RD Station -->
+            <div style="position:relative;">
+              <button id="btn-seletor-funil" onclick="toggleSeletorFunil()" style="display:flex;align-items:center;gap:8px;padding:7px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;cursor:pointer;font-weight:500;min-width:200px;justify-content:space-between;">
+                <span id="funil-nome-atual">Funil de Vendas</span>
+                <span>▾</span>
+              </button>
+              <div id="dropdown-funil" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg);border:1px solid var(--border2);border-radius:8px;box-shadow:var(--shadow);z-index:100;min-width:240px;padding:8px 0;">
+                <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;padding:6px 14px 4px;">Funil de Vendas</div>
+                <div id="lista-funis-vendas"></div>
+                <div style="border-top:1px solid var(--border);margin:6px 0;"></div>
+                <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;padding:6px 14px 4px;">Histórico</div>
+                <div id="lista-funis-historico"></div>
+                <div style="border-top:1px solid var(--border);margin:6px 0;"></div>
+                <div id="lista-funis-outros"></div>
+              </div>
+            </div>
+            <input type="text" id="at-busca" placeholder="🔍 Buscar por nome..." oninput="filtrarFunil(this.value)"
+              style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;min-width:180px;">
             <select id="at-filtro-mes" onchange="loadFunil()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
             </select>
             <select id="at-filtro-vendedor" onchange="loadFunil()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
@@ -1462,7 +1478,7 @@ function showSection(id,btn){
   }
   if(id==='financeiro'){preencherFiltroFinMes('fin-dre-mes');loadDRE();loadAlertasDespesas();document.getElementById('fin-nav-config').style.display=userNivel==='admin'?'block':'none';}
   if(id==='atendimento'){
-    preencherFiltroMes();loadFunil();
+    preencherFiltroMes();loadFunis();
     const mc=document.querySelector('.main-content');
     if(mc)mc.classList.add('funil-mode');
   }
@@ -1908,6 +1924,9 @@ function renderProjeto(p){
           <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.553 4.116 1.523 5.848L0 24l6.302-1.5A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.5-5.2-1.373l-.374-.221-3.742.891.945-3.647-.243-.386A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
           Fale com Montagem e Assistência Técnica
         </a>
+        <button onclick="abrirReclamacao('${p.id}')" style="display:flex;align-items:center;gap:10px;background:#dc2626;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;">
+          ⚠️ Registrar reclamação
+        </button>
       </div>`;
     })()}`;
   // Bloco de garantia — visível para todos quando projeto concluído E data_conclusao preenchida
@@ -4187,7 +4206,7 @@ function showSubAt(id,btn){
   // Expandir para tela cheia no funil
   const mc=document.querySelector('.main-content');
   if(mc){mc.classList.toggle('funil-mode', id==='at-funil');}
-  if(id==='at-funil'){preencherFiltroMes();loadFunil();}
+  if(id==='at-funil'){preencherFiltroMes();loadFunis();}
   if(id==='at-vendedores')loadVendedores();
   if(id==='at-relatorio')loadRelatorioAt();
   if(id==='at-motivos')loadMotivos();
@@ -4366,7 +4385,270 @@ function renderAmbsAt(){
   </div>`;
 }
 
-/* ── SALVAR ATENDIMENTO ── */
+/* ── FUNIS ── */
+let _funis = [];
+let _funilAtual = null;
+let _etapasFunilAtual = [];
+
+async function loadFunis(){
+  const {data} = await db.from('funis').select('*').eq('ativo',true).order('ordem');
+  _funis = data || [];
+
+  const vendas = _funis.filter(f=>['vendas','conferencia'].includes(f.tipo));
+  const historico = _funis.filter(f=>['vendas_ano','perdas_ano'].includes(f.tipo));
+  const outros = _funis.filter(f=>f.tipo==='reclamacoes');
+
+  const itemStyle = `display:block;width:100%;text-align:left;padding:7px 14px;font-size:13px;font-family:'DM Sans',sans-serif;background:transparent;border:none;cursor:pointer;color:var(--text);`;
+
+  document.getElementById('lista-funis-vendas').innerHTML = vendas.map(f=>
+    `<button style="${itemStyle}" onclick="selecionarFunil('${f.id}','${f.nome}')">${f.nome}</button>`
+  ).join('');
+
+  document.getElementById('lista-funis-historico').innerHTML = historico.map(f=>
+    `<button style="${itemStyle}" onclick="selecionarFunil('${f.id}','${f.nome}')">${f.nome}</button>`
+  ).join('');
+
+  document.getElementById('lista-funis-outros').innerHTML = outros.map(f=>
+    `<button style="${itemStyle}" onclick="selecionarFunil('${f.id}','${f.nome}')">${f.nome}</button>`
+  ).join('');
+
+  // Selecionar Funil de Vendas por padrão
+  if(!_funilAtual && _funis.length>0){
+    const funilVendas = _funis.find(f=>f.nome==='Funil de Vendas') || _funis[0];
+    await selecionarFunil(funilVendas.id, funilVendas.nome);
+  }
+}
+
+function toggleSeletorFunil(){
+  const d = document.getElementById('dropdown-funil');
+  d.style.display = d.style.display==='none'?'block':'none';
+}
+
+async function selecionarFunil(funilId, funilNome){
+  _funilAtual = _funis.find(f=>f.id===funilId);
+  document.getElementById('funil-nome-atual').textContent = funilNome;
+  document.getElementById('dropdown-funil').style.display='none';
+
+  // Buscar etapas do funil
+  const {data:etapas} = await db.from('funis_etapas').select('*').eq('funil_id',funilId).order('ordem');
+  _etapasFunilAtual = etapas || [];
+
+  // Mostrar/ocultar filtros por tipo
+  const isHistorico = ['vendas_ano','perdas_ano'].includes(_funilAtual?.tipo);
+  const isReclamacao = _funilAtual?.tipo === 'reclamacoes';
+  document.getElementById('at-filtro-mes').style.display = isHistorico?'none':'block';
+  document.getElementById('at-filtro-vendedor').style.display = (isHistorico||isReclamacao)?'none':'block';
+
+  await loadFunil();
+}
+
+async function loadFunil(){
+  if(!_funilAtual){ await loadFunis(); return; }
+  const cont = document.getElementById('at-funil-content');
+  cont.innerHTML = '<div class="loader">Carregando...</div>';
+
+  const tipo = _funilAtual.tipo;
+
+  if(tipo === 'reclamacoes'){
+    await loadFunilReclamacoes(cont);
+    return;
+  }
+
+  // Funis de atendimento (vendas, conferencia, vendas_ano, perdas_ano)
+  let query = db.from('atendimentos').select('*').eq('funil_id', _funilAtual.id);
+
+  const mesFilter = document.getElementById('at-filtro-mes')?.value;
+  if(mesFilter) query = query.eq('mes_ref', mesFilter);
+
+  const vendedorFilter = document.getElementById('at-filtro-vendedor')?.value;
+  if(vendedorFilter) query = query.eq('vendedor_id', vendedorFilter);
+
+  const {data} = await query.order('created_at', {ascending:false});
+  window._todosAtendimentos = data || [];
+
+  const busca = document.getElementById('at-busca')?.value || '';
+  renderFunilDinamico(filtrarAtendimentos(window._todosAtendimentos, busca), cont);
+}
+
+function renderFunilDinamico(todos, cont){
+  if(!_etapasFunilAtual.length){
+    cont.innerHTML='<div class="empty-state"><p>Nenhuma etapa configurada.</p></div>';
+    return;
+  }
+
+  let html = '<div class="funil-wrap">';
+  for(const etapa of _etapasFunilAtual){
+    const cards = todos.filter(a => a.etapa_funil_id === etapa.id && a.status === 'em_andamento');
+    const totalVal = cards.reduce((s,a)=>s+(a.estimativa||0),0);
+    const cardHtml = cards.length
+      ? cards.map(a=>renderFunilCard(a, etapa.cor)).join('')
+      : `<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum atendimento</div>`;
+
+    html += `<div class="funil-col">
+      <div class="funil-col-header" style="background:${etapa.bg};color:${etapa.cor};">
+        <div class="funil-col-header-info">
+          <span style="font-size:12px;font-weight:600;">${etapa.nome}</span>
+          ${totalVal>0?`<span style="font-size:11px;opacity:0.85;">${fmt(totalVal)}</span>`:''}
+        </div>
+        <span style="background:${etapa.cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
+      </div>
+      <div class="funil-col-body">${cardHtml}</div>
+    </div>`;
+  }
+
+  // Coluna de Fechados
+  const fechados = todos.filter(a=>a.status==='concluido_fechado');
+  if(fechados.length){
+    html += buildColuna('✓ Fechados','var(--green)','var(--green-bg)',fechados,0);
+  }
+
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+async function loadFunilReclamacoes(cont){
+  const {data} = await db.from('reclamacoes').select('*').order('created_at',{ascending:false});
+  const reclamacoes = data || [];
+  const etapas = _etapasFunilAtual;
+
+  let html = '<div class="funil-wrap">';
+  for(const etapa of etapas){
+    const cards = reclamacoes.filter(r=>r.etapa===etapa.nome&&r.status==='em_andamento');
+    const cardHtml = cards.length
+      ? cards.map(r=>`
+        <div class="funil-card" onclick="abrirModalReclamacao('${r.id}')" style="border-left:3px solid ${etapa.cor};">
+          <div style="font-size:13px;font-weight:500;margin-bottom:4px;">${r.cliente_nome||'—'}</div>
+          <div style="font-size:11px;color:var(--text2);">${r.descricao?.substring(0,60)||''}...</div>
+          ${r.responsavel_nome?`<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${r.responsavel_nome}</div>`:''}
+          <div style="font-size:10px;color:var(--text3);margin-top:4px;">${new Date(r.created_at).toLocaleDateString('pt-BR')}</div>
+        </div>`).join('')
+      : `<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhuma</div>`;
+
+    html += `<div class="funil-col">
+      <div class="funil-col-header" style="background:${etapa.bg};color:${etapa.cor};">
+        <div class="funil-col-header-info"><span style="font-size:12px;font-weight:600;">${etapa.nome}</span></div>
+        <span style="background:${etapa.cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
+      </div>
+      <div class="funil-col-body">${cardHtml}</div>
+    </div>`;
+  }
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+async function abrirModalReclamacao(id){
+  document.getElementById('modal-at').style.display='flex';
+  document.getElementById('modal-at-body').innerHTML='<div class="loader">Carregando...</div>';
+  const {data:r} = await db.from('reclamacoes').select('*').eq('id',id).single();
+  if(!r){document.getElementById('modal-at-body').innerHTML='<p>Erro ao carregar.</p>';return}
+
+  const {data:funcs} = await db.from('rh_funcionarios').select('id,nome').order('nome');
+  const etapas = _etapasFunilAtual;
+
+  document.getElementById('modal-at-body').innerHTML=`
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem;">
+      <span class="badge badge-red">Reclamação</span>
+      <span style="font-size:12px;color:var(--text3);">${new Date(r.created_at).toLocaleDateString('pt-BR')}</span>
+    </div>
+    <div class="form-grid" style="margin-bottom:0.75rem;">
+      <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Cliente</label><div style="font-size:14px;font-weight:500;">${r.cliente_nome||'—'}</div></div>
+      <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">E-mail</label><div style="font-size:13px;">${r.cliente_email||'—'}</div></div>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Descrição</label>
+      <div style="font-size:13px;background:var(--bg2);padding:10px;border-radius:6px;">${r.descricao||'—'}</div>
+    </div>
+    ${userNivel==='admin'&&funcs?.length?`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <label style="font-size:12px;color:var(--text2);font-weight:500;">👤 Responsável:</label>
+      <select id="select-resp-${id}" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+        <option value="">Sem responsável</option>
+        ${funcs.map(f=>`<option value="${f.id}" ${f.id===r.responsavel_id?'selected':''}>${f.nome}</option>`).join('')}
+      </select>
+      <button onclick="salvarResponsavelRec('${id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar</button>
+    </div>`:''}
+    <div style="margin-bottom:1rem;">
+      <label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:6px;">Etapa:</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${etapas.map(e=>`<button onclick="moverReclamacao('${id}','${e.nome}')" style="padding:5px 12px;border-radius:16px;border:1.5px solid ${r.etapa===e.nome?e.cor:'var(--border2)'};background:${r.etapa===e.nome?e.cor:'transparent'};color:${r.etapa===e.nome?'#fff':'var(--text2)'};font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">${e.nome}</button>`).join('')}
+      </div>
+    </div>
+    ${r.status==='em_andamento'?`
+    <div style="display:flex;gap:8px;margin-top:1rem;">
+      <button onclick="concluirReclamacao('${id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">✅ Concluir</button>
+    </div>`:'<span class="badge badge-green">Concluída</span>'}
+    <button onclick="fecharModalAt()" style="position:absolute;top:12px;right:12px;background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--text3);">✕</button>
+  `;
+}
+
+async function salvarResponsavelRec(id){
+  const sel = document.getElementById(`select-resp-${id}`);
+  const respId = sel.value;
+  const respNome = respId ? sel.options[sel.selectedIndex].text : '';
+  await db.from('reclamacoes').update({responsavel_id:respId||null, responsavel_nome:respNome||null}).eq('id',id);
+  notify('Responsável atribuído!');
+  abrirModalReclamacao(id);
+}
+
+async function moverReclamacao(id, etapa){
+  await db.from('reclamacoes').update({etapa}).eq('id',id);
+  notify(`Movido para: ${etapa}`);
+  abrirModalReclamacao(id);
+  loadFunil();
+}
+
+async function concluirReclamacao(id){
+  await db.from('reclamacoes').update({status:'concluido',etapa:'Conclusão'}).eq('id',id);
+  notify('Reclamação concluída!');
+  fecharModalAt();
+  loadFunil();
+}
+
+async function abrirReclamacao(projetoId){
+  const {data:p} = await db.from('projetos').select('*').eq('id',projetoId).single();
+  if(!p) return;
+  const desc = prompt('Descreva sua reclamação:');
+  if(!desc) return;
+  await db.from('reclamacoes').insert({
+    projeto_id: projetoId,
+    cliente_nome: p.cliente_nome,
+    cliente_email: p.cliente_email,
+    descricao: desc,
+    etapa: 'Entrada',
+    status: 'em_andamento'
+  });
+  notify('Reclamação registrada! Nossa equipe entrará em contato. ✅');
+}
+
+async function moverAtendimentoParaFunil(atId, funilId, etapaId){
+  await db.from('atendimentos').update({funil_id:funilId, etapa_funil_id:etapaId}).eq('id',atId);
+  notify('Atendimento movido!');
+  loadFunil();
+}
+
+async function loadFunil(){
+  if(!_funilAtual){ await loadFunis(); return; }
+  const cont = document.getElementById('at-funil-content');
+  if(!cont) return;
+  cont.innerHTML = '<div class="loader">Carregando...</div>';
+
+  if(_funilAtual.tipo === 'reclamacoes'){
+    await loadFunilReclamacoes(cont);
+    return;
+  }
+
+  let query = db.from('atendimentos').select('*').eq('funil_id', _funilAtual.id);
+  const mesFilter = document.getElementById('at-filtro-mes')?.value;
+  if(mesFilter) query = query.eq('mes_ref', mesFilter);
+  const vendedorFilter = document.getElementById('at-filtro-vendedor')?.value;
+  if(vendedorFilter) query = query.eq('vendedor_id', vendedorFilter);
+  const {data} = await query.order('created_at',{ascending:false});
+  window._todosAtendimentos = data || [];
+  const busca = document.getElementById('at-busca')?.value||'';
+  renderFunilDinamico(filtrarAtendimentos(window._todosAtendimentos, busca), cont);
+}
+
+async function salvarAtendimento(){
 async function gerarNumeroAtendimento(empresa){
   const hoje = new Date();
   const mes = String(hoje.getMonth()+1).padStart(2,'0');
@@ -4393,6 +4675,9 @@ async function salvarAtendimento(){
   if(!vendedor){setAlert('at-novo-alert','Cadastre pelo menos um vendedor antes.','error');btn.disabled=false;btn.textContent='Registrar e distribuir para vendedor';return}
   const mesRef=new Date().toISOString().slice(0,7);
   const numeroAt = await gerarNumeroAtendimento(atEmpresa);
+  // Pegar funil de vendas e primeira etapa
+  const funilVendas = _funis.find(f=>f.nome==='Funil de Vendas');
+  const primeiraEtapa = funilVendas ? (await db.from('funis_etapas').select('id').eq('funil_id',funilVendas.id).order('ordem').limit(1).single()).data : null;
   const {error}=await db.from('atendimentos').insert({
     numero:numeroAt,
     tipo:atTipo,
@@ -4403,6 +4688,8 @@ async function salvarAtendimento(){
     vendedor_id:vendedor.id,vendedor_nome:vendedor.nome,
     empresa:atEmpresa,
     etapa:'entrada',status:'em_andamento',
+    funil_id: funilVendas?.id||null,
+    etapa_funil_id: primeiraEtapa?.id||null,
     mes_ref:mesRef,
     registrado_por:currentUser.id
   });
