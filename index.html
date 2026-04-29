@@ -1839,11 +1839,38 @@ function renderProjeto(p){
     <button class="btn-step" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1)>=ETAPAS_TOTAL?'disabled':''}>Avançar →</button>
     ${p.arquivo_url?`<a href="${p.arquivo_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);color:#7a5c2a;border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;text-decoration:none;font-family:'DM Sans',sans-serif;">📄 Ver planta</a>`:'<span style="font-size:12px;color:var(--text3);">Sem planta</span>'}
   </div>${campoExtra}`:'<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe o andamento do seu projeto.</div>';
+  // Bloco de garantia — visível para todos quando projeto concluído
+  let garantiaHtml='';
+  if(concluido&&p.data_garantia){
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    const dataGar=new Date(p.data_garantia+'T12:00:00'); dataGar.setHours(0,0,0,0);
+    const diffMs=dataGar-hoje;
+    const diffDias=Math.ceil(diffMs/(1000*60*60*24));
+    const anosRestantes=dataGar.getFullYear()-hoje.getFullYear()-(dataGar.getMonth()<hoje.getMonth()||(dataGar.getMonth()===hoje.getMonth()&&dataGar.getDate()<hoje.getDate())?1:0);
+    const dataGarStr=new Date(p.data_garantia+'T12:00:00').toLocaleDateString('pt-BR');
+    let corGar,iconeGar,mensagemGar,animGar='';
+    if(diffDias<=0){
+      corGar='#cc0000'; iconeGar='⚠️';
+      mensagemGar='SUA GARANTIA TERMINOU';
+      animGar='animation:pisca 1s infinite;';
+    } else if(anosRestantes<=1){
+      corGar='#e07b00'; iconeGar='⏰';
+      mensagemGar=`SUA GARANTIA TERMINA NO DIA ${dataGarStr} — FALTA ${diffDias} DIA${diffDias===1?'':'S'}`;
+    } else {
+      corGar='#1a6b35'; iconeGar='🛡️';
+      mensagemGar=`SUA GARANTIA TERMINA NO DIA ${dataGarStr} — FALTAM ${anosRestantes} ANO${anosRestantes===1?'':'S'}`;
+    }
+    garantiaHtml=`<div style="background:${corGar}20;border:2px solid ${corGar};border-radius:8px;padding:14px 18px;margin-bottom:16px;text-align:center;${animGar}">
+      <div style="font-size:15px;font-weight:700;color:${corGar};text-transform:uppercase;letter-spacing:0.5px;">${iconeGar} ${mensagemGar}</div>
+    </div>`;
+  }
+
   const dataStr=new Date(p.created_at).toLocaleDateString('pt-BR');
   return `<div class="card"><div class="card-header"><div><div class="card-title">${p.titulo||p.ambiente}</div><div class="card-sub">${p.cliente_nome||''} · ${dataStr}</div></div><span class="badge ${badgeClass}">${badgeText}</span></div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Etapa: <strong style="color:var(--text)">${ETAPAS[etapaIdx].nome}</strong></div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:1rem">${p.etapa_atual||1} de ${ETAPAS_TOTAL} · ${pct}%</div>
+    ${garantiaHtml}
     ${staffCtrl}
     <div style="margin-top:${isStaff?'16px':'0'};border-top:1px solid var(--border);padding-top:14px">${tl}</div>
   </div>`;
@@ -1986,7 +2013,17 @@ async function avancarEtapa(id,novaEtapa){
     }
   }
 
-  const {error}=await db.from('projetos').update({etapa_atual:novaEtapa}).eq('id',id);
+  // Salvar data de conclusão e calcular garantia ao chegar na última etapa
+  let updateData = {etapa_atual:novaEtapa};
+  if(novaEtapa>=ETAPAS_TOTAL){
+    const hoje=new Date();
+    const dataConc=hoje.toISOString().split('T')[0];
+    const dataGar=new Date(hoje.setFullYear(hoje.getFullYear()+5)).toISOString().split('T')[0];
+    updateData.data_conclusao=dataConc;
+    updateData.data_garantia=dataGar;
+  }
+
+  const {error}=await db.from('projetos').update(updateData).eq('id',id);
   if(error){notify('Erro ao atualizar.','error');return}
   notify(`Etapa: ${ETAPAS[novaEtapa-1].nome}`);
   // Sempre recarrega a lista E atualiza o detalhe se estiver aberto
