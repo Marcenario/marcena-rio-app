@@ -5355,6 +5355,11 @@ async function abrirModalAt(id){
   document.getElementById('modal-at-body').innerHTML='<div class="loader">Carregando...</div>';
   const {data:a}=await db.from('atendimentos').select('*').eq('id',id).single();
   if(!a){document.getElementById('modal-at-body').innerHTML='<p>Erro ao carregar.</p>';return}
+  // Buscar nome da etapa funil atual
+  if(a.etapa_funil_id){
+    const {data:etapaData}=await db.from('funis_etapas').select('nome').eq('id',a.etapa_funil_id).single();
+    a.etapa_funil_nome = etapaData?.nome||'';
+  }
   const {data:motivos}=await db.from('motivos_perda').select('*').order('descricao');
   const {data:vendedores}=await db.from('vendedores').select('id,nome').order('nome');
   const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
@@ -5419,6 +5424,71 @@ async function abrirModalAt(id){
       <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">E-mail</label><div style="font-size:13px;">${a.cliente_email||'—'}</div></div>
       <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Ambiente desejado</label><div style="font-size:13px;">${a.ambiente_desejado||'—'}</div></div>
     </div>
+
+    <!-- Endereço -->
+    <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px;">📍 Endereço</div>
+      <div style="display:grid;grid-template-columns:140px 1fr auto;gap:8px;align-items:end;margin-bottom:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">CEP</label>
+          <input type="text" id="at-cep-${id}" value="${a.endereco_cep||''}" placeholder="00000-000" maxlength="9"
+            oninput="formatarCepAt('${id}',this.value)"
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Logradouro</label>
+          <input type="text" id="at-logradouro-${id}" value="${a.endereco_logradouro||''}" placeholder="Rua, Av..."
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+        <button onclick="buscarCepAt('${id}')" title="Buscar CEP"
+          style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">🔍 Buscar</button>
+      </div>
+      <div style="display:grid;grid-template-columns:80px 80px 1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Número</label>
+          <input type="text" id="at-numero-end-${id}" value="${a.endereco_numero||''}" placeholder="Nº"
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Compl.</label>
+          <input type="text" id="at-complemento-${id}" value="${a.endereco_complemento||''}" placeholder="Apto..."
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Bairro</label>
+          <input type="text" id="at-bairro-${id}" value="${a.endereco_bairro||''}" placeholder="Bairro"
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Cidade / UF</label>
+          <input type="text" id="at-cidade-${id}" value="${(a.endereco_cidade?a.endereco_cidade+(a.endereco_uf?' / '+a.endereco_uf:''):'')}" placeholder="Cidade / UF"
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <button onclick="salvarEnderecoAt('${id}')"
+          style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">💾 Salvar endereço</button>
+      </div>
+      <div id="at-end-alert-${id}" style="margin-top:6px;"></div>
+    </div>
+
+    <!-- Número de contrato — só na etapa Vendas -->
+    ${(a.etapa_funil_nome||'').toLowerCase()==='vendas'||a.numero_contrato?`
+    <div style="background:var(--green-bg);border:1px solid #a7d9a3;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">📄 Número de contrato</div>
+      <div style="display:flex;gap:8px;align-items:end;">
+        <div style="flex:1;">
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Contrato</label>
+          <input type="text" id="at-contrato-${id}" value="${a.numero_contrato||''}" placeholder="Ex: CT-2026-001"
+            style="width:100%;padding:8px 12px;border:1px solid #a7d9a3;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;background:#fff;outline:none;box-sizing:border-box;">
+        </div>
+        <button onclick="salvarContratoAt('${id}')"
+          style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">💾 Salvar</button>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:6px;">Este número integra os módulos de montagem, vistoria e conferência.</div>
+      <div id="at-contrato-alert-${id}" style="margin-top:6px;"></div>
+    </div>`:''}
+
     ${ambsHtml}
     ${statusAtual==='em_andamento'?`
     <!-- Adicionar novo ambiente no modal -->
@@ -5487,6 +5557,65 @@ async function avancarEtapaAt(id){
   const etapa=document.getElementById('modal-at-etapa').value;
   await db.from('atendimentos').update({etapa}).eq('id',id);
   notify('Etapa atualizada!');abrirModalAt(id);loadFunil();
+}
+
+/* ── ENDEREÇO ── */
+function formatarCepAt(id, val){
+  const cep = val.replace(/\D/g,'').slice(0,8);
+  const fmt = cep.length>5 ? cep.slice(0,5)+'-'+cep.slice(5) : cep;
+  document.getElementById(`at-cep-${id}`).value = fmt;
+}
+
+async function buscarCepAt(id){
+  const cepRaw = (document.getElementById(`at-cep-${id}`)?.value||'').replace(/\D/g,'');
+  if(cepRaw.length!==8){notify('CEP inválido — deve ter 8 dígitos.','error');return}
+  notify('Buscando CEP...','info');
+  try{
+    const res = await fetch(`https://viacep.com.br/ws/${cepRaw}/json/`);
+    const d = await res.json();
+    if(d.erro){notify('CEP não encontrado.','error');return}
+    document.getElementById(`at-logradouro-${id}`).value = d.logradouro||'';
+    document.getElementById(`at-bairro-${id}`).value = d.bairro||'';
+    document.getElementById(`at-cidade-${id}`).value = (d.localidade||'')+(d.uf?' / '+d.uf:'');
+    document.getElementById(`at-numero-end-${id}`).focus();
+    notify('Endereço preenchido! Complete o número.','success');
+  }catch(e){notify('Erro ao buscar CEP.','error');}
+}
+
+async function salvarEnderecoAt(id){
+  const cep = (document.getElementById(`at-cep-${id}`)?.value||'').replace(/\D/g,'');
+  const logradouro = document.getElementById(`at-logradouro-${id}`)?.value.trim()||'';
+  const numero = document.getElementById(`at-numero-end-${id}`)?.value.trim()||'';
+  const complemento = document.getElementById(`at-complemento-${id}`)?.value.trim()||'';
+  const bairro = document.getElementById(`at-bairro-${id}`)?.value.trim()||'';
+  const cidadeUf = (document.getElementById(`at-cidade-${id}`)?.value||'').split('/');
+  const cidade = cidadeUf[0]?.trim()||'';
+  const uf = cidadeUf[1]?.trim()||'';
+  const {error}=await db.from('atendimentos').update({
+    endereco_cep: cep,
+    endereco_logradouro: logradouro,
+    endereco_numero: numero,
+    endereco_complemento: complemento,
+    endereco_bairro: bairro,
+    endereco_cidade: cidade,
+    endereco_uf: uf
+  }).eq('id',id);
+  const alertEl=document.getElementById(`at-end-alert-${id}`);
+  if(error){alertEl.innerHTML=`<div class="alert alert-error">Erro ao salvar. Verifique as colunas no banco.</div>`;return}
+  alertEl.innerHTML=`<div class="alert alert-success">✓ Endereço salvo!</div>`;
+  setTimeout(()=>{if(alertEl)alertEl.innerHTML='';},3000);
+}
+
+/* ── NÚMERO DE CONTRATO ── */
+async function salvarContratoAt(id){
+  const contrato = document.getElementById(`at-contrato-${id}`)?.value.trim()||'';
+  if(!contrato){notify('Digite o número do contrato.','error');return}
+  const {error}=await db.from('atendimentos').update({numero_contrato:contrato}).eq('id',id);
+  const alertEl=document.getElementById(`at-contrato-alert-${id}`);
+  if(error){alertEl.innerHTML=`<div class="alert alert-error">Erro ao salvar contrato.</div>`;return}
+  alertEl.innerHTML=`<div class="alert alert-success">✓ Contrato salvo! Integração com montagem/vistoria ativa.</div>`;
+  setTimeout(()=>{if(alertEl)alertEl.innerHTML='';},4000);
+  loadFunil();
 }
 
 /* ── PROJETO PDF NO ATENDIMENTO ── */
