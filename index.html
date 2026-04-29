@@ -1855,15 +1855,19 @@ function renderProjeto(p){
     <button class="btn-step" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1)>=ETAPAS_TOTAL?'disabled':''}>Avançar →</button>
     ${p.arquivo_url?`<a href="${p.arquivo_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);color:#7a5c2a;border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;text-decoration:none;font-family:'DM Sans',sans-serif;">📄 Ver planta</a>`:'<span style="font-size:12px;color:var(--text3);">Sem planta</span>'}
   </div>${campoExtra}`:'<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe o andamento do seu projeto.</div>';
-  // Bloco de garantia — visível para todos quando projeto concluído
+  // Bloco de garantia — visível para todos quando projeto concluído E data_conclusao preenchida
   let garantiaHtml='';
-  if(concluido&&p.data_garantia){
+  if(concluido&&p.data_conclusao&&p.data_garantia){
+    // Recalcular garantia sempre a partir da data_conclusao para garantir consistência
+    const dataConc=new Date(p.data_conclusao+'T12:00:00');
+    const dataGarCorreta=new Date(dataConc);
+    dataGarCorreta.setFullYear(dataGarCorreta.getFullYear()+5);
     const hoje=new Date(); hoje.setHours(0,0,0,0);
-    const dataGar=new Date(p.data_garantia+'T12:00:00'); dataGar.setHours(0,0,0,0);
-    const diffMs=dataGar-hoje;
+    dataGarCorreta.setHours(0,0,0,0);
+    const diffMs=dataGarCorreta-hoje;
     const diffDias=Math.ceil(diffMs/(1000*60*60*24));
-    const anosRestantes=dataGar.getFullYear()-hoje.getFullYear()-(dataGar.getMonth()<hoje.getMonth()||(dataGar.getMonth()===hoje.getMonth()&&dataGar.getDate()<hoje.getDate())?1:0);
-    const dataGarStr=new Date(p.data_garantia+'T12:00:00').toLocaleDateString('pt-BR');
+    const anosRestantes=dataGarCorreta.getFullYear()-hoje.getFullYear()-(dataGarCorreta.getMonth()<hoje.getMonth()||(dataGarCorreta.getMonth()===hoje.getMonth()&&dataGarCorreta.getDate()<hoje.getDate())?1:0);
+    const dataGarStr=dataGarCorreta.toLocaleDateString('pt-BR');
     let corGar,iconeGar,mensagemGar,animGar='';
     if(diffDias<=0){
       corGar='#cc0000'; iconeGar='⚠️';
@@ -1878,6 +1882,10 @@ function renderProjeto(p){
     }
     garantiaHtml=`<div style="background:${corGar}20;border:2px solid ${corGar};border-radius:8px;padding:14px 18px;margin-bottom:16px;text-align:center;${animGar}">
       <div style="font-size:15px;font-weight:700;color:${corGar};text-transform:uppercase;letter-spacing:0.5px;">${iconeGar} ${mensagemGar}</div>
+    </div>`;
+  } else if(concluido&&!p.data_conclusao&&isStaff){
+    garantiaHtml=`<div style="background:#fff8f0;border:2px solid var(--accent);border-radius:8px;padding:12px 18px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:13px;font-weight:600;color:var(--accent);">⚠️ Informe a data de conclusão para calcular a garantia</div>
     </div>`;
   }
 
