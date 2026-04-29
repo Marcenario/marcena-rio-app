@@ -5509,27 +5509,33 @@ async function abrirModalAt(id){
       <div id="at-end-alert-${id}" style="margin-top:6px;"></div>
     </div>
 
-    <!-- Número de contrato + Iniciar Conferência — aparece quando atendimento está fechado (Vendas) -->
-    ${statusAtual==='concluido_fechado'?`
+    <!-- Número de contrato + Iniciar Conferência — aparece quando fechado (Vendas) ou em conferência -->
+    ${(statusAtual==='concluido_fechado'||isConferencia)?`
     <div style="background:var(--green-bg);border:1px solid #a7d9a3;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
       <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">📄 Número de contrato</div>
-      <div style="display:flex;gap:8px;align-items:end;margin-bottom:10px;">
+      <div style="display:flex;gap:8px;align-items:end;margin-bottom:${isConferencia?'4':'10'}px;">
         <div style="flex:1;">
           <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Contrato</label>
-          <input type="text" id="at-contrato-${id}" value="${a.numero_contrato||''}" placeholder="Ex: CT-2026-001"
+          <input type="text" id="at-contrato-${id}"
+            value="${a.numero_contrato||''}"
+            placeholder="Ex: CT-2026-001"
+            ${(a.numero_contrato && userNivel!=='admin') ? 'readonly' : ''}
             oninput="toggleBtnConferencia('${id}')"
-            style="width:100%;padding:8px 12px;border:1px solid #a7d9a3;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;background:#fff;outline:none;box-sizing:border-box;">
+            style="width:100%;padding:8px 12px;border:1px solid ${(a.numero_contrato&&userNivel!=='admin')?'#a7d9a3':'#a7d9a3'};border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;background:${(a.numero_contrato&&userNivel!=='admin')?'#f0faf0':'#fff'};outline:none;box-sizing:border-box;${(a.numero_contrato&&userNivel!=='admin')?'cursor:default;color:var(--green);':''}">
         </div>
+        ${(!a.numero_contrato || userNivel==='admin')?`
         <button onclick="salvarContratoAt('${id}')"
           style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">💾 Salvar</button>
+        `:`<span style="font-size:11px;color:var(--green);font-weight:500;white-space:nowrap;">🔒 Somente admin</span>`}
       </div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">Este número integra os módulos de montagem, vistoria e conferência.</div>
+      ${(a.numero_contrato&&userNivel!=='admin')?`<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">🔒 Para alterar o contrato, solicite ao administrador.</div>`:'<div style="font-size:11px;color:var(--text2);margin-bottom:10px;">Este número integra os módulos de montagem, vistoria e conferência.</div>'}
+      ${!isConferencia?`
       <button id="btn-iniciar-conf-${id}"
         onclick="iniciarConferencia('${id}')"
         ${a.numero_contrato?'':'disabled'}
         style="width:100%;padding:10px;border:none;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:${a.numero_contrato?'pointer':'not-allowed'};background:${a.numero_contrato?'var(--brand)':'#ccc'};color:#fff;transition:background 0.2s;">
         🚀 Iniciar Conferência
-      </button>
+      </button>`:''}
       <div id="at-contrato-alert-${id}" style="margin-top:6px;"></div>
     </div>`:''}
 
