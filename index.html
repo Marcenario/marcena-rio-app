@@ -1575,9 +1575,18 @@ async function enviarOrcamento(){
     const mesRef=new Date().toISOString().slice(0,7);
     const empresa=proj.empresa||'marcenario';
     const numeroAt=await gerarNumeroAtendimento(empresa);
+
+    // Buscar Funil de Vendas e primeira etapa (Entrada)
+    const {data:funisList}=await db.from('funis').select('id').eq('nome','Funil de Vendas').limit(1).single();
+    const funilVendasId=funisList?.id||null;
+    const {data:primeiraEtapa}=funilVendasId
+      ? await db.from('funis_etapas').select('id').eq('funil_id',funilVendasId).order('ordem').limit(1).single()
+      : {data:null};
+    const etapaFunilId=primeiraEtapa?.id||null;
+
     const {error:atErr}=await db.from('atendimentos').insert({
       numero: numeroAt,
-      tipo: 'loja',
+      tipo: 'lead',
       cliente_nome: nome,
       cliente_tel: tel,
       cliente_email: currentUser.email,
@@ -1587,6 +1596,8 @@ async function enviarOrcamento(){
       etapa: 'entrada',
       status: 'em_andamento',
       mes_ref: mesRef,
+      funil_id: funilVendasId,
+      etapa_funil_id: etapaFunilId,
       vendedor_id: vendedor?.id||null,
       vendedor_nome: vendedor?.nome||null,
       registrado_por: currentUser.id
