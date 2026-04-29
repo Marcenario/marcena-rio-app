@@ -5557,24 +5557,28 @@ async function abrirModalAt(id){
       <button onclick="avancarEtapaAt('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Salvar etapa</button>
     </div>
     <div class="divider"></div>
-    <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">${isConferencia?'Concluir conferência':'Concluir atendimento'}</div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">${isConferencia ? 'Concluir Conferência' : 'Concluir atendimento'}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      ${isConferencia?`
-        <button onclick="concluirConferencia('${id}','em_andamento')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Em andamento</button>
-        <button onclick="concluirConferencia('${id}','concluido')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✓ Concluído</button>
-      `:`
-        <button onclick="concluirAt('${id}','fechado')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✓ Fechado</button>
-        <button onclick="document.getElementById('modal-at-perda').style.display='block'" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✗ Perdido</button>
-      `}
+      ${isConferencia
+        ? '<button onclick="concluirConferencia(' + JSON.stringify(id) + ',\'em_andamento\')" '
+          + 'style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#128260; Em andamento</button>'
+          + '<button onclick="concluirConferencia(' + JSON.stringify(id) + ',\'concluido\')" '
+          + 'style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#10003; Concluído</button>'
+        : '<button onclick="concluirAt(' + JSON.stringify(id) + ',\'fechado\')" '
+          + 'style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#10003; Fechado</button>'
+          + '<button onclick="document.getElementById(\'modal-at-perda\').style.display=\'block\'" '
+          + 'style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;">&#10007; Perdido</button>'
+      }
     </div>
-    ${!isConferencia?`
-    <div id="modal-at-perda" style="display:none;margin-top:12px;background:var(--red-bg);border:1px solid #f0a8a8;border-radius:var(--radius-sm);padding:12px;">
-      <div style="font-size:12px;font-weight:500;color:var(--red);margin-bottom:8px;">Selecione o motivo da perda</div>
-      <select id="modal-at-motivo" style="width:100%;padding:9px 12px;border:1px solid #f0a8a8;border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;outline:none;margin-bottom:8px;">
-        <option value="">Selecione...</option>${motivosOpts}
-      </select>
-      <button onclick="concluirAt('${id}','perdido')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;width:100%;">Confirmar perda</button>
-    </div>`:''}
+    ${!isConferencia
+      ? '<div id="modal-at-perda" style="display:none;margin-top:12px;background:var(--red-bg);border:1px solid #f0a8a8;border-radius:var(--radius-sm);padding:12px;">'
+        + '<div style="font-size:12px;font-weight:500;color:var(--red);margin-bottom:8px;">Selecione o motivo da perda</div>'
+        + '<select id="modal-at-motivo" style="width:100%;padding:9px 12px;border:1px solid #f0a8a8;border-radius:var(--radius-sm);font-size:13px;background:#fff;outline:none;margin-bottom:8px;">'
+        + '<option value="">Selecione...</option>' + motivosOpts + '</select>'
+        + '<button onclick="concluirAt(' + JSON.stringify(id) + ',\'perdido\')" '
+        + 'style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;width:100%;">Confirmar perda</button></div>'
+      : ''}
+    `:`<div class="alert alert-${statusAtual==='concluido_fechado'?'success':'error'}">${statusAtual==='concluido_fechado'?'✓ Atendimento fechado':'✗ Atendimento perdido'+(a.motivo_perda?' — '+a.motivo_perda:'')}</div>`}
     <div id="modal-at-alert" style="margin-top:8px;"></div>
   `;
   // Guarda referência dos ambientes para toggleVendeuModal
@@ -5890,6 +5894,7 @@ async function concluirConferencia(id, resultado){
   loadConferencia();
 }
 
+async function loadRelatorioAt(){
   const cont=document.getElementById('at-rel-content');
   cont.innerHTML='<div class="loader">Carregando...</div>';
   const {data:vds}=await db.from('vendedores').select('*').order('produtividade_atual',{ascending:false});
