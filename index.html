@@ -5677,7 +5677,10 @@ async function abrirModalAt(id){
         + '<button onclick="concluirAt(\''+id+'\',\'perdido\')" '
         + 'style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;width:100%;">Confirmar perda</button></div>'
       : ''}
-    `:`<div class="alert alert-${statusAtual==='concluido_fechado'?'success':'error'}">${statusAtual==='concluido_fechado'?'✓ Atendimento fechado':'✗ Atendimento perdido'+(a.motivo_perda?' — '+a.motivo_perda:'')}</div>`}
+    `:`<div>
+      <div class="alert alert-${statusAtual==='concluido_fechado'?'success':'error'}" style="margin-bottom:${userNivel==='admin'?'8':'0'}px;">${statusAtual==='concluido_fechado'?'✓ Atendimento fechado':'✗ Atendimento perdido'+(a.motivo_perda?' — '+a.motivo_perda:'')}</div>
+      ${userNivel==='admin'?`<button onclick="cancelarVendaAdmin('${id}')" style="background:#7a3a1a;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">↩ Cancelar e reabrir atendimento</button>`:''}
+    </div>`}
     <div id="modal-at-alert" style="margin-top:8px;"></div>
 
     <!-- ANOTAÇÕES GERAIS -->
@@ -6121,6 +6124,54 @@ function renderBlocoProjetoAt(at, tipo){
   </div>`;
 }
 
+async function cancelarVendaAdmin(id){
+  if(userNivel!=='admin'){notify('Apenas administradores podem cancelar vendas.','error');return}
+  if(!confirm('Cancelar este atendimento e reabrir? Se houver card vinculado (ambientes perdidos), os ambientes serão reunidos de volta.')) return;
+
+  const {data:a}=await db.from('atendimentos').select('*').eq('id',id).single();
+  if(!a) return;
+
+  let ambsRestaurar = (a.ambientes&&a.ambientes!=='')?JSON.parse(a.ambientes):[];
+
+  // Verificar se há card vinculado (criado por split de ambientes)
+  const {data:vinculados}=await db.from('atendimentos')
+    .select('*')
+    .eq('origem_at_id', id);
+
+  if(vinculados?.length){
+    // Reunir ambientes dos cards vinculados de volta ao original
+    for(const v of vinculados){
+      const ambsV = (v.ambientes&&v.ambientes!=='')?JSON.parse(v.ambientes):[];
+      // Resetar vendeu para null (neutro) ao reunir
+      ambsRestaurar = [...ambsRestaurar, ...ambsV.map(am=>({...am, vendeu:null}))];
+      // Deletar card vinculado
+      await db.from('atendimentos').delete().eq('id',v.id);
+    }
+    // Também resetar os ambientes do card original para neutro
+    ambsRestaurar = ambsRestaurar.map(am=>({...am, vendeu:null}));
+  }
+
+  // Restaurar etapa anterior ou primeira etapa do funil
+  let etapaRestaurar = a.etapa_funil_id_anterior || null;
+  if(!etapaRestaurar && a.funil_id){
+    const {data:primeiraEtapa}=await db.from('funis_etapas').select('id').eq('funil_id',a.funil_id).order('ordem').limit(1).single();
+    etapaRestaurar = primeiraEtapa?.id || null;
+  }
+
+  await db.from('atendimentos').update({
+    status:'em_andamento',
+    data_conclusao:null,
+    motivo_perda:null,
+    etapa_funil_id: etapaRestaurar,
+    etapa_funil_id_anterior: null,
+    ambientes: JSON.stringify(ambsRestaurar),
+    numero: a.numero.replace(/-P$/,'')  // remove sufixo -P se houver
+  }).eq('id',id);
+
+  notify('↩ Atendimento reaberto! Ambientes reunidos e etapa restaurada.');
+  fecharModalAt(); loadFunil();
+}
+
 async function concluirAtVendas(id){
   const {data:a}=await db.from('atendimentos').select('*').eq('id',id).single();
   if(!a) return;
@@ -6135,7 +6186,8 @@ async function concluirAtVendas(id){
   await db.from('atendimentos').update({
     status:'concluido_fechado',
     data_conclusao:new Date().toISOString(),
-    ambientes:JSON.stringify(vendidos)
+    ambientes:JSON.stringify(vendidos),
+    etapa_funil_id_anterior: a.etapa_funil_id   // guarda para poder restaurar
   }).eq('id',id);
 
   // Se há ambientes perdidos, criar card vinculado na coluna Perdas
@@ -6171,9 +6223,11 @@ async function concluirAt(id,resultado){
     const motivoId=document.getElementById('modal-at-motivo').value;
     if(!motivoId){notify('Selecione o motivo da perda.','error');return}
     const {data:m}=await db.from('motivos_perda').select('descricao').eq('id',motivoId).single();
-    await db.from('atendimentos').update({status:'concluido_perdido',motivo_perda:m?.descricao||'',data_conclusao:new Date().toISOString()}).eq('id',id);
+    const {data:atNow}=await db.from('atendimentos').select('etapa_funil_id').eq('id',id).single();
+    await db.from('atendimentos').update({status:'concluido_perdido',motivo_perda:m?.descricao||'',data_conclusao:new Date().toISOString(),etapa_funil_id_anterior:atNow?.etapa_funil_id}).eq('id',id);
   } else {
-    await db.from('atendimentos').update({status:'concluido_fechado',data_conclusao:new Date().toISOString()}).eq('id',id);
+    const {data:atNow}=await db.from('atendimentos').select('etapa_funil_id').eq('id',id).single();
+    await db.from('atendimentos').update({status:'concluido_fechado',data_conclusao:new Date().toISOString(),etapa_funil_id_anterior:atNow?.etapa_funil_id}).eq('id',id);
   }
   // Atualiza produtividade do vendedor
   const {data:a}=await db.from('atendimentos').select('vendedor_id').eq('id',id).single();
