@@ -5616,6 +5616,23 @@ async function abrirModalAt(id){
     <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📦 Anexos do atendimento</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
 
+      <!-- Lista de Eletros -->
+      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div>
+            <span style="font-size:12px;font-weight:600;">⚡ Lista de eletros</span>
+            <span style="font-size:10px;color:var(--text3);margin-left:6px;">.doc, .pdf ou imagem</span>
+            ${!a.anexo_eletros_url?'<span style="font-size:10px;color:var(--red);font-weight:600;margin-left:6px;">● obrigatório</span>':''}
+          </div>
+          ${a.anexo_eletros_url?'<a href="'+a.anexo_eletros_url+'" target="_blank" style="font-size:11px;background:var(--green);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-weight:500;">⬇ Baixar</a>':''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="file" id="at-anexo-elet-${id}" accept=".doc,.docx,.pdf,.jpg,.jpeg,.png" style="flex:1;font-size:12px;font-family:'DM Sans',sans-serif;" onchange="toggleBtnConferencia('${id}')">
+          <button onclick="uploadAnexoAt('${id}','eletros')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
+        </div>
+        ${a.anexo_eletros_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_eletros_nome+'</div>':''}
+      </div>
+
       <!-- Projeto Ajustado -->
       <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -5630,22 +5647,6 @@ async function abrirModalAt(id){
           <button onclick="uploadAnexoAt('${id}','projeto')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
         </div>
         ${a.anexo_projeto_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_projeto_nome+'</div>':''}
-      </div>
-
-      <!-- Projeto de Montagem -->
-      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <div>
-            <span style="font-size:12px;font-weight:600;">🔧 Projeto de montagem</span>
-            <span style="font-size:10px;color:var(--text3);margin-left:6px;">.rar, .zip ou qualquer extensão</span>
-          </div>
-          ${a.anexo_montagem_url?'<a href="'+a.anexo_montagem_url+'" target="_blank" style="font-size:11px;background:var(--green);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-weight:500;">⬇ Baixar</a>':''}
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="file" id="at-anexo-mont-${id}" style="flex:1;font-size:12px;font-family:'DM Sans',sans-serif;">
-          <button onclick="uploadAnexoAt('${id}','montagem')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
-        </div>
-        ${a.anexo_montagem_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_montagem_nome+'</div>':''}
       </div>
 
       <!-- Projeto Revisado -->
@@ -5664,21 +5665,20 @@ async function abrirModalAt(id){
         ${a.anexo_revisado_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_revisado_nome+'</div>':''}
       </div>
 
-      <!-- Lista de Eletros -->
+      <!-- Projeto de Montagem -->
       <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div>
-            <span style="font-size:12px;font-weight:600;">⚡ Lista de eletros</span>
-            <span style="font-size:10px;color:var(--text3);margin-left:6px;">.doc, .pdf ou imagem</span>
-            ${!a.anexo_eletros_url?'<span style="font-size:10px;color:var(--red);font-weight:600;margin-left:6px;">● obrigatório</span>':''}
+            <span style="font-size:12px;font-weight:600;">🔧 Projeto de montagem</span>
+            <span style="font-size:10px;color:var(--text3);margin-left:6px;">.rar, .zip ou qualquer extensão</span>
           </div>
-          ${a.anexo_eletros_url?'<a href="'+a.anexo_eletros_url+'" target="_blank" style="font-size:11px;background:var(--green);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-weight:500;">⬇ Baixar</a>':''}
+          ${a.anexo_montagem_url?'<a href="'+a.anexo_montagem_url+'" target="_blank" style="font-size:11px;background:var(--green);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-weight:500;">⬇ Baixar</a>':''}
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <input type="file" id="at-anexo-elet-${id}" accept=".doc,.docx,.pdf,.jpg,.jpeg,.png" style="flex:1;font-size:12px;font-family:'DM Sans',sans-serif;" onchange="toggleBtnConferencia('${id}')">
-          <button onclick="uploadAnexoAt('${id}','eletros')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
+          <input type="file" id="at-anexo-mont-${id}" style="flex:1;font-size:12px;font-family:'DM Sans',sans-serif;">
+          <button onclick="uploadAnexoAt('${id}','montagem')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
         </div>
-        ${a.anexo_eletros_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_eletros_nome+'</div>':''}
+        ${a.anexo_montagem_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_montagem_nome+'</div>':''}
       </div>
 
     </div>
