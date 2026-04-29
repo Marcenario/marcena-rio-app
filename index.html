@@ -4729,6 +4729,10 @@ function toggleColunaFunil(etapaId){
 }
 
 async function loadFunis(){
+  if(!_funis.length){
+    const {data} = await db.from('funis').select('*').neq('tipo','conferencia').order('nome');
+    _funis = data || [];
+  }
 
   const vendas = _funis.filter(f=>f.tipo==='vendas');
   const historico = _funis.filter(f=>['vendas_ano','perdas_ano'].includes(f.tipo));
@@ -4851,11 +4855,17 @@ function renderFunilDinamico(todos, cont){
     </div>`;
   }
 
-  // Coluna de Fechados
+  // Coluna de Vendas (fechados)
   const fechados = todos.filter(a=>a.status==='concluido_fechado');
-  if(fechados.length){
-    html += buildColuna('✓ Fechados','var(--green)','var(--green-bg)',fechados,0);
-  }
+  const valFechados = fechados.reduce((s,a)=>{
+    const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
+    return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);
+  },0);
+  html += buildColuna('✓ Vendas','var(--green)','var(--green-bg)',fechados,valFechados,'__vendas__');
+
+  // Coluna de Perdas
+  const perdidos = todos.filter(a=>a.status==='concluido_perdido');
+  html += buildColuna('✗ Perdas','var(--red)','var(--red-bg)',perdidos,0,'__perdas__');
 
   html += '</div>';
   cont.innerHTML = html;
@@ -5093,27 +5103,36 @@ function filtrarFunil(busca){
   renderFunilDinamico(filtrarAtendimentos(lista, busca), cont);
 }
 
+function buildColuna(label, cor, bg, cards, totalVal, colId){
+  const cardHtml=cards.length
+    ?cards.map(a=>renderFunilCard(a,cor)).join('')
+    :`<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum atendimento</div>`;
+  const oculta = colId ? _colunasOcultasFunil.has(colId) : false;
+  if(oculta){
+    return `<div class="funil-col" style="min-width:56px;max-width:56px;flex-shrink:0;">
+      <div class="funil-col-header" style="background:${bg};color:${cor};">
+        <div style="writing-mode:vertical-rl;font-size:11px;font-weight:600;padding:8px 4px;cursor:pointer;white-space:nowrap;" onclick="toggleColunaFunil('${colId}')" title="Expandir">${label} (${cards.length})</div>
+      </div>
+    </div>`;
+  }
+  return `<div class="funil-col">
+    <div class="funil-col-header" style="background:${bg};color:${cor};">
+      <div class="funil-col-header-info">
+        <span style="font-size:12px;font-weight:600;">${label}</span>
+        ${totalVal>0?`<span style="font-size:11px;font-weight:500;opacity:0.85;">${fmt(totalVal)}</span>`:''}
+      </div>
+      <div class="funil-col-header-count" style="display:flex;align-items:center;gap:6px;">
+        <span style="background:${cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
+        ${colId?`<button onclick="toggleColunaFunil('${colId}')" title="Ocultar coluna" style="background:transparent;border:none;cursor:pointer;color:${cor};font-size:16px;line-height:1;opacity:0.7;padding:0;">⊖</button>`:''}
+      </div>
+    </div>
+    <div class="funil-col-body">${cardHtml}</div>
+  </div>`;
+}
+
 function renderFunilLista(todos){
   const cont=document.getElementById('at-funil-content');
   const hoje=new Date();
-
-function buildColuna(label, cor, bg, cards, totalVal){
-    const cardHtml=cards.length
-      ?cards.map(a=>renderFunilCard(a,cor)).join('')
-      :`<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum atendimento</div>`;
-    return `<div class="funil-col">
-      <div class="funil-col-header" style="background:${bg};color:${cor};">
-        <div class="funil-col-header-info">
-          <span style="font-size:12px;font-weight:600;">${label}</span>
-          ${totalVal>0?`<span style="font-size:11px;font-weight:500;opacity:0.85;">${fmt(totalVal)}</span>`:''}
-        </div>
-        <div class="funil-col-header-count">
-          <span style="background:${cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
-        </div>
-      </div>
-      <div class="funil-col-body">${cardHtml}</div>
-    </div>`;
-  }
 
   let html='<div class="funil-wrap">';
 
@@ -5131,10 +5150,10 @@ function buildColuna(label, cor, bg, cards, totalVal){
     const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
     return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);
   },0);
-  html+=buildColuna('✓ Fechados','var(--green)','var(--green-bg)',fechados,valFechados);
+  html+=buildColuna('✓ Vendas','var(--green)','var(--green-bg)',fechados,valFechados,'__vendas__');
 
   const perdidos=todos.filter(a=>a.status==='concluido_perdido');
-  html+=buildColuna('✗ Perdidos','var(--red)','var(--red-bg)',perdidos,0);
+  html+=buildColuna('✗ Perdas','var(--red)','var(--red-bg)',perdidos,0,'__perdas__');
 
   html+='</div>';
   cont.innerHTML=html;
