@@ -386,13 +386,11 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
           <input type="text" id="mt-busca" placeholder="🔍 Buscar por nome, contrato..." oninput="filtrarFilaMt(this.value)"
             style="flex:1;min-width:200px;padding:9px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
-          <select id="mt-filtro-status" onchange="filtrarFilaMt(document.getElementById('mt-busca').value)"
-            style="padding:9px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
-            <option value="">Todos</option>
-            <option value="agendado">Aguardando</option>
-            <option value="em_montagem">Em montagem</option>
-            <option value="concluido">Concluídos</option>
-          </select>
+          <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:3px;">
+            <button id="mt-tipo-todos" onclick="setFiltroTipoMt('todos',this)" style="padding:6px 14px;border-radius:4px;border:none;background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Todos</button>
+            <button id="mt-tipo-montagem" onclick="setFiltroTipoMt('montagem',this)" style="padding:6px 14px;border-radius:4px;border:none;background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">🔨 Montagem</button>
+            <button id="mt-tipo-asteca" onclick="setFiltroTipoMt('asteca',this)" style="padding:6px 14px;border-radius:4px;border:none;background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">🔧 ASTECA</button>
+          </div>
         </div>
         <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
           <div class="stat-card"><div class="stat-num" id="mt-st-ag">—</div><div class="stat-label">Aguardando</div></div>
@@ -977,6 +975,12 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div class="card-title">🔄 Solicitações de mudança de empresa</div>
         </div>
         <div id="sol-empresa-content"><div class="loader">Carregando...</div></div>
+      </div>
+      <div class="card" id="sol-equipe-card" style="display:none;">
+        <div class="card-header">
+          <div class="card-title">👷 Solicitações de mudança de equipe</div>
+        </div>
+        <div id="sol-equipe-content"><div class="loader">Carregando...</div></div>
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">Todos os projetos</div></div>
@@ -2071,6 +2075,45 @@ async function rejeitarSolicitacaoEmpresa(solId){
   loadSolicitacoesEmpresa();
 }
 
+async function loadSolicitacoesEquipe(){
+  const card = document.getElementById('sol-equipe-card');
+  const cont = document.getElementById('sol-equipe-content');
+  if(!cont) return;
+  const {data} = await db.from('solicitacoes_equipe').select('*').eq('status','pendente').order('created_at',{ascending:false});
+  if(!data||!data.length){
+    if(card) card.style.display='none';
+    return;
+  }
+  if(card) card.style.display='block';
+  cont.innerHTML=data.map(s=>{
+    const dataStr=new Date(s.created_at).toLocaleDateString('pt-BR');
+    return `<div class="card" style="margin-bottom:8px;">
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px;">Mudança de equipe de montagem</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">${s.equipe_atual_nome||'Sem equipe'} → <strong>${s.equipe_solicitada_nome}</strong></div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">Solicitado por: ${s.solicitado_por} · ${dataStr}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Motivo: ${s.motivo||'—'}</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="aprovarSolicitacaoEquipe('${s.id}','${s.pedido_id}','${s.equipe_solicitada_id}','${s.equipe_solicitada_nome}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">✅ Aprovar</button>
+        <button onclick="rejeitarSolicitacaoEquipe('${s.id}')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">❌ Rejeitar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function aprovarSolicitacaoEquipe(solId, pedidoId, equipeId, equipeNome){
+  await db.from('pedidos_montagem').update({equipe_id:equipeId, equipe_nome:equipeNome}).eq('id',pedidoId);
+  await db.from('solicitacoes_equipe').update({status:'aprovado'}).eq('id',solId);
+  notify('Solicitação aprovada! Equipe atualizada. ✅');
+  loadSolicitacoesEquipe();
+  loadFilaMt();
+}
+
+async function rejeitarSolicitacaoEquipe(solId){
+  await db.from('solicitacoes_equipe').update({status:'rejeitado'}).eq('id',solId);
+  notify('Solicitação rejeitada.');
+  loadSolicitacoesEquipe();
+}
+
 async function loadSolicitacoesEmpresa(){
   const cont = document.getElementById('sol-empresa-content');
   if(!cont) return;
@@ -2239,6 +2282,7 @@ async function loadAdmin(){
   } else {
     solCard.style.display='none';
   }
+  loadSolicitacoesEquipe();
 
   const cont=document.getElementById('admin-projetos');
   if(!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum projeto.</p></div>';return}
@@ -2369,23 +2413,38 @@ async function salvarPedidoMt(){
   setTipoMt('montagem');
 }
 
+let _filtroTipoMt = 'todos';
+
+function setFiltroTipoMt(tipo, btn){
+  _filtroTipoMt = tipo;
+  ['mt-tipo-todos','mt-tipo-montagem','mt-tipo-asteca'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.style.background='transparent'; el.style.color='var(--text2)'; }
+  });
+  if(btn){ btn.style.background='var(--brand)'; btn.style.color='#fff'; }
+  renderKanbanMt(window._todosPedidosMt||[]);
+}
+
 async function loadFilaMt(){
   const cont=document.getElementById('mt-fila-content');
   cont.innerHTML='<div class="loader">Carregando...</div>';
-  const {data}=await db.from('pedidos_montagem').select('*').order('created_at',{ascending:true});
-  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum pedido na fila.</p></div>';
-    ['mt-st-ag','mt-st-em','mt-st-co','mt-st-vl'].forEach(id=>document.getElementById(id).textContent='0');return}
-  window._todosPedidosMt=data;
+  const [{data:pedidos},{data:equipes}] = await Promise.all([
+    db.from('pedidos_montagem').select('*').order('created_at',{ascending:true}),
+    db.from('equipes_montagem').select('*').order('nome')
+  ]);
+  window._todosPedidosMt = pedidos||[];
+  window._equipesMt = equipes||[];
+
+  const data = pedidos||[];
   document.getElementById('mt-st-ag').textContent=data.filter(p=>p.status==='aguardando').length;
   document.getElementById('mt-st-em').textContent=data.filter(p=>p.status==='em_montagem').length;
   document.getElementById('mt-st-co').textContent=data.filter(p=>p.status==='concluido').length;
   document.getElementById('mt-st-vl').textContent=fmt(data.filter(p=>p.status!=='concluido').reduce((s,p)=>s+p.valor_total,0));
-  renderFilaMtLista(data);
+  renderKanbanMt(data);
 }
 
 function filtrarFilaMt(busca){
   let lista=window._todosPedidosMt||[];
-  const status=document.getElementById('mt-filtro-status')?.value||'';
   if(busca&&busca.trim()){
     const q=busca.toLowerCase().trim();
     lista=lista.filter(p=>
@@ -2394,23 +2453,180 @@ function filtrarFilaMt(busca){
       (p.equipe_nome||'').toLowerCase().includes(q)
     );
   }
-  if(status) lista=lista.filter(p=>p.status===status);
-  renderFilaMtLista(lista);
+  renderKanbanMt(lista);
+}
+
+function renderKanbanMt(data){
+  const cont=document.getElementById('mt-fila-content');
+  const equipes=window._equipesMt||[];
+
+  // Filtrar por tipo
+  let lista=data;
+  if(_filtroTipoMt==='montagem') lista=data.filter(p=>p.tipo!=='asteca');
+  else if(_filtroTipoMt==='asteca') lista=data.filter(p=>p.tipo==='asteca');
+
+  // Pedidos ativos (não concluídos)
+  const ativos=lista.filter(p=>p.status!=='concluido');
+  const concluidos=lista.filter(p=>p.status==='concluido');
+
+  if(!equipes.length){
+    cont.innerHTML='<div class="empty-state"><p>Nenhuma equipe cadastrada. Cadastre equipes na aba Equipes.</p></div>';
+    return;
+  }
+
+  // Coluna para pedidos sem equipe
+  const semEquipe=ativos.filter(p=>!p.equipe_id);
+
+  let html='<div class="funil-wrap">';
+
+  // Uma coluna por equipe
+  equipes.forEach(eq=>{
+    const cards=ativos.filter(p=>p.equipe_id===eq.id);
+    const totalVal=cards.reduce((s,p)=>s+p.valor_total,0);
+    const cardHtml=cards.length
+      ? cards.map(p=>renderCardKanbanMt(p)).join('')
+      : `<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum pedido</div>`;
+    html+=`<div class="funil-col">
+      <div class="funil-col-header" style="background:#f0e6d3;color:#6b4c2a;">
+        <div class="funil-col-header-info">
+          <span style="font-size:12px;font-weight:600;">${eq.nome}</span>
+          ${totalVal>0?`<span style="font-size:11px;opacity:0.85;">${fmt(totalVal)}</span>`:''}
+        </div>
+        <span style="background:#6b4c2a;color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
+      </div>
+      <div class="funil-col-body"
+        ondragover="dragOver(event)"
+        ondragleave="dragLeave(event)"
+        ondrop="dropMt(event,'${eq.id}','${eq.nome}')"
+        data-equipe-id="${eq.id}">
+        ${cardHtml}
+      </div>
+    </div>`;
+  });
+
+  // Coluna sem equipe
+  if(semEquipe.length){
+    const cardHtml=semEquipe.map(p=>renderCardKanbanMt(p)).join('');
+    html+=`<div class="funil-col">
+      <div class="funil-col-header" style="background:#f5f5f5;color:#666;">
+        <div class="funil-col-header-info"><span style="font-size:12px;font-weight:600;">Sem equipe</span></div>
+        <span style="background:#666;color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${semEquipe.length}</span>
+      </div>
+      <div class="funil-col-body">${cardHtml}</div>
+    </div>`;
+  }
+
+  // Coluna de concluídos
+  if(concluidos.length){
+    const cardHtml=concluidos.map(p=>renderCardKanbanMt(p)).join('');
+    html+=`<div class="funil-col">
+      <div class="funil-col-header" style="background:var(--green-bg);color:var(--green);">
+        <div class="funil-col-header-info"><span style="font-size:12px;font-weight:600;">✓ Concluídos</span></div>
+        <span style="background:var(--green);color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${concluidos.length}</span>
+      </div>
+      <div class="funil-col-body">${cardHtml}</div>
+    </div>`;
+  }
+
+  html+='</div>';
+  cont.innerHTML=html;
+}
+
+function renderCardKanbanMt(p){
+  const isAsteca=p.tipo==='asteca';
+  const corBorda=isAsteca?'#8a1a1a':'var(--accent)';
+  const dataStr=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  const prazo=p.data_producao?new Date(p.data_producao+'T12:00:00').toLocaleDateString('pt-BR'):null;
+  return `<div class="funil-card"
+    draggable="true"
+    ondragstart="dragStartMt(event,'${p.id}')"
+    ondragend="dragEnd(event)"
+    onclick="abrirDetalhesMt('${p.id}')"
+    style="border-left:3px solid ${corBorda};cursor:grab;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:4px;">
+      <div style="font-size:13px;font-weight:500;">${p.cliente_nome||'—'}</div>
+      ${isAsteca?`<span style="font-size:10px;font-weight:600;background:#8a1a1a;color:#fff;padding:2px 6px;border-radius:6px;flex-shrink:0;">ASTECA</span>`:''}
+    </div>
+    <div style="font-size:11px;color:var(--text2);">Contrato: ${p.numero_contrato||'—'}</div>
+    <div style="font-size:11px;color:var(--text2);">Chegada: ${dataStr}</div>
+    ${prazo?`<div style="font-size:11px;color:#1a6b35;font-weight:600;">Prazo: ${prazo}</div>`:''}
+    <div style="font-size:12px;font-weight:600;color:var(--accent);margin-top:6px;">${fmt(p.valor_total||0)}</div>
+  </div>`;
+}
+
+let _dragMtId = null;
+
+function dragStartMt(event, pedidoId){
+  _dragMtId = pedidoId;
+  event.currentTarget.classList.add('dragging');
+  event.dataTransfer.effectAllowed='move';
+  event.dataTransfer.setData('text/plain', pedidoId);
+}
+
+async function dropMt(event, equipeId, equipeNome){
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  const pedidoId = _dragMtId || event.dataTransfer.getData('text/plain');
+  if(!pedidoId||!equipeId) return;
+
+  const pedido = window._todosPedidosMt?.find(p=>p.id===pedidoId);
+  if(pedido?.equipe_id===equipeId) return;
+
+  if(userNivel==='admin'){
+    // Admin move diretamente
+    const {error}=await db.from('pedidos_montagem').update({equipe_id:equipeId, equipe_nome:equipeNome}).eq('id',pedidoId);
+    if(error){notify('Erro ao mover pedido.','error');return;}
+    if(pedido){pedido.equipe_id=equipeId;pedido.equipe_nome=equipeNome;}
+    notify(`Movido para ${equipeNome}!`);
+    renderKanbanMt(window._todosPedidosMt||[]);
+  } else {
+    // Funcionário — abre modal para solicitar
+    const motivo = prompt(`Para mover para ${equipeNome}, informe o motivo da solicitação:`);
+    if(!motivo) return;
+    const {error}=await db.from('solicitacoes_equipe').insert({
+      pedido_id: pedidoId,
+      equipe_atual_id: pedido?.equipe_id||null,
+      equipe_atual_nome: pedido?.equipe_nome||'Sem equipe',
+      equipe_solicitada_id: equipeId,
+      equipe_solicitada_nome: equipeNome,
+      solicitado_por: currentUser.email,
+      motivo,
+      status: 'pendente'
+    });
+    if(error){notify('Erro ao enviar solicitação.','error');return;}
+    notify('Solicitação enviada ao administrador! ✅');
+  }
+  _dragMtId=null;
+}
+
+async function abrirDetalhesMt(pedidoId){
+  // Abrir modal com detalhes do pedido (reutiliza lógica existente)
+  const p = window._todosPedidosMt?.find(x=>x.id===pedidoId);
+  if(!p) return;
+  // Usar o renderPedidoMt existente em um popup simples
+  document.getElementById('modal-at').style.display='flex';
+  const ambs=typeof p.ambientes==='string'?(()=>{try{return JSON.parse(p.ambientes);}catch{return [];}})():p.ambientes||[];
+  const dataStr=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  document.getElementById('modal-at-body').innerHTML=`
+    <div style="font-size:16px;font-weight:600;margin-bottom:12px;">${p.cliente_nome||'—'}</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">Contrato: <strong>${p.numero_contrato||'—'}</strong></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">Chegada: ${dataStr}</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">Equipe: ${p.equipe_nome||'—'}</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">Valor: <strong>${fmt(p.valor_total||0)}</strong></div>
+    ${ambs.length?`<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">
+      <tr style="background:var(--bg2);"><th style="padding:6px;text-align:left;border:1px solid var(--border);">Pedido</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">NF</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">Ambiente</th><th style="padding:6px;text-align:right;border:1px solid var(--border);">Valor</th></tr>
+      ${ambs.map(a=>`<tr><td style="padding:6px;border:1px solid var(--border);">${a.nped||'—'}</td><td style="padding:6px;border:1px solid var(--border);">${a.nf||'—'}</td><td style="padding:6px;border:1px solid var(--border);">${a.ambiente||'—'}</td><td style="padding:6px;border:1px solid var(--border);text-align:right;">${fmt(a.valor||0)}</td></tr>`).join('')}
+    </table>`:''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${p.status!=='concluido'?`<button onclick="concluirPedidoMt('${p.id}');fecharModalAt();" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">✓ Concluir</button>`:''}
+      <button onclick="fecharModalAt()" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">Fechar</button>
+    </div>
+    <button onclick="fecharModalAt()" style="position:absolute;top:12px;right:12px;background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--text3);">✕</button>
+  `;
 }
 
 function renderFilaMtLista(data){
-  const cont=document.getElementById('mt-fila-content');
-  const ativos=data.filter(p=>p.status!=='concluido').sort((a,b)=>{
-    if(a.tipo==='asteca'&&b.tipo!=='asteca')return -1;
-    if(a.tipo!=='asteca'&&b.tipo==='asteca')return 1;
-    return 0;
-  });
-  const concl=data.filter(p=>p.status==='concluido');
-  let html='';
-  if(ativos.length)html+=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Em andamento (${ativos.length})</div>`+ativos.map(p=>renderPedidoMt(p)).join('');
-  if(concl.length)html+=`<div style="font-size:12px;font-weight:500;color:var(--text2);margin:16px 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Concluídos (${concl.length})</div>`+concl.map(p=>renderPedidoMt(p)).join('');
-  if(!html)html='<div class="empty-state"><p>Nenhum resultado encontrado.</p></div>';
-  cont.innerHTML=html;
+  renderKanbanMt(data);
 }
 
 function renderPedidoMt(p){
@@ -2862,6 +3078,11 @@ async function loadDashAlertas(mes) {
   const {data: atestados} = await db.from('rh_atestados').select('id').eq('status','pendente');
   if(atestados && atestados.length)
     alertas.push({cls:'amber', icon:'🟡', msg:`${atestados.length} atestado(s) aguardando aprovação`, acao:'Ver RH', fn:"showSection('rh',document.getElementById('nav-rh'));showSubRH('rh-atestado',document.getElementById('rh-nav-atestado'))"});
+
+  // Solicitações de equipe pendentes
+  const {data:solsEquipe}=await db.from('solicitacoes_equipe').select('id').eq('status','pendente');
+  if(solsEquipe?.length)
+    alertas.push({cls:'amber',icon:'🟡',msg:`${solsEquipe.length} solicitação(ões) de mudança de equipe pendentes`,acao:'Ver Painel Admin',fn:"showSection('painel_admin',document.getElementById('nav-admin'))"});
 
   // Taxa de conversão
   const {data: ats} = await db.from('atendimentos').select('status').eq('mes_ref', mes);
