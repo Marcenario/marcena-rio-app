@@ -5611,13 +5611,12 @@ async function abrirModalAt(id){
     <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📦 Anexos do atendimento</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
 
-      <!-- Arquivo RAR / Projeto -->
+      <!-- Projeto Ajustado -->
       <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div>
-            <span style="font-size:12px;font-weight:600;">📁 Arquivo de projeto</span>
+            <span style="font-size:12px;font-weight:600;">📐 Projeto ajustado</span>
             <span style="font-size:10px;color:var(--text3);margin-left:6px;">.rar, .zip ou qualquer extensão</span>
-            ${!a.anexo_projeto_url?'<span style="font-size:10px;color:var(--red);font-weight:600;margin-left:6px;">● obrigatório</span>':''}
           </div>
           ${a.anexo_projeto_url?'<a href="'+a.anexo_projeto_url+'" target="_blank" style="font-size:11px;background:var(--green);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-weight:500;">⬇ Baixar</a>':''}
         </div>
@@ -5626,6 +5625,22 @@ async function abrirModalAt(id){
           <button onclick="uploadAnexoAt('${id}','projeto')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
         </div>
         ${a.anexo_projeto_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_projeto_nome+'</div>':''}
+      </div>
+
+      <!-- Projeto de Montagem -->
+      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div>
+            <span style="font-size:12px;font-weight:600;">🔧 Projeto de montagem</span>
+            <span style="font-size:10px;color:var(--text3);margin-left:6px;">.rar, .zip ou qualquer extensão</span>
+          </div>
+          ${a.anexo_montagem_url?'<a href="'+a.anexo_montagem_url+'" target="_blank" style="font-size:11px;background:var(--green);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-weight:500;">⬇ Baixar</a>':''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="file" id="at-anexo-mont-${id}" style="flex:1;font-size:12px;font-family:'DM Sans',sans-serif;">
+          <button onclick="uploadAnexoAt('${id}','montagem')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
+        </div>
+        ${a.anexo_montagem_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_montagem_nome+'</div>':''}
       </div>
 
       <!-- Lista de Eletros -->
@@ -5746,7 +5761,7 @@ async function salvarAnotacoesAt(id, auto=false){
 
 /* ── UPLOAD DE ANEXOS ── */
 async function uploadAnexoAt(atId, tipo){
-  const inputId = tipo==='projeto' ? `at-anexo-proj-${atId}` : `at-anexo-elet-${atId}`;
+  const inputId = tipo==='projeto' ? `at-anexo-proj-${atId}` : tipo==='montagem' ? `at-anexo-mont-${atId}` : `at-anexo-elet-${atId}`;
   const input = document.getElementById(inputId);
   if(!input?.files[0]){notify('Selecione um arquivo.','error');return}
   const file = input.files[0];
@@ -5758,7 +5773,9 @@ async function uploadAnexoAt(atId, tipo){
   const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
   const campos = tipo==='projeto'
     ? {anexo_projeto_url: urlData.publicUrl, anexo_projeto_nome: file.name}
-    : {anexo_eletros_url: urlData.publicUrl, anexo_eletros_nome: file.name};
+    : tipo==='montagem'
+      ? {anexo_montagem_url: urlData.publicUrl, anexo_montagem_nome: file.name}
+      : {anexo_eletros_url: urlData.publicUrl, anexo_eletros_nome: file.name};
   await db.from('atendimentos').update(campos).eq('id',atId);
   notify('✅ Arquivo enviado!');
   abrirModalAt(atId);
@@ -5810,22 +5827,15 @@ async function iniciarConferencia(atId){
   const contrato = (document.getElementById(`at-contrato-${atId}`)?.value||'').trim();
   if(!contrato){notify('Preencha o número do contrato antes de iniciar.','error');return}
 
-  // Validar anexos obrigatórios
-  const {data:atCheck} = await db.from('atendimentos').select('anexo_projeto_url,anexo_eletros_url').eq('id',atId).single();
-  const temProjeto = atCheck?.anexo_projeto_url || document.getElementById(`at-anexo-proj-${atId}`)?.files?.[0];
+  // Validar anexo obrigatório — apenas lista de eletros
+  const {data:atCheck} = await db.from('atendimentos').select('anexo_eletros_url').eq('id',atId).single();
   const temEletros = atCheck?.anexo_eletros_url || document.getElementById(`at-anexo-elet-${atId}`)?.files?.[0];
-  if(!temProjeto || !temEletros){
-    const faltam = [!temProjeto?'Arquivo de projeto':null, !temEletros?'Lista de eletros':null].filter(Boolean).join(' e ');
-    notify(`⚠️ Envie os anexos obrigatórios antes de iniciar: ${faltam}`, 'error');
+  if(!temEletros){
+    notify('⚠️ Envie a lista de eletros antes de iniciar a conferência.','error');
     return;
   }
-
-  // Upload de arquivos pendentes (caso não tenham sido enviados ainda)
-  if(!atCheck?.anexo_projeto_url && document.getElementById(`at-anexo-proj-${atId}`)?.files?.[0]){
-    await uploadAnexoAt(atId, 'projeto');
-  }
   if(!atCheck?.anexo_eletros_url && document.getElementById(`at-anexo-elet-${atId}`)?.files?.[0]){
-    await uploadAnexoAt(atId, 'eletros');
+    await uploadAnexoAt(atId,'eletros');
   }
 
   const btn = document.getElementById(`btn-iniciar-conf-${atId}`);
