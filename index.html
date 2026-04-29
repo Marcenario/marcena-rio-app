@@ -4825,8 +4825,17 @@ function renderFunilDinamico(todos, cont){
   let html = '<div class="funil-wrap">';
   for(const etapa of _etapasFunilAtual){
     const oculta = _colunasOcultasFunil.has(etapa.id);
-    const cards = todos.filter(a => a.etapa_funil_id === etapa.id && a.status === 'em_andamento');
-    const totalVal = cards.reduce((s,a)=>s+(a.estimativa||0),0);
+    const nomeNorm = (etapa.nome||'').toLowerCase().trim();
+    const isVendas = nomeNorm === 'vendas';
+    const isPerdas = nomeNorm === 'perdas';
+    const cards = isVendas
+      ? todos.filter(a => a.status === 'concluido_fechado')
+      : isPerdas
+        ? todos.filter(a => a.status === 'concluido_perdido')
+        : todos.filter(a => a.etapa_funil_id === etapa.id && a.status === 'em_andamento');
+    const totalVal = isVendas
+      ? cards.reduce((s,a)=>{ const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[]; return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0); },0)
+      : cards.reduce((s,a)=>s+(a.estimativa||0),0);
     const cardHtml = cards.length
       ? cards.map(a=>renderFunilCard(a, etapa.cor)).join('')
       : `<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum atendimento</div>`;
@@ -4854,18 +4863,6 @@ function renderFunilDinamico(todos, cont){
       </div>`:''}
     </div>`;
   }
-
-  // Coluna de Vendas (fechados)
-  const fechados = todos.filter(a=>a.status==='concluido_fechado');
-  const valFechados = fechados.reduce((s,a)=>{
-    const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
-    return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);
-  },0);
-  html += buildColuna('✓ Vendas','var(--green)','var(--green-bg)',fechados,valFechados,'__vendas__');
-
-  // Coluna de Perdas
-  const perdidos = todos.filter(a=>a.status==='concluido_perdido');
-  html += buildColuna('✗ Perdas','var(--red)','var(--red-bg)',perdidos,0,'__perdas__');
 
   html += '</div>';
   cont.innerHTML = html;
