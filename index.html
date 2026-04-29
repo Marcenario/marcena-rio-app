@@ -1721,6 +1721,22 @@ function renderProjeto(p){
   // Controles staff — inclui campo de data/arquivo para etapa atual
   let campoExtra='';
   const etAtual=ETAPAS[etapaIdx];
+
+  // Campo de data de conclusão na última etapa
+  if(isStaff&&concluido){
+    const valConc=p.data_conclusao||'';
+    const dataGarStr=p.data_garantia?new Date(p.data_garantia+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+    campoExtra=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
+      <div style="font-size:11px;font-weight:600;color:#1a6b35;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">🏁 Conclusão e Garantia</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <label style="font-size:12px;color:var(--text2);font-weight:500;">📅 Data de conclusão:</label>
+        <input type="date" id="campo-conclusao-${p.id}" value="${valConc}" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+        <button onclick="salvarDataConclusao('${p.id}',document.getElementById('campo-conclusao-${p.id}').value)" style="background:#1a6b35;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar</button>
+      </div>
+      ${p.data_garantia?`<div style="font-size:12px;color:#1a6b35;margin-top:6px;">🛡️ Garantia até: <strong>${dataGarStr}</strong></div>`:'<div style="font-size:12px;color:var(--text3);margin-top:6px;">Informe a data de conclusão para calcular a garantia.</div>'}
+    </div>`;
+  }
+
   if(isStaff&&etAtual){
     if(etAtual.campo==='data_producao'){
       const valProd=p.data_producao||'';
@@ -1990,6 +2006,28 @@ async function definirEmpresaProjeto(id, empresa){
   } else {loadProjetos();}
 }
 
+async function salvarDataConclusao(projetoId, dataConc){
+  if(!dataConc){notify('Informe a data de conclusão.','error');return}
+  const dataGar=new Date(dataConc+'T12:00:00');
+  dataGar.setFullYear(dataGar.getFullYear()+5);
+  const dataGarStr=dataGar.toISOString().split('T')[0];
+  const {error}=await db.from('projetos').update({
+    data_conclusao: dataConc,
+    data_garantia: dataGarStr,
+    garantia_notif_anos: 0,
+  }).eq('id',projetoId);
+  if(error){notify('Erro ao salvar.','error');return}
+  notify('Data de conclusão salva! Garantia até '+new Date(dataGarStr+'T12:00:00').toLocaleDateString('pt-BR')+' ✅');
+  await loadProjetos();
+  const {data:_p}=await db.from('projetos').select('*').eq('id',projetoId).single();
+  if(_p){
+    _todosProj=_todosProj.map(x=>x.id===_p.id?_p:x);
+    const _dv=document.getElementById('proj-detalhe-view');
+    if(_dv&&_dv.style.display!=='none')
+      document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p);
+  }
+}
+
 async function avancarEtapa(id,novaEtapa){
   if(novaEtapa<1||novaEtapa>ETAPAS_TOTAL)return;
 
@@ -2013,15 +2051,8 @@ async function avancarEtapa(id,novaEtapa){
     }
   }
 
-  // Salvar data de conclusão e calcular garantia ao chegar na última etapa
+  // Salvar etapa (data de conclusão será preenchida manualmente)
   let updateData = {etapa_atual:novaEtapa};
-  if(novaEtapa>=ETAPAS_TOTAL){
-    const hoje=new Date();
-    const dataConc=hoje.toISOString().split('T')[0];
-    const dataGar=new Date(hoje.setFullYear(hoje.getFullYear()+5)).toISOString().split('T')[0];
-    updateData.data_conclusao=dataConc;
-    updateData.data_garantia=dataGar;
-  }
 
   const {error}=await db.from('projetos').update(updateData).eq('id',id);
   if(error){notify('Erro ao atualizar.','error');return}
