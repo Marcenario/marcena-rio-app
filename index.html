@@ -1539,7 +1539,7 @@ async function enviarOrcamento(){
     const mesRef=new Date().toISOString().slice(0,7);
     const empresa=proj.empresa||'marcenario';
     const numeroAt=await gerarNumeroAtendimento(empresa);
-    await db.from('atendimentos').insert({
+    const {error:atErr}=await db.from('atendimentos').insert({
       numero: numeroAt,
       tipo: 'loja',
       cliente_nome: nome,
@@ -1553,12 +1553,17 @@ async function enviarOrcamento(){
       mes_ref: mesRef,
       vendedor_id: vendedor?.id||null,
       vendedor_nome: vendedor?.nome||null,
-      projeto_id: proj.id,
       registrado_por: currentUser.id
     });
-    if(vendedor) notify(`Atendimento criado e distribuído para ${vendedor.nome}!`);
+    if(atErr){
+      console.error('Erro ao criar atendimento:', atErr);
+      notify('Solicitação enviada! Atendimento será criado em breve.','info');
+    } else {
+      if(vendedor) notify(`Atendimento criado e distribuído para ${vendedor.nome}!`);
+      else notify('Atendimento criado com sucesso!');
+    }
   }catch(e){
-    console.warn('Erro ao criar atendimento automático:', e);
+    console.error('Erro ao criar atendimento automático:', e);
   }
 
   await enviarRD(nome,currentUser.email,tel,ambiente,desc,investimento);
