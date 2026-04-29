@@ -5464,49 +5464,34 @@ async function abrirModalAt(id){
 
     <!-- Endereço -->
     <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px;">📍 Endereço</div>
-      <div style="display:grid;grid-template-columns:140px 1fr auto;gap:8px;align-items:end;margin-bottom:8px;">
-        <div>
-          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">CEP</label>
-          <input type="text" id="at-cep-${id}" value="${a.endereco_cep||''}" placeholder="00000-000" maxlength="9"
-            oninput="formatarCepAt('${id}',this.value)"
-            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Logradouro</label>
-          <input type="text" id="at-logradouro-${id}" value="${a.endereco_logradouro||''}" placeholder="Rua, Av..."
-            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
-        </div>
-        <button onclick="buscarCepAt('${id}')" title="Buscar CEP"
-          style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">🔍 Buscar</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;">📍 Endereço</div>
+        ${(a.endereco_cep&&userNivel!=='admin') ? '<span style="font-size:11px;color:var(--text2);">🔒 Somente admin pode alterar</span>' : ''}
       </div>
-      <div style="display:grid;grid-template-columns:80px 80px 1fr 1fr;gap:8px;margin-bottom:8px;">
-        <div>
-          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Número</label>
-          <input type="text" id="at-numero-end-${id}" value="${a.endereco_numero||''}" placeholder="Nº"
-            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Compl.</label>
-          <input type="text" id="at-complemento-${id}" value="${a.endereco_complemento||''}" placeholder="Apto..."
-            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Bairro</label>
-          <input type="text" id="at-bairro-${id}" value="${a.endereco_bairro||''}" placeholder="Bairro"
-            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Cidade / UF</label>
-          <input type="text" id="at-cidade-${id}" value="${(a.endereco_cidade?a.endereco_cidade+(a.endereco_uf?' / '+a.endereco_uf:''):'')}" placeholder="Cidade / UF"
-            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
-        </div>
-      </div>
-      <div style="text-align:right;">
-        <button onclick="salvarEnderecoAt('${id}')"
-          style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">💾 Salvar endereço</button>
-      </div>
-      <div id="at-end-alert-${id}" style="margin-top:6px;"></div>
+      ${(a.endereco_cep && userNivel!=='admin')
+        ? '<div style="font-size:13px;color:var(--text1);line-height:1.8;">'
+          + '<div><strong>' + (a.endereco_logradouro||'—') + '</strong>'
+          + (a.endereco_numero ? ', ' + a.endereco_numero : '')
+          + (a.endereco_complemento ? ' — ' + a.endereco_complemento : '') + '</div>'
+          + '<div style="color:var(--text2);">' + (a.endereco_bairro||'') + (a.endereco_cidade ? ' · ' + a.endereco_cidade : '') + (a.endereco_uf ? ' / ' + a.endereco_uf : '') + '</div>'
+          + '<div style="color:var(--text3);font-size:12px;margin-top:2px;">CEP: ' + (a.endereco_cep||'') + '</div>'
+          + '</div>'
+        : '<div style="display:grid;grid-template-columns:140px 1fr auto;gap:8px;align-items:end;margin-bottom:8px;">'
+          + '<div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">CEP</label>'
+          + '<input type="text" id="at-cep-' + id + '" value="' + (a.endereco_cep||'') + '" placeholder="00000-000" maxlength="9" oninput="formatarCepAt(\'' + id + '\',this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>'
+          + '<div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Logradouro</label>'
+          + '<input type="text" id="at-logradouro-' + id + '" value="' + (a.endereco_logradouro||'') + '" placeholder="Rua, Av..." style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>'
+          + '<button onclick="buscarCepAt(\'' + id + '\')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;white-space:nowrap;">🔍 Buscar</button>'
+          + '</div>'
+          + '<div style="display:grid;grid-template-columns:80px 80px 1fr 1fr;gap:8px;margin-bottom:8px;">'
+          + '<div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Número</label><input type="text" id="at-numero-end-' + id + '" value="' + (a.endereco_numero||'') + '" placeholder="Nº" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>'
+          + '<div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Compl.</label><input type="text" id="at-complemento-' + id + '" value="' + (a.endereco_complemento||'') + '" placeholder="Apto..." style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>'
+          + '<div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Bairro</label><input type="text" id="at-bairro-' + id + '" value="' + (a.endereco_bairro||'') + '" placeholder="Bairro" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>'
+          + '<div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Cidade / UF</label><input type="text" id="at-cidade-' + id + '" value="' + (a.endereco_cidade ? a.endereco_cidade + (a.endereco_uf ? ' / ' + a.endereco_uf : '') : '') + '" placeholder="Cidade / UF" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>'
+          + '</div>'
+          + '<div style="text-align:right;"><button onclick="salvarEnderecoAt(\'' + id + '\')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;font-weight:500;">💾 Salvar endereço</button></div>'
+          + '<div id="at-end-alert-' + id + '" style="margin-top:6px;"></div>'
+      }
     </div>
 
     <!-- Número de contrato + Iniciar Conferência — aparece quando fechado (Vendas) ou em conferência -->
