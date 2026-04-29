@@ -2022,13 +2022,26 @@ async function solicitarMudancaEmpresa(projetoId, empresaAtual){
   notify('Solicitação enviada ao administrador! ✅');
 }
 
-async function aprovarSolicitacaoEmpresa(solId, projetoId, empresaNova){
-  const {error} = await db.from('projetos').update({empresa: empresaNova}).eq('id', projetoId);
-  if(error){ notify('Erro ao atualizar empresa.','error'); return; }
-  await db.from('solicitacoes_empresa').update({status:'aprovado'}).eq('id', solId);
+async function aprovarSolicitacaoEmpresa(solId, projetoId, atendimentoId, empresaNova){
+  // Atualizar projeto se houver
+  if(projetoId){
+    const {error}=await db.from('projetos').update({empresa:empresaNova}).eq('id',projetoId);
+    if(error){notify('Erro ao atualizar empresa no projeto.','error');return;}
+  }
+  // Atualizar atendimento se houver
+  if(atendimentoId){
+    await db.from('atendimentos').update({empresa:empresaNova}).eq('id',atendimentoId);
+    // Buscar projeto vinculado ao atendimento
+    const {data:at}=await db.from('atendimentos').select('projeto_id').eq('id',atendimentoId).single();
+    if(at?.projeto_id){
+      await db.from('projetos').update({empresa:empresaNova}).eq('id',at.projeto_id);
+    }
+  }
+  await db.from('solicitacoes_empresa').update({status:'aprovado'}).eq('id',solId);
   notify('Empresa atualizada com sucesso! ✅');
   loadSolicitacoesEmpresa();
   loadProjetos();
+  loadFunil();
 }
 
 async function rejeitarSolicitacaoEmpresa(solId){
@@ -2052,7 +2065,7 @@ async function loadSolicitacoesEmpresa(){
       <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">Solicitado por: ${s.solicitado_por} · ${dataStr}</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Motivo: ${s.motivo||'—'}</div>
       <div style="display:flex;gap:8px;">
-        <button onclick="aprovarSolicitacaoEmpresa('${s.id}','${s.projeto_id}','${s.empresa_solicitada}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">✅ Aprovar</button>
+        <button onclick="aprovarSolicitacaoEmpresa('${s.id}','${s.projeto_id||''}','${s.atendimento_id||''}','${s.empresa_solicitada}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">✅ Aprovar</button>
         <button onclick="rejeitarSolicitacaoEmpresa('${s.id}')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">❌ Rejeitar</button>
       </div>
     </div>`;
@@ -2061,6 +2074,8 @@ async function loadSolicitacoesEmpresa(){
 
 async function definirEmpresaProjeto(id, empresa){
   await db.from('projetos').update({empresa}).eq('id',id);
+  // Sincronizar com atendimento vinculado
+  await db.from('atendimentos').update({empresa}).eq('projeto_id',id);
   notify(`Empresa definida: ${empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio'}`);
   const _dv3=document.getElementById('proj-detalhe-view');
   if(_dv3&&_dv3.style.display!=='none'){
@@ -4209,6 +4224,40 @@ async function loadVendedores(){
   }).join('')+'</div>';
 }
 
+async function alterarEmpresaAt(atId, empresa){
+  const {error}=await db.from('atendimentos').update({empresa}).eq('id',atId);
+  if(error){notify('Erro ao alterar empresa.','error');return;}
+
+  // Sincronizar com projeto vinculado
+  const {data:at}=await db.from('atendimentos').select('projeto_id').eq('id',atId).single();
+  if(at?.projeto_id){
+    await db.from('projetos').update({empresa}).eq('id',at.projeto_id);
+  }
+
+  const empNome=empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  notify(`Empresa alterada para ${empNome} — projeto sincronizado! ✅`);
+  abrirModalAt(atId);
+  loadFunil();
+  loadProjetos();
+}
+
+async function solicitarMudancaEmpresaAt(atId, empresaAtual){
+  const outra=empresaAtual==='marcenario'?'conceptus':'marcenario';
+  const outraNome=outra==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  const motivo=prompt(`Para solicitar mudança para ${outraNome}, informe o motivo:`);
+  if(!motivo)return;
+  const {error}=await db.from('solicitacoes_empresa').insert({
+    atendimento_id: atId,
+    empresa_atual: empresaAtual,
+    empresa_solicitada: outra,
+    solicitado_por: currentUser.email,
+    motivo,
+    status: 'pendente'
+  });
+  if(error){notify('Erro ao enviar solicitação.','error');return;}
+  notify('Solicitação enviada ao administrador! ✅');
+}
+
 async function alterarVendedorAt(atId){
   const sel=document.getElementById(`select-vendedor-${atId}`);
   const novoId=sel.value;
@@ -4566,6 +4615,17 @@ async function abrirModalAt(id){
         ${(vendedores||[]).map(v=>`<option value="${v.id}" ${v.id===a.vendedor_id?'selected':''}>${v.nome}</option>`).join('')}
       </select>
       <button onclick="alterarVendedorAt('${id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar</button>
+    </div>`:''}
+    ${isStaff?`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <label style="font-size:12px;color:var(--text2);font-weight:500;">🏢 Empresa:</label>
+      ${userNivel==='admin'?`
+        <button onclick="alterarEmpresaAt('${id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${(a.empresa||'marcenario')==='marcenario'?'#6b4c2a':'var(--border2)'};background:${(a.empresa||'marcenario')==='marcenario'?'#6b4c2a':'transparent'};color:${(a.empresa||'marcenario')==='marcenario'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Marcena Rio</button>
+        <button onclick="alterarEmpresaAt('${id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${a.empresa==='conceptus'?'#1a3a6e':'var(--border2)'};background:${a.empresa==='conceptus'?'#1a3a6e':'transparent'};color:${a.empresa==='conceptus'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Conceptus Italínea</button>
+      `:`
+        <strong style="font-size:13px;">${a.empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio'}</strong>
+        <button onclick="solicitarMudancaEmpresaAt('${id}','${a.empresa||'marcenario'}')" style="padding:4px 12px;border-radius:16px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">🔄 Solicitar mudança</button>
+      `}
     </div>`:''}
     <div class="form-grid" style="margin-bottom:0.75rem;">
       <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Cliente</label><div style="font-size:14px;font-weight:500;">${a.cliente_nome}</div></div>
