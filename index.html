@@ -4626,28 +4626,6 @@ async function moverAtendimentoParaFunil(atId, funilId, etapaId){
   loadFunil();
 }
 
-async function loadFunil(){
-  if(!_funilAtual){ await loadFunis(); return; }
-  const cont = document.getElementById('at-funil-content');
-  if(!cont) return;
-  cont.innerHTML = '<div class="loader">Carregando...</div>';
-
-  if(_funilAtual.tipo === 'reclamacoes'){
-    await loadFunilReclamacoes(cont);
-    return;
-  }
-
-  let query = db.from('atendimentos').select('*').eq('funil_id', _funilAtual.id);
-  const mesFilter = document.getElementById('at-filtro-mes')?.value;
-  if(mesFilter) query = query.eq('mes_ref', mesFilter);
-  const vendedorFilter = document.getElementById('at-filtro-vendedor')?.value;
-  if(vendedorFilter) query = query.eq('vendedor_id', vendedorFilter);
-  const {data} = await query.order('created_at',{ascending:false});
-  window._todosAtendimentos = data || [];
-  const busca = document.getElementById('at-busca')?.value||'';
-  renderFunilDinamico(filtrarAtendimentos(window._todosAtendimentos, busca), cont);
-}
-
 async function salvarAtendimento(){
 async function gerarNumeroAtendimento(empresa){
   const hoje = new Date();
@@ -4728,28 +4706,6 @@ function preencherFiltroMes(){
   sel.innerHTML=opts;
 }
 
-async function loadFunil(){
-  const cont=document.getElementById('at-funil-content');
-  cont.innerHTML='<div class="loader">Carregando...</div>';
-  const mes=document.getElementById('at-filtro-mes').value;
-  const vdFiltro=document.getElementById('at-filtro-vendedor').value;
-  let query=db.from('atendimentos').select('*').in('status',['em_andamento','concluido_fechado','concluido_perdido']);
-  if(mes)query=query.eq('mes_ref',mes);
-  if(vdFiltro)query=query.eq('vendedor_id',vdFiltro);
-  const {data}=await query.order('created_at',{ascending:false});
-
-  const {data:vds}=await db.from('vendedores').select('id,nome').order('nome');
-  const selVd=document.getElementById('at-filtro-vendedor');
-  const atualVd=selVd.value;
-  selVd.innerHTML='<option value="">Todos os vendedores</option>'+(vds||[]).map(v=>`<option value="${v.id}" ${v.id===atualVd?'selected':''}>${v.nome}</option>`).join('');
-
-  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum atendimento encontrado.</p></div>';return}
-
-  window._todosAtendimentos=data||[];
-  const busca=document.getElementById('at-busca')?.value||'';
-  renderFunilLista(filtrarAtendimentos(window._todosAtendimentos, busca));
-}
-
 function filtrarAtendimentos(lista, busca){
   if(!busca||!busca.trim())return lista;
   const q=busca.toLowerCase().trim();
@@ -4764,7 +4720,9 @@ function filtrarAtendimentos(lista, busca){
 
 function filtrarFunil(busca){
   const lista=window._todosAtendimentos||[];
-  renderFunilLista(filtrarAtendimentos(lista, busca));
+  const cont=document.getElementById('at-funil-content');
+  if(_funilAtual?.tipo==='reclamacoes') return;
+  renderFunilDinamico(filtrarAtendimentos(lista, busca), cont);
 }
 
 function renderFunilLista(todos){
