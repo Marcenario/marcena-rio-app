@@ -4516,15 +4516,23 @@ function renderFunilDinamico(todos, cont){
 
 async function loadFunilReclamacoes(cont){
   const {data} = await db.from('reclamacoes').select('*').order('created_at',{ascending:false});
-  const reclamacoes = data || [];
-  const etapas = _etapasFunilAtual;
+  window._todasReclamacoes = data || [];
+  renderFunilReclamacoes(window._todasReclamacoes, cont);
+}
 
+function renderFunilReclamacoes(reclamacoes, cont){
+  const etapas = _etapasFunilAtual;
   let html = '<div class="funil-wrap">';
   for(const etapa of etapas){
     const cards = reclamacoes.filter(r=>r.etapa===etapa.nome&&r.status==='em_andamento');
     const cardHtml = cards.length
       ? cards.map(r=>`
-        <div class="funil-card" onclick="abrirModalReclamacao('${r.id}')" style="border-left:3px solid ${etapa.cor};">
+        <div class="funil-card"
+          draggable="true"
+          ondragstart="dragStartRec(event,'${r.id}')"
+          ondragend="dragEnd(event)"
+          onclick="abrirModalReclamacao('${r.id}')"
+          style="border-left:3px solid ${etapa.cor};cursor:grab;">
           <div style="font-size:13px;font-weight:500;margin-bottom:4px;">${r.cliente_nome||'—'}</div>
           <div style="font-size:11px;color:var(--text2);">${r.descricao?.substring(0,60)||''}...</div>
           ${r.responsavel_nome?`<div style="font-size:11px;color:var(--text3);margin-top:4px;">👤 ${r.responsavel_nome}</div>`:''}
@@ -4537,7 +4545,13 @@ async function loadFunilReclamacoes(cont){
         <div class="funil-col-header-info"><span style="font-size:12px;font-weight:600;">${etapa.nome}</span></div>
         <span style="background:${etapa.cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
       </div>
-      <div class="funil-col-body">${cardHtml}</div>
+      <div class="funil-col-body"
+        ondragover="dragOver(event)"
+        ondragleave="dragLeave(event)"
+        ondrop="dropRec(event,'${etapa.nome}')"
+        data-etapa-nome="${etapa.nome}">
+        ${cardHtml}
+      </div>
     </div>`;
   }
   html += '</div>';
@@ -4825,6 +4839,33 @@ function renderFunilCard(a, cor){
       <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;${corDias}">${dias}d</span>
     </div>
   </div>`;
+}
+
+let _dragRecId = null;
+
+function dragStartRec(event, recId){
+  _dragRecId = recId;
+  event.currentTarget.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', recId);
+}
+
+async function dropRec(event, etapaNome){
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  const recId = _dragRecId || event.dataTransfer.getData('text/plain');
+  if(!recId || !etapaNome) return;
+
+  const rec = window._todasReclamacoes?.find(r=>r.id===recId);
+  if(rec?.etapa === etapaNome) return;
+
+  const {error} = await db.from('reclamacoes').update({etapa: etapaNome}).eq('id', recId);
+  if(error){ notify('Erro ao mover reclamação.','error'); return; }
+
+  if(rec) rec.etapa = etapaNome;
+  const cont = document.getElementById('at-funil-content');
+  renderFunilReclamacoes(window._todasReclamacoes||[], cont);
+  _dragRecId = null;
 }
 
 /* ── DRAG AND DROP FUNIL ── */
