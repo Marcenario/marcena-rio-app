@@ -5368,6 +5368,17 @@ async function abrirModalAt(id){
     isConferencia = funilData?.tipo === 'conferencia';
   }
 
+  // Buscar arquivos da timeline vinculados ao projeto
+  let timelArquivos = [];
+  if(a.projeto_id){
+    const {data:etapas}=await db.from('projeto_etapas').select('nome,arquivo_url,created_at').eq('projeto_id',a.projeto_id).not('arquivo_url','is',null).order('created_at',{ascending:false});
+    if(etapas) timelArquivos = etapas.map(e=>({
+      nome: e.nome||'Arquivo',
+      url: e.arquivo_url,
+      data: new Date(e.created_at).toLocaleDateString('pt-BR')
+    }));
+  }
+
   // Buscar etapas dinâmicas do funil deste atendimento
   let etapasDinamicas = [];
   if(a.funil_id){
@@ -5571,6 +5582,71 @@ async function abrirModalAt(id){
       : ''}
     `:`<div class="alert alert-${statusAtual==='concluido_fechado'?'success':'error'}">${statusAtual==='concluido_fechado'?'✓ Atendimento fechado':'✗ Atendimento perdido'+(a.motivo_perda?' — '+a.motivo_perda:'')}</div>`}
     <div id="modal-at-alert" style="margin-top:8px;"></div>
+
+    <!-- ANOTAÇÕES GERAIS -->
+    <div class="divider"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📝 Anotações gerais</div>
+    <textarea id="at-anotacoes-${id}" placeholder="Escreva observações, anotações internas, histórico de conversas..."
+      style="width:100%;min-height:120px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;resize:vertical;box-sizing:border-box;line-height:1.5;"
+      oninput="autoSaveAnotacoes('${id}',this)">${a.anotacoes||''}</textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+      <span style="font-size:11px;color:var(--text3);" id="at-anotacoes-status-${id}"></span>
+      <button onclick="salvarAnotacoesAt('${id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">💾 Salvar</button>
+    </div>
+
+    <!-- ARQUIVOS DA TIMELINE -->
+    ${timelArquivos.length ? `
+    <div class="divider"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📎 Arquivos anexados na timeline</div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      ${timelArquivos.map(f=>'<a href="'+f.url+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);text-decoration:none;font-size:12px;color:var(--text1);">'
+        +'<span>📄</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+f.nome+'</span>'
+        +'<span style="color:var(--text3);font-size:11px;">'+f.data+'</span>'
+        +'<span style="background:var(--brand);color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:500;">⬇ Baixar</span></a>'
+      ).join('')}
+    </div>` : ''}
+
+    <!-- ANEXOS OBRIGATÓRIOS -->
+    <div class="divider"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📦 Anexos do atendimento</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <!-- Arquivo RAR / Projeto -->
+      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div>
+            <span style="font-size:12px;font-weight:600;">📁 Arquivo de projeto</span>
+            <span style="font-size:10px;color:var(--text3);margin-left:6px;">.rar, .zip ou qualquer extensão</span>
+            ${!a.anexo_projeto_url?'<span style="font-size:10px;color:var(--red);font-weight:600;margin-left:6px;">● obrigatório</span>':''}
+          </div>
+          ${a.anexo_projeto_url?'<a href="'+a.anexo_projeto_url+'" target="_blank" style="font-size:11px;background:var(--green);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-weight:500;">⬇ Baixar</a>':''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="file" id="at-anexo-proj-${id}" style="flex:1;font-size:12px;font-family:'DM Sans',sans-serif;" onchange="toggleBtnConferencia('${id}')">
+          <button onclick="uploadAnexoAt('${id}','projeto')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
+        </div>
+        ${a.anexo_projeto_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_projeto_nome+'</div>':''}
+      </div>
+
+      <!-- Lista de Eletros -->
+      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div>
+            <span style="font-size:12px;font-weight:600;">⚡ Lista de eletros</span>
+            <span style="font-size:10px;color:var(--text3);margin-left:6px;">.doc, .pdf ou imagem</span>
+            ${!a.anexo_eletros_url?'<span style="font-size:10px;color:var(--red);font-weight:600;margin-left:6px;">● obrigatório</span>':''}
+          </div>
+          ${a.anexo_eletros_url?'<a href="'+a.anexo_eletros_url+'" target="_blank" style="font-size:11px;background:var(--green);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-weight:500;">⬇ Baixar</a>':''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="file" id="at-anexo-elet-${id}" accept=".doc,.docx,.pdf,.jpg,.jpeg,.png" style="flex:1;font-size:12px;font-family:'DM Sans',sans-serif;" onchange="toggleBtnConferencia('${id}')">
+          <button onclick="uploadAnexoAt('${id}','eletros')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
+        </div>
+        ${a.anexo_eletros_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_eletros_nome+'</div>':''}
+      </div>
+
+    </div>
+    <div id="at-anexo-alert-${id}" style="margin-top:6px;"></div>
   `;
   // Guarda referência dos ambientes para toggleVendeuModal
   window._atModalAmbs={id,ambs};
@@ -5652,6 +5728,61 @@ async function salvarEnderecoAt(id){
   setTimeout(()=>{if(alertEl)alertEl.innerHTML='';},3000);
 }
 
+/* ── ANOTAÇÕES ── */
+let _anotacoesTimer = {};
+function autoSaveAnotacoes(id, el){
+  const statusEl = document.getElementById(`at-anotacoes-status-${id}`);
+  if(statusEl) statusEl.textContent = 'Digitando...';
+  clearTimeout(_anotacoesTimer[id]);
+  _anotacoesTimer[id] = setTimeout(()=>salvarAnotacoesAt(id, true), 2000);
+}
+async function salvarAnotacoesAt(id, auto=false){
+  const val = document.getElementById(`at-anotacoes-${id}`)?.value||'';
+  const {error} = await db.from('atendimentos').update({anotacoes: val}).eq('id',id);
+  const statusEl = document.getElementById(`at-anotacoes-status-${id}`);
+  if(statusEl) statusEl.textContent = error ? '⚠️ Erro ao salvar' : (auto ? '✓ Salvo automaticamente' : '✓ Salvo!');
+  if(!error && !auto) notify('Anotações salvas!');
+}
+
+/* ── UPLOAD DE ANEXOS ── */
+async function uploadAnexoAt(atId, tipo){
+  const inputId = tipo==='projeto' ? `at-anexo-proj-${atId}` : `at-anexo-elet-${atId}`;
+  const input = document.getElementById(inputId);
+  if(!input?.files[0]){notify('Selecione um arquivo.','error');return}
+  const file = input.files[0];
+  notify('Enviando arquivo...','info');
+  const ext = file.name.split('.').pop();
+  const path = `atendimentos/${atId}_${tipo}_${Date.now()}.${ext}`;
+  const {error:upErr} = await db.storage.from('arquivos').upload(path, file, {upsert:true});
+  if(upErr){notify('Erro ao enviar: '+upErr.message,'error');return}
+  const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
+  const campos = tipo==='projeto'
+    ? {anexo_projeto_url: urlData.publicUrl, anexo_projeto_nome: file.name}
+    : {anexo_eletros_url: urlData.publicUrl, anexo_eletros_nome: file.name};
+  await db.from('atendimentos').update(campos).eq('id',atId);
+  notify('✅ Arquivo enviado!');
+  abrirModalAt(atId);
+}
+
+function toggleBtnConferencia(id){
+  const btn = document.getElementById(`btn-iniciar-conf-${id}`);
+  if(!btn) return;
+  const contrato = (document.getElementById(`at-contrato-${id}`)?.value||'').trim();
+  // Verificar se já tem arquivos salvos no banco (presença no DOM como link ⬇)
+  const temProjSalvo = btn.closest?.('div')?.querySelector?.('[href]') || false;
+  // Verificar inputs locais
+  const projInput = document.getElementById(`at-anexo-proj-${id}`);
+  const eletInput = document.getElementById(`at-anexo-elet-${id}`);
+  const temProjFile = projInput?.files?.[0];
+  const temEletFile = eletInput?.files?.[0];
+  // Habilitar só se tiver contrato E (arquivo já salvo OU novo arquivo selecionado)
+  // A validação completa acontece no iniciarConferencia
+  const ok = contrato.length > 0;
+  btn.disabled = !ok;
+  btn.style.background = ok ? 'var(--brand)' : '#ccc';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+}
+
 /* ── NÚMERO DE CONTRATO ── */
 async function salvarContratoAt(id){
   const contrato = document.getElementById(`at-contrato-${id}`)?.value.trim()||'';
@@ -5678,6 +5809,24 @@ function toggleBtnConferencia(id){
 async function iniciarConferencia(atId){
   const contrato = (document.getElementById(`at-contrato-${atId}`)?.value||'').trim();
   if(!contrato){notify('Preencha o número do contrato antes de iniciar.','error');return}
+
+  // Validar anexos obrigatórios
+  const {data:atCheck} = await db.from('atendimentos').select('anexo_projeto_url,anexo_eletros_url').eq('id',atId).single();
+  const temProjeto = atCheck?.anexo_projeto_url || document.getElementById(`at-anexo-proj-${atId}`)?.files?.[0];
+  const temEletros = atCheck?.anexo_eletros_url || document.getElementById(`at-anexo-elet-${atId}`)?.files?.[0];
+  if(!temProjeto || !temEletros){
+    const faltam = [!temProjeto?'Arquivo de projeto':null, !temEletros?'Lista de eletros':null].filter(Boolean).join(' e ');
+    notify(`⚠️ Envie os anexos obrigatórios antes de iniciar: ${faltam}`, 'error');
+    return;
+  }
+
+  // Upload de arquivos pendentes (caso não tenham sido enviados ainda)
+  if(!atCheck?.anexo_projeto_url && document.getElementById(`at-anexo-proj-${atId}`)?.files?.[0]){
+    await uploadAnexoAt(atId, 'projeto');
+  }
+  if(!atCheck?.anexo_eletros_url && document.getElementById(`at-anexo-elet-${atId}`)?.files?.[0]){
+    await uploadAnexoAt(atId, 'eletros');
+  }
 
   const btn = document.getElementById(`btn-iniciar-conf-${atId}`);
   if(btn){btn.disabled=true;btn.textContent='Iniciando...';}
