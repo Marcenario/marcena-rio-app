@@ -1867,6 +1867,25 @@ function renderProjeto(p){
       const docId = p[campoDoc]||'';
       const pdfAtual = p[etAtual.key]||'';
 
+      // Questionário de montagem — só na etapa Projeto Executivo
+      const questExtraHtml = etAtual.key==='projeto_exec_url' ? `
+        <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
+          <div style="font-size:11px;font-weight:600;color:#7a1a8a;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📋 Questionário de montagem <span style="color:var(--red);font-size:10px;">● obrigatório</span></div>
+          ${p.questionario_montagem_url
+            ? `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <a href="${p.questionario_montagem_url}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none;">📎 Ver questionário</a>
+                <label style="cursor:pointer;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:11px;font-family:'DM Sans',sans-serif;">
+                  🔄 Trocar
+                  <input type="file" id="campo-quest-${p.id}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display:none;" onchange="salvarQuestionarioMontagem('${p.id}',this)">
+                </label>
+              </div>`
+            : `<div style="display:flex;gap:8px;align-items:center;">
+                <input type="file" id="campo-quest-${p.id}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="font-size:11px;flex:1;">
+                <button onclick="salvarQuestionarioMontagem('${p.id}',document.getElementById('campo-quest-${p.id}'))" style="background:#7a1a8a;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">📤 Enviar</button>
+              </div>`
+          }
+        </div>` : '';
+
       campoExtra=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
         <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📄 ${nomeDoc}</div>
         ${pdfAtual?`
@@ -1892,7 +1911,7 @@ function renderProjeto(p){
             <input type="file" id="campo-arquivo-${p.id}" accept="application/pdf" style="font-size:11px;flex:1;">
             <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">📤 Enviar PDF</button>
           </div>`}
-      </div>`;
+      </div>${questExtraHtml}`;
     }
   }
 
@@ -2216,6 +2235,14 @@ async function avancarEtapa(id,novaEtapa){
         }
       }
     }
+    // Validar questionário de montagem na etapa Projeto Executivo
+    if(etAtual&&etAtual.key==='projeto_exec_url'){
+      const {data:proj}=await db.from('projetos').select('questionario_montagem_url').eq('id',id).single();
+      if(!proj?.questionario_montagem_url){
+        notify('⚠️ Envie o questionário de montagem antes de avançar.','error');
+        return;
+      }
+    }
   }
 
   // Salvar etapa (data de conclusão será preenchida manualmente)
@@ -2263,6 +2290,21 @@ async function salvarCampoEtapa(projetoId,campo,valor,campoHorario,horario){
     const {data:_p}=await db.from('projetos').select('*').eq('id',projetoId).single();
     if(_p){_todosProj=_todosProj.map(x=>x.id===_p.id?_p:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p);}
   } else {loadProjetos();}
+}
+
+async function salvarQuestionarioMontagem(projetoId, inputEl){
+  const file = inputEl.files?.[0];
+  if(!file){notify('Selecione um arquivo.','error');return}
+  notify('Enviando questionário...','info');
+  const ext = file.name.split('.').pop();
+  const path = `orcamentos/${projetoId}_questionario_montagem_${Date.now()}.${ext}`;
+  const {error:upErr}=await db.storage.from('projetos').upload(path,file,{upsert:true});
+  if(upErr){notify('Erro ao enviar: '+upErr.message,'error');return}
+  const {data:urlData}=db.storage.from('projetos').getPublicUrl(path);
+  await db.from('projetos').update({questionario_montagem_url:urlData.publicUrl}).eq('id',projetoId);
+  notify('✅ Questionário enviado!');
+  const {data:_p}=await db.from('projetos').select('*').eq('id',projetoId).single();
+  if(_p){_todosProj=_todosProj.map(x=>x.id===_p.id?_p:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p);}
 }
 
 async function salvarArquivoEtapa(projetoId,campo,inputEl){
@@ -5559,6 +5601,27 @@ async function abrirModalAt(id){
     ${(a.etapa==='projeto'||a.etapa==='orcamento')?renderBlocoProjetoAt(a,'projeto_venda'):''}
     ${(a.etapa==='orcamento'||a.etapa==='apresentacao')?renderBlocoProjetoAt(a,'projeto_executivo'):''}
     <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Avançar etapa do funil</div>
+    ${(()=>{
+      const nomeEtapaAtual=(a.etapa_funil_nome||'').toLowerCase();
+      const isApres1 = nomeEtapaAtual.includes('apresenta') && !nomeEtapaAtual.includes('nova') && !nomeEtapaAtual.includes('2') && !nomeEtapaAtual.includes('segunda') && !nomeEtapaAtual.includes('executivo');
+      const isApres2 = nomeEtapaAtual.includes('nova apresenta') || nomeEtapaAtual.includes('segunda apresenta') || (nomeEtapaAtual.includes('apresenta') && (nomeEtapaAtual.includes('2') || nomeEtapaAtual.includes('nova')));
+      const isApresExec = nomeEtapaAtual.includes('executivo') || nomeEtapaAtual.includes('exec');
+      if(!isApres1 && !isApres2 && !isApresExec) return '';
+      const campo = isApres2 ? 'link_gravacao_2apresentacao' : isApresExec ? 'link_gravacao_exec' : 'link_gravacao_apresentacao';
+      const titulo = isApres2 ? '🎥 Gravação — 2ª Reunião de Apresentação' : isApresExec ? '🎥 Gravação — Apresentação do Projeto Executivo' : '🎥 Gravação da reunião de apresentação';
+      const linkSalvo = a[campo]||'';
+      return '<div style="background:#f0f4ff;border:1px solid #b0c4ff;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">'
+        +'<div style="font-size:12px;font-weight:600;color:#1a3a8a;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;">'+titulo+'</div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Cole o link do Google Drive da gravação. <strong style="color:var(--red);">Obrigatório para avançar a etapa.</strong></div>'
+        +'<div style="display:flex;gap:8px;align-items:center;">'
+        +'<input type="text" id="at-link-gravacao-'+id+'" value="'+linkSalvo+'" placeholder="https://drive.google.com/..." '
+        +'style="flex:1;padding:8px 12px;border:1px solid '+(linkSalvo?'#a7d9a3':'#b0c4ff')+';border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:#fff;outline:none;">'
+        +(linkSalvo?'<a href="'+linkSalvo+'" target="_blank" style="background:var(--green);color:#fff;padding:8px 14px;border-radius:6px;font-size:12px;text-decoration:none;font-weight:500;white-space:nowrap;">▶ Abrir</a>':'')
+        +'<button onclick="salvarLinkGravacaoAt(\''+id+'\',\''+campo+'\')" style="background:#1a3a8a;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">💾 Salvar</button>'
+        +'</div>'
+        +(linkSalvo?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ Link salvo</div>':'<div style="font-size:11px;color:var(--red);margin-top:4px;" id="at-link-grav-warn-'+id+'"></div>')
+        +'</div>';
+    })()}
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
       <select id="modal-at-etapa" style="flex:1;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">${etapasOpts}</select>
       <button onclick="avancarEtapaAt('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Salvar etapa</button>
@@ -5713,8 +5776,42 @@ async function toggleVendeuModal(atId,idx,val){
 async function avancarEtapaAt(id){
   const etapaFunilId = document.getElementById('modal-at-etapa').value;
   if(!etapaFunilId){notify('Selecione uma etapa.','error');return}
+
+  // Validar link de gravação se estiver numa etapa de Apresentação
+  const {data:atAtual}=await db.from('atendimentos').select('*').eq('id',id).single();
+  if(atAtual?.etapa_funil_id){
+    const {data:etapaAtual}=await db.from('funis_etapas').select('nome').eq('id',atAtual.etapa_funil_id).single();
+    const nomeEt=(etapaAtual?.nome||'').toLowerCase();
+    const isApresExec = nomeEt.includes('executivo')||nomeEt.includes('exec');
+    const isApres2 = nomeEt.includes('nova apresenta')||nomeEt.includes('segunda apresenta')||(nomeEt.includes('apresenta')&&(nomeEt.includes('2')||nomeEt.includes('nova')));
+    const isApres1 = !isApresExec && !isApres2 && nomeEt.includes('apresenta');
+    const campo = isApres2?'link_gravacao_2apresentacao':isApresExec?'link_gravacao_exec':'link_gravacao_apresentacao';
+    if(isApres1||isApres2||isApresExec){
+      const linkInput=document.getElementById(`at-link-gravacao-${id}`);
+      const linkVal=(linkInput?.value||atAtual[campo]||'').trim();
+      if(!linkVal){
+        const warnEl=document.getElementById(`at-link-grav-warn-${id}`);
+        if(warnEl) warnEl.textContent='⚠️ Cole o link da gravação antes de avançar.';
+        notify('⚠️ O link da gravação é obrigatório para avançar.','error');
+        return;
+      }
+      await db.from('atendimentos').update({[campo]:linkVal}).eq('id',id);
+    }
+  }
+
   await db.from('atendimentos').update({etapa_funil_id: etapaFunilId}).eq('id',id);
   notify('Etapa atualizada!'); abrirModalAt(id); loadFunil();
+}
+
+async function salvarLinkGravacaoAt(id, campo){
+  campo = campo||'link_gravacao_apresentacao';
+  const val=(document.getElementById(`at-link-gravacao-${id}`)?.value||'').trim();
+  if(!val){notify('Cole o link do Google Drive.','error');return}
+  if(!val.startsWith('http')){notify('Link inválido. Deve começar com http...','error');return}
+  const {error}=await db.from('atendimentos').update({[campo]:val}).eq('id',id);
+  if(error){notify('Erro ao salvar link.','error');return}
+  notify('✅ Link salvo!');
+  abrirModalAt(id);
 }
 
 /* ── ENDEREÇO ── */
