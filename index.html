@@ -1721,19 +1721,20 @@ function renderProjeto(p){
   // Controles staff — inclui campo de data/arquivo para etapa atual
   let campoExtra='';
   const etAtual=ETAPAS[etapaIdx];
+  let campoConclusao='';
 
   // Campo de data de conclusão na última etapa
   if(isStaff&&concluido){
     const valConc=p.data_conclusao||'';
     const dataGarStr=p.data_garantia?new Date(p.data_garantia+'T12:00:00').toLocaleDateString('pt-BR'):'—';
-    campoExtra=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
+    campoConclusao=`<div style="background:var(--bg);border:1px solid #1a6b35;border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
       <div style="font-size:11px;font-weight:600;color:#1a6b35;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">🏁 Conclusão e Garantia</div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <label style="font-size:12px;color:var(--text2);font-weight:500;">📅 Data de conclusão:</label>
         <input type="date" id="campo-conclusao-${p.id}" value="${valConc}" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
         <button onclick="salvarDataConclusao('${p.id}',document.getElementById('campo-conclusao-${p.id}').value)" style="background:#1a6b35;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar</button>
       </div>
-      ${p.data_garantia?`<div style="font-size:12px;color:#1a6b35;margin-top:6px;">🛡️ Garantia até: <strong>${dataGarStr}</strong></div>`:'<div style="font-size:12px;color:var(--text3);margin-top:6px;">Informe a data de conclusão para calcular a garantia.</div>'}
+      ${p.data_conclusao?`<div style="font-size:12px;color:#1a6b35;margin-top:6px;">🛡️ Garantia até: <strong>${dataGarStr}</strong></div>`:'<div style="font-size:12px;color:var(--text3);margin-top:6px;">Informe a data de conclusão para calcular a garantia.</div>'}
     </div>`;
   }
 
@@ -1854,7 +1855,7 @@ function renderProjeto(p){
     <button class="btn-step-back" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)-1})" ${(p.etapa_atual||1)<=1?'disabled':''}>← Voltar</button>
     <button class="btn-step" onclick="avancarEtapa('${p.id}',${(p.etapa_atual||1)+1})" ${(p.etapa_atual||1)>=ETAPAS_TOTAL?'disabled':''}>Avançar →</button>
     ${p.arquivo_url?`<a href="${p.arquivo_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-light);color:#7a5c2a;border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;text-decoration:none;font-family:'DM Sans',sans-serif;">📄 Ver planta</a>`:'<span style="font-size:12px;color:var(--text3);">Sem planta</span>'}
-  </div>${campoExtra}`:'<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe o andamento do seu projeto.</div>';
+  </div>${campoExtra}${campoConclusao}`:'<div style="font-size:12px;color:var(--text3);margin-bottom:4px;">Acompanhe o andamento do seu projeto.</div>';
   // Bloco de garantia — visível para todos quando projeto concluído E data_conclusao preenchida
   let garantiaHtml='';
   if(concluido&&p.data_conclusao&&p.data_garantia){
