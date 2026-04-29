@@ -377,13 +377,41 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
     <!-- CONFERÊNCIA -->
     <div id="conferencia" class="section">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input type="text" id="conf-busca" placeholder="🔍 Buscar por nome..." oninput="filtrarConferencia(this.value)"
-            style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;min-width:200px;">
-        </div>
+      <div class="sub-nav">
+        <button class="nav-item active" id="conf-nav-funil" onclick="showSubConf('conf-funil',this)">Funil</button>
+        <button class="nav-item" id="conf-nav-conferentes" style="display:none" onclick="showSubConf('conf-conferentes',this)">Conferentes</button>
       </div>
-      <div id="conf-content"><div class="loader">Carregando...</div></div>
+
+      <!-- FUNIL DE CONFERÊNCIA -->
+      <div id="conf-funil">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="conf-busca" placeholder="🔍 Buscar por nome..." oninput="filtrarConferencia(this.value)"
+              style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;min-width:200px;">
+          </div>
+        </div>
+        <div id="conf-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- CONFERENTES -->
+      <div id="conf-conferentes" style="display:none;">
+        <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:16px;margin-bottom:1rem;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;">➕ Novo conferente</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+            <div>
+              <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px;">Nome</label>
+              <input type="text" id="conf-novo-nome" placeholder="Nome completo" style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;min-width:200px;">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px;">Produtividade diária (R$)</label>
+              <input type="number" id="conf-novo-prod" placeholder="Ex: 15000" style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;width:160px;">
+            </div>
+            <button onclick="salvarNovoConferente()" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar</button>
+          </div>
+          <div id="conf-novo-alert" style="margin-top:8px;"></div>
+        </div>
+        <div id="conf-conferentes-content"><div class="loader">Carregando...</div></div>
+      </div>
     </div>
 
     <!-- MONTAGEM -->
@@ -691,6 +719,14 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <div class="card-title" style="font-size:15px;">Vendedores do mês</div>
           </div>
           <div id="dash-vend-content"><div class="loader">Carregando...</div></div>
+        </div>
+
+        <!-- CONFERÊNCIA -->
+        <div class="card" id="dash-card-conf">
+          <div class="card-header" style="margin-bottom:1rem;">
+            <div class="card-title" style="font-size:15px;">📋 Conferência de Projetos</div>
+          </div>
+          <div id="dash-conf-content"><div class="loader">Carregando...</div></div>
         </div>
 
       </div>
@@ -1450,6 +1486,7 @@ async function onLogin(user){
   document.getElementById('nav-projetos').textContent=isStaff?'Projetos':'Meus projetos';
   document.getElementById('nav-atendimento').style.display=isStaff?'block':'none';
   document.getElementById('nav-conferencia').style.display=isStaff?'block':'none';
+  document.getElementById('conf-nav-conferentes').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
@@ -3117,6 +3154,7 @@ async function loadDashboard() {
     loadDashFinanceiro(),
     loadDashRH(),
     loadDashVendedores(mes),
+    loadDashConferencia(),
     loadDashAlertas(mes),
   ]);
 }
@@ -4704,7 +4742,6 @@ async function loadConferencia(){
   if(!cont) return;
   cont.innerHTML = '<div class="loader">Carregando...</div>';
 
-  // Buscar funil de conferência
   if(!_funilConferencia){
     const {data:funis} = await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
     _funilConferencia = funis?.[0] || null;
@@ -4719,7 +4756,231 @@ async function loadConferencia(){
   const {data} = await db.from('atendimentos').select('*').eq('funil_id',_funilConferencia.id).order('created_at',{ascending:false});
   window._todosConferencia = data || [];
   renderConferencia(window._todosConferencia, cont);
+
+  // Verificar alertas de capacidade
+  await verificarCapacidadeConferentes();
 }
+
+/* ── SUB-NAV CONFERÊNCIA ── */
+function showSubConf(id, btn){
+  ['conf-funil','conf-conferentes'].forEach(s=>{
+    const el=document.getElementById(s);
+    if(el) el.style.display=s===id?'block':'none';
+  });
+  document.querySelectorAll('#conferencia .nav-item').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(id==='conf-conferentes') loadConferentes();
+}
+
+/* ── CONFERENTES CRUD ── */
+async function salvarNovoConferente(){
+  const nome=document.getElementById('conf-novo-nome').value.trim();
+  const prod=parseFloat(document.getElementById('conf-novo-prod').value)||0;
+  const alertEl=document.getElementById('conf-novo-alert');
+  if(!nome||!prod){alertEl.innerHTML='<div class="alert alert-error">Preencha nome e produtividade.</div>';return}
+  const {error}=await db.from('conferentes').insert({nome,produtividade_base:prod,produtividade_atual:prod});
+  if(error){alertEl.innerHTML='<div class="alert alert-error">Erro ao salvar.</div>';return}
+  alertEl.innerHTML='<div class="alert alert-success">✓ Conferente adicionado!</div>';
+  document.getElementById('conf-novo-nome').value='';
+  document.getElementById('conf-novo-prod').value='';
+  setTimeout(()=>{if(alertEl)alertEl.innerHTML='';},3000);
+  loadConferentes();
+}
+
+async function loadConferentes(){
+  const cont=document.getElementById('conf-conferentes-content');
+  if(!cont) return;
+  const {data}=await db.from('conferentes').select('*').order('produtividade_atual',{ascending:false});
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum conferente cadastrado.</p></div>';return}
+  const maxProd=Math.max(...data.map(c=>c.produtividade_atual||1));
+  cont.innerHTML=data.map(c=>{
+    const pct=Math.round((c.produtividade_atual/maxProd)*100);
+    return `<div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;background:var(--bg);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-weight:600;font-size:14px;">${c.nome}</div>
+        <button onclick="removerConferente('${c.id}')" style="background:transparent;border:none;cursor:pointer;color:var(--text3);font-size:16px;" title="Remover">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">
+        Produtividade atual: <strong>${fmt(c.produtividade_atual)}/dia</strong>
+        &nbsp;·&nbsp; Base: ${fmt(c.produtividade_base)}/dia
+        &nbsp;·&nbsp; Cap. 15 dias: <strong style="color:var(--green);">${fmt((c.produtividade_atual||0)*15)}</strong>
+      </div>
+      <div style="background:var(--border);border-radius:3px;height:6px;">
+        <div style="background:var(--accent);height:6px;border-radius:3px;width:${pct}%;transition:width 0.3s;"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function removerConferente(id){
+  if(!confirm('Remover este conferente?')) return;
+  await db.from('conferentes').delete().eq('id',id);
+  loadConferentes();
+}
+
+/* ── DISTRIBUIÇÃO DE CONFERENTES ── */
+async function distribuirConferente(atId){
+  // Buscar valor total do atendimento
+  const {data:at}=await db.from('atendimentos').select('ambientes').eq('id',atId).single();
+  const ambs=(at?.ambientes&&at.ambientes!=='')?JSON.parse(at.ambientes):[];
+  const valorAt=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0)||0;
+
+  const {data:confs}=await db.from('conferentes').select('*').order('produtividade_atual',{ascending:false});
+  if(!confs||!confs.length) return null;
+
+  const capacidade15=confs.reduce((s,c)=>s+(c.produtividade_atual||0)*15,0);
+
+  // Buscar carga atual de cada conferente (atendimentos em andamento no funil de conferência)
+  const {data:emAndamento}=_funilConferencia
+    ? await db.from('atendimentos').select('conferente_id,ambientes').eq('funil_id',_funilConferencia.id).eq('status','em_andamento').not('conferente_id','is',null)
+    : {data:[]};
+
+  const carga={};
+  confs.forEach(c=>carga[c.id]=0);
+  (emAndamento||[]).forEach(a=>{
+    if(!carga.hasOwnProperty(a.conferente_id)) return;
+    const ambs=(a.ambientes&&a.ambientes!=='')?JSON.parse(a.ambientes):[];
+    carga[a.conferente_id]+=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0);
+  });
+
+  // Escolher conferente com menor carga relativa que ainda cabe em 15 dias
+  const ordenados=[...confs].sort((a,b)=>{
+    const ratioA=(carga[a.id]||0)/((a.produtividade_atual||1)*15);
+    const ratioB=(carga[b.id]||0)/((b.produtividade_atual||1)*15);
+    return ratioA-ratioB;
+  });
+
+  for(const conf of ordenados){
+    const cap15=(conf.produtividade_atual||0)*15;
+    if((carga[conf.id]||0)+valorAt<=cap15){
+      return conf;
+    }
+  }
+
+  // Nenhum tem capacidade — alertar
+  return null;
+}
+
+/* ── VERIFICAÇÃO DE CAPACIDADE E ALERTA ── */
+async function verificarCapacidadeConferentes(){
+  if(!_funilConferencia) return;
+  const {data:confs}=await db.from('conferentes').select('*');
+  if(!confs||!confs.length) return;
+
+  const {data:fila}=await db.from('atendimentos').select('ambientes,data_conclusao').eq('funil_id',_funilConferencia.id).eq('status','em_andamento');
+  if(!fila||!fila.length) return;
+
+  const capacidadeTotal=confs.reduce((s,c)=>s+(c.produtividade_atual||0)*15,0);
+  const valorTotal=(fila||[]).reduce((s,a)=>{
+    const ambs=(a.ambientes&&a.ambientes!=='')?JSON.parse(a.ambientes):[];
+    return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);
+  },0);
+
+  if(valorTotal>capacidadeTotal*0.75){
+    // Calcular quando lotará (para alerta 7 dias antes)
+    const diasRestantes=capacidadeTotal>0?Math.floor((capacidadeTotal-valorTotal)/confs.reduce((s,c)=>s+(c.produtividade_atual||0),0)):0;
+    const alertaDiv=document.getElementById('conf-content');
+    if(alertaDiv&&diasRestantes<=7){
+      const aviso=document.createElement('div');
+      aviso.className='dash-alerta-red';
+      aviso.style='margin-bottom:12px;font-weight:500;';
+      aviso.innerHTML=`⚠️ Capacidade dos conferentes próxima do limite! `
+        +(diasRestantes<=0?'Necessário contratar mais um conferente imediatamente.':`Previsão de lotação em <strong>${diasRestantes} dias</strong>. Considere contratar mais um conferente.`);
+      alertaDiv.parentElement.insertBefore(aviso, alertaDiv);
+    }
+  }
+}
+
+/* ── TIMER DE CONFERÊNCIA ── */
+function calcularTempoConferencia(at){
+  if(!at.conf_inicio) return null;
+  const inicio=new Date(at.conf_inicio);
+  const fim=at.conf_fim?new Date(at.conf_fim):new Date();
+  const ms=fim-inicio;
+  const dias=Math.floor(ms/86400000);
+  const horas=Math.floor((ms%86400000)/3600000);
+  return dias>0?`${dias}d ${horas}h`:`${horas}h`;
+}
+
+/* ── DASHBOARD CONFERÊNCIA ── */
+async function loadDashConferencia(){
+  const cont=document.getElementById('dash-conf-content');
+  if(!cont) return;
+  if(!_funilConferencia){
+    const {data:funis}=await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
+    _funilConferencia=funis?.[0]||null;
+  }
+  if(!_funilConferencia){cont.innerHTML='<div style="color:var(--text3);font-size:13px;">Funil de conferência não configurado.</div>';return}
+
+  const [{data:confs},{data:emAndamento},{data:concluidos}]=await Promise.all([
+    db.from('conferentes').select('*'),
+    db.from('atendimentos').select('*').eq('funil_id',_funilConferencia.id).eq('status','em_andamento'),
+    db.from('atendimentos').select('*').eq('funil_id',_funilConferencia.id).eq('status','concluido_fechado')
+      .gte('data_conclusao',new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString())
+  ]);
+
+  const totalEmAndamento=emAndamento?.length||0;
+  const totalConcluidos=concluidos?.length||0;
+  const valorEmAndamento=(emAndamento||[]).reduce((s,a)=>{
+    const ambs=(a.ambientes&&a.ambientes!=='')?JSON.parse(a.ambientes):[];
+    return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);
+  },0);
+  const capTotal=(confs||[]).reduce((s,c)=>s+(c.produtividade_atual||0)*15,0);
+  const pctCap=capTotal>0?Math.round((valorEmAndamento/capTotal)*100):0;
+  const corCap=pctCap>=90?'var(--red)':pctCap>=70?'#f59e0b':'var(--green)';
+
+  // Timer médio dos em andamento
+  const tempos=(emAndamento||[]).filter(a=>a.conf_inicio).map(a=>{
+    const ms=new Date()-new Date(a.conf_inicio);
+    return Math.floor(ms/86400000);
+  });
+  const tempoMedio=tempos.length?Math.round(tempos.reduce((s,t)=>s+t,0)/tempos.length):0;
+
+  cont.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div style="text-align:center;padding:10px;background:var(--bg2);border-radius:var(--radius-sm);">
+        <div style="font-size:22px;font-weight:700;color:var(--brand);">${totalEmAndamento}</div>
+        <div style="font-size:11px;color:var(--text2);">Em andamento</div>
+      </div>
+      <div style="text-align:center;padding:10px;background:var(--bg2);border-radius:var(--radius-sm);">
+        <div style="font-size:22px;font-weight:700;color:var(--green);">${totalConcluidos}</div>
+        <div style="font-size:11px;color:var(--text2);">Concluídos no mês</div>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+        <span style="color:var(--text2);">Capacidade utilizada (15 dias)</span>
+        <span style="font-weight:600;color:${corCap};">${pctCap}% — ${fmt(valorEmAndamento)} / ${fmt(capTotal)}</span>
+      </div>
+      <div style="background:var(--border);border-radius:3px;height:8px;">
+        <div style="background:${corCap};height:8px;border-radius:3px;width:${Math.min(pctCap,100)}%;transition:width 0.3s;"></div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">⏱ Tempo médio em conferência: <strong>${tempoMedio>0?tempoMedio+'d':'—'}</strong></div>
+    ${pctCap>=75?`<div class="dash-alerta-${pctCap>=90?'red':'amber'}" style="margin-top:4px;">⚠️ ${pctCap>=90?'Capacidade crítica! Contratar conferente urgente.':'Capacidade acima de 75%. Monitore a demanda.'}</div>`:''}
+    ${(confs||[]).length?`
+    <div style="margin-top:10px;">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Conferentes</div>
+      ${(confs||[]).map(c=>{
+        const cargaC=(emAndamento||[]).filter(a=>a.conferente_id===c.id).reduce((s,a)=>{
+          const ambs=(a.ambientes&&a.ambientes!=='')?JSON.parse(a.ambientes):[];
+          return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);
+        },0);
+        const cap=(c.produtividade_atual||0)*15;
+        const p=cap>0?Math.round((cargaC/cap)*100):0;
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:12px;min-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.nome}</span>
+          <div style="flex:1;background:var(--border);border-radius:3px;height:5px;">
+            <div style="background:${p>=90?'var(--red)':p>=70?'#f59e0b':'var(--green)'};height:5px;border-radius:3px;width:${Math.min(p,100)}%;"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text3);min-width:30px;text-align:right;">${p}%</span>
+        </div>`;
+      }).join('')}
+    </div>`:'<div style="font-size:12px;color:var(--text3);">Nenhum conferente cadastrado.</div>'}
+  `;
+}
+
+
 
 function filtrarConferencia(busca){
   const lista = window._todosConferencia || [];
@@ -5273,6 +5534,17 @@ function renderFunilCard(a, cor){
   const tipoIcon={lead:'🎯',porta:'🚶',retorno:'🔄',indicacao:'👥'}[a.tipo]||'•';
   const tipoCod={lead:'ld',porta:'pt',retorno:'jc',indicacao:'id'}[a.tipo]||'';
   const tipoCodHtml=tipoCod?`<span style="font-size:9px;font-weight:700;background:var(--brand);color:#fff;padding:1px 5px;border-radius:4px;letter-spacing:0.3px;margin-right:4px;">${tipoCod}</span>`:'';
+
+  // Timer de conferência
+  let timerHtml='';
+  if(a.conf_inicio){
+    const tempo=calcularTempoConferencia(a);
+    const diasDecorridos=Math.floor((new Date()-new Date(a.conf_inicio))/86400000);
+    const corTimer=diasDecorridos>=15?'var(--red)':diasDecorridos>=10?'#f59e0b':'var(--text3)';
+    timerHtml=`<div style="font-size:11px;color:${corTimer};font-weight:${diasDecorridos>=10?'600':'400'};margin-top:2px;">⏱ ${tempo} ${diasDecorridos>=15?'⚠️ PRAZO EXCEDIDO':''}</div>`;
+  }
+  // Conferente
+  const conferenteHtml=a.conferente_nome?`<div style="font-size:11px;color:var(--text2);margin-top:2px;">👤 ${a.conferente_nome}</div>`:'';
   const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
   const totalVal=ambs.reduce((s,am)=>s+(am.valor||0),0)||(a.estimativa||0);
   const vendidos=ambs.filter(am=>am.vendeu===true).length;
@@ -5307,6 +5579,8 @@ function renderFunilCard(a, cor){
     <div class="funil-card-sub">👤 ${a.vendedor_nome||'Sem vendedor'}</div>
     <div class="funil-card-sub">${tipoCodHtml}${tipoIcon} ${tipoLabel}</div>
     ${totalVal?`<div class="funil-card-val">${fmt(totalVal)}</div>`:''}
+    ${conferenteHtml}
+    ${timerHtml}
     ${ambs.length?`<div style="display:flex;gap:4px;margin-top:6px;">
       ${vendidos>0?`<span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:6px;">✓ ${vendidos} vendido${vendidos>1?'s':''}</span>`:''}
       ${naoVendidos>0?`<span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:6px;">✗ ${naoVendidos} não</span>`:''}
@@ -6022,6 +6296,9 @@ async function iniciarConferencia(atId){
     return;
   }
 
+  // Distribuir conferente automaticamente
+  const confEscolhido = await distribuirConferente(atId);
+
   // Criar cópia no funil de conferência
   const {id:_omit, created_at:_c, updated_at:_u, ...dadosOrig} = orig;
   const {error} = await db.from('atendimentos').insert({
@@ -6030,7 +6307,10 @@ async function iniciarConferencia(atId){
     etapa_funil_id: primeiraEtapaConf?.id||null,
     status: 'em_andamento',
     etapa: 'entrada',
-    origem_at_id: atId,   // referência ao atendimento original
+    origem_at_id: atId,
+    conf_inicio: new Date().toISOString(),
+    conferente_id: confEscolhido?.id||null,
+    conferente_nome: confEscolhido?.nome||null,
   });
 
   if(error){
