@@ -1325,7 +1325,7 @@ const ETAPAS=[
   {nome:'2ª Chegada na Transportadora', campo:'data', key:'data_chegada_transp2', keyHorario:null},
   {nome:'2ª Entrega',                campo:'data', key:'data_entrega2',        keyHorario:'horario_entrega2'},
   {nome:'2ª Montagem',               campo:'data', key:'data_montagem2',       keyHorario:'horario_montagem2'},
-  {nome:'ASTECA',                    campo:'data', key:'data_asteca',          keyHorario:null},
+  {nome:'ASTECA',                    campo:'assinatura', key:'asteca_url',          keyHorario:null},
 ];
 const ETAPAS_TOTAL=ETAPAS.length;
 const {createClient}=supabase;
@@ -1667,14 +1667,15 @@ function renderProjeto(p){
       if(et.campo==='arquivo_simples'&&et.key&&p[et.key]){
         extraHtml=`<div style="margin-top:4px;"><a href="${p[et.key]}" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📎 Ver orçamento</a></div>`;
       }
-      if(et.campo==='assinatura'&&et.key&&p[et.key]){
-        const labelArq=et.key==='projeto_venda_url'?'Projeto de Venda':'Projeto Executivo';
-        const statusAss=et.key==='projeto_venda_url'?(p.projeto_venda_status||''):(p.projeto_exec_status||'');
-        const badgeAss=statusAss==='assinado'
-          ?`<span style="font-size:10px;font-weight:600;color:#15803d;background:#dcfce7;padding:2px 7px;border-radius:8px;">✅ Assinado</span>`
-          :`<span style="font-size:10px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 7px;border-radius:8px;">⏳ Aguardando assinatura</span>`;
-        extraHtml=`<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><a href="${p[et.key]}" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;">📎 Ver ${labelArq}</a>${badgeAss}</div>`;
-      }
+    }
+    if((st==='done'||st==='active')&&et.campo==='assinatura'&&et.key&&p[et.key]){
+      const labelArq=et.key==='projeto_venda_url'?'Projeto de Venda':et.key==='projeto_exec_url'?'Projeto Executivo':'ASTECA';
+      const campoSt=et.key==='projeto_venda_url'?'projeto_venda_status':et.key==='projeto_exec_url'?'projeto_exec_status':'asteca_status';
+      const statusAss=p[campoSt]||'';
+      const badgeAss=statusAss==='assinado'
+        ?`<span style="font-size:10px;font-weight:600;color:#15803d;background:#dcfce7;padding:2px 7px;border-radius:8px;">✅ Assinado</span>`
+        :`<span style="font-size:10px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 7px;border-radius:8px;">⏳ Aguardando assinatura</span>`;
+      extraHtml=`<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><a href="${p[et.key]}" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;">📎 Ver ${labelArq}</a>${badgeAss}</div>`;
     }
     // Prazo de conferência — aparece na etapa Elaboração do projeto executivo (idx 8), só para staff
     if(i===8&&isStaff&&p.prazo_conferencia){
@@ -1776,16 +1777,17 @@ function renderProjeto(p){
       </div>`;
     }
     if(etAtual.campo==='assinatura'){
-      // Projeto de Venda ou Projeto Executivo — upload + assinatura eletrônica
-      const tipoAss = etAtual.key==='projeto_venda_url'?'projeto_venda':'projeto_executivo';
-      const campoDoc = etAtual.key==='projeto_venda_url'?'projeto_venda_doc_id':'projeto_exec_doc_id';
-      const campoStatus = etAtual.key==='projeto_venda_url'?'projeto_venda_status':'projeto_exec_status';
+      // Projeto de Venda, Projeto Executivo ou ASTECA — upload + assinatura eletrônica
+      const tipoAss = etAtual.key==='projeto_venda_url'?'projeto_venda':etAtual.key==='projeto_exec_url'?'projeto_executivo':'asteca';
+      const campoDoc = etAtual.key==='projeto_venda_url'?'projeto_venda_doc_id':etAtual.key==='projeto_exec_url'?'projeto_exec_doc_id':'asteca_doc_id';
+      const campoStatus = etAtual.key==='projeto_venda_url'?'projeto_venda_status':etAtual.key==='projeto_exec_url'?'projeto_exec_status':'asteca_status';
+      const nomeDoc = etAtual.key==='projeto_venda_url'?'Projeto de Venda':etAtual.key==='projeto_exec_url'?'Projeto Executivo':'ASTECA';
       const statusAss = p[campoStatus]||'pendente';
       const docId = p[campoDoc]||'';
       const pdfAtual = p[etAtual.key]||'';
 
       campoExtra=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
-        <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📄 ${etAtual.nome}</div>
+        <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📄 ${nomeDoc}</div>
         ${pdfAtual?`
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
             <a href="${pdfAtual}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none;">📎 Ver PDF</a>
