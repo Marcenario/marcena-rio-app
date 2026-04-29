@@ -218,6 +218,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .funil-col-body{background:var(--bg);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:8px;min-height:500px;max-height:calc(100vh - 220px);overflow-y:auto;flex:1;}
 .funil-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;position:relative;}
 .funil-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px);border-color:var(--border2);}
+.funil-card.dragging{opacity:0.4;transform:rotate(2deg);cursor:grabbing;}
+.funil-col-body.drag-over{background:var(--accent-light);border:2px dashed var(--accent);}
 .funil-card-nome{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
 .funil-card-cod{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
 .funil-card-sub{font-size:11px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px;}
@@ -4492,7 +4494,13 @@ function renderFunilDinamico(todos, cont){
         </div>
         <span style="background:${etapa.cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
       </div>
-      <div class="funil-col-body">${cardHtml}</div>
+      <div class="funil-col-body" 
+        ondragover="dragOver(event)"
+        ondragleave="dragLeave(event)"
+        ondrop="drop(event,'${etapa.id}')"
+        data-etapa-id="${etapa.id}">
+        ${cardHtml}
+      </div>
     </div>`;
   }
 
@@ -4626,7 +4634,6 @@ async function moverAtendimentoParaFunil(atId, funilId, etapaId){
   loadFunil();
 }
 
-async function salvarAtendimento(){
 async function gerarNumeroAtendimento(empresa){
   const hoje = new Date();
   const mes = String(hoje.getMonth()+1).padStart(2,'0');
@@ -4792,7 +4799,12 @@ function renderFunilCard(a, cor){
   // Ambientes resumo
   const ambResumo=ambs.length?ambs.slice(0,2).map(am=>am.nome).join(', ')+(ambs.length>2?` +${ambs.length-2}`:''):(a.ambiente_desejado||'');
 
-  return `<div class="funil-card" onclick="abrirModalAt('${a.id}')">
+  return `<div class="funil-card" 
+    draggable="true"
+    ondragstart="dragStart(event,'${a.id}')"
+    ondragend="dragEnd(event)"
+    onclick="abrirModalAt('${a.id}')"
+    style="cursor:grab;">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:4px;">
       <div>
         ${a.numero?`<div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.5px;margin-bottom:2px;">#${a.numero}</div>`:''}
@@ -4813,6 +4825,52 @@ function renderFunilCard(a, cor){
       <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;${corDias}">${dias}d</span>
     </div>
   </div>`;
+}
+
+/* ── DRAG AND DROP FUNIL ── */
+let _dragAtId = null;
+
+function dragStart(event, atId){
+  _dragAtId = atId;
+  event.currentTarget.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', atId);
+}
+
+function dragEnd(event){
+  event.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.funil-col-body').forEach(col=>col.classList.remove('drag-over'));
+}
+
+function dragOver(event){
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  event.currentTarget.classList.add('drag-over');
+}
+
+function dragLeave(event){
+  event.currentTarget.classList.remove('drag-over');
+}
+
+async function drop(event, etapaId){
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  const atId = _dragAtId || event.dataTransfer.getData('text/plain');
+  if(!atId || !etapaId) return;
+
+  // Verificar se já está nessa etapa
+  const at = window._todosAtendimentos?.find(a=>a.id===atId);
+  if(at?.etapa_funil_id === etapaId) return;
+
+  // Atualizar no banco
+  const {error} = await db.from('atendimentos').update({etapa_funil_id: etapaId}).eq('id', atId);
+  if(error){ notify('Erro ao mover card.','error'); return; }
+
+  // Atualizar localmente e re-renderizar sem recarregar do banco
+  if(at) at.etapa_funil_id = etapaId;
+  const cont = document.getElementById('at-funil-content');
+  renderFunilDinamico(window._todosAtendimentos||[], cont);
+  _dragAtId = null;
 }
 
 /* ── MODAL ATENDIMENTO ── */
