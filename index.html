@@ -5502,20 +5502,27 @@ async function abrirModalAt(id){
       <div id="at-end-alert-${id}" style="margin-top:6px;"></div>
     </div>
 
-    <!-- Número de contrato — só na etapa Vendas -->
+    <!-- Número de contrato + Iniciar Conferência — só na etapa Vendas -->
     ${(a.etapa_funil_nome||'').toLowerCase()==='vendas'||a.numero_contrato?`
     <div style="background:var(--green-bg);border:1px solid #a7d9a3;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
       <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">📄 Número de contrato</div>
-      <div style="display:flex;gap:8px;align-items:end;">
+      <div style="display:flex;gap:8px;align-items:end;margin-bottom:10px;">
         <div style="flex:1;">
           <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Contrato</label>
           <input type="text" id="at-contrato-${id}" value="${a.numero_contrato||''}" placeholder="Ex: CT-2026-001"
+            oninput="toggleBtnConferencia('${id}')"
             style="width:100%;padding:8px 12px;border:1px solid #a7d9a3;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;background:#fff;outline:none;box-sizing:border-box;">
         </div>
         <button onclick="salvarContratoAt('${id}')"
           style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">💾 Salvar</button>
       </div>
-      <div style="font-size:11px;color:var(--text2);margin-top:6px;">Este número integra os módulos de montagem, vistoria e conferência.</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">Este número integra os módulos de montagem, vistoria e conferência.</div>
+      <button id="btn-iniciar-conf-${id}"
+        onclick="iniciarConferencia('${id}')"
+        ${a.numero_contrato?'':'disabled'}
+        style="width:100%;padding:10px;border:none;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:${a.numero_contrato?'pointer':'not-allowed'};background:${a.numero_contrato?'var(--brand)':'#ccc'};color:#fff;transition:background 0.2s;">
+        🚀 Iniciar Conferência
+      </button>
       <div id="at-contrato-alert-${id}" style="margin-top:6px;"></div>
     </div>`:''}
 
@@ -5644,9 +5651,80 @@ async function salvarContratoAt(id){
   const {error}=await db.from('atendimentos').update({numero_contrato:contrato}).eq('id',id);
   const alertEl=document.getElementById(`at-contrato-alert-${id}`);
   if(error){alertEl.innerHTML=`<div class="alert alert-error">Erro ao salvar contrato.</div>`;return}
-  alertEl.innerHTML=`<div class="alert alert-success">✓ Contrato salvo! Integração com montagem/vistoria ativa.</div>`;
+  alertEl.innerHTML=`<div class="alert alert-success">✓ Contrato salvo!</div>`;
+  toggleBtnConferencia(id);
   setTimeout(()=>{if(alertEl)alertEl.innerHTML='';},4000);
   loadFunil();
+}
+
+function toggleBtnConferencia(id){
+  const val = (document.getElementById(`at-contrato-${id}`)?.value||'').trim();
+  const btn = document.getElementById(`btn-iniciar-conf-${id}`);
+  if(!btn) return;
+  const ok = val.length > 0;
+  btn.disabled = !ok;
+  btn.style.background = ok ? 'var(--brand)' : '#ccc';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+}
+
+async function iniciarConferencia(atId){
+  const contrato = (document.getElementById(`at-contrato-${atId}`)?.value||'').trim();
+  if(!contrato){notify('Preencha o número do contrato antes de iniciar.','error');return}
+
+  const btn = document.getElementById(`btn-iniciar-conf-${atId}`);
+  if(btn){btn.disabled=true;btn.textContent='Iniciando...';}
+
+  // Salvar contrato no original primeiro
+  await db.from('atendimentos').update({numero_contrato:contrato}).eq('id',atId);
+
+  // Buscar dados do atendimento original
+  const {data:orig} = await db.from('atendimentos').select('*').eq('id',atId).single();
+  if(!orig){notify('Erro ao carregar atendimento.','error');if(btn){btn.disabled=false;btn.textContent='🚀 Iniciar Conferência';}return}
+
+  // Buscar funil de conferência e primeira etapa
+  if(!_funilConferencia){
+    const {data:funis} = await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
+    _funilConferencia = funis?.[0]||null;
+    if(_funilConferencia){
+      const {data:etapas} = await db.from('funis_etapas').select('*').eq('funil_id',_funilConferencia.id).order('ordem');
+      _etapasConferencia = etapas||[];
+    }
+  }
+  if(!_funilConferencia){notify('Funil de Conferência não encontrado. Crie-o primeiro.','error');if(btn){btn.disabled=false;btn.textContent='🚀 Iniciar Conferência';}return}
+
+  const primeiraEtapaConf = _etapasConferencia[0];
+
+  // Verificar se já existe uma conferência para este contrato
+  const {data:confExist} = await db.from('atendimentos')
+    .select('id').eq('numero_contrato',contrato).eq('funil_id',_funilConferencia.id).limit(1);
+  if(confExist?.length){
+    notify('Já existe uma conferência para este contrato.','error');
+    if(btn){btn.disabled=false;btn.textContent='🚀 Iniciar Conferência';}
+    return;
+  }
+
+  // Criar cópia no funil de conferência
+  const {id:_omit, created_at:_c, updated_at:_u, ...dadosOrig} = orig;
+  const {error} = await db.from('atendimentos').insert({
+    ...dadosOrig,
+    funil_id: _funilConferencia.id,
+    etapa_funil_id: primeiraEtapaConf?.id||null,
+    status: 'em_andamento',
+    etapa: 'entrada',
+    origem_at_id: atId,   // referência ao atendimento original
+  });
+
+  if(error){
+    notify('Erro ao criar conferência: '+error.message,'error');
+    if(btn){btn.disabled=false;btn.textContent='🚀 Iniciar Conferência';}
+    return;
+  }
+
+  notify('✅ Conferência iniciada! O atendimento foi copiado para o Funil de Conferência.');
+  document.getElementById('modal-at').style.display='none';
+  // Navegar para aba de conferência
+  showSection('conferencia', document.getElementById('nav-conferencia'));
+  loadConferencia();
 }
 
 /* ── PROJETO PDF NO ATENDIMENTO ── */
