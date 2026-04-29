@@ -3075,7 +3075,7 @@ async function loadDashVendedores(mes) {
   ats.forEach(a => {
     if(!ranking[a.vendedor_id]) ranking[a.vendedor_id] = {nome:a.vendedor_nome||'—', valTotal:0, vendido:0, ats:0};
     ranking[a.vendedor_id].ats++;
-    const ambs = a.ambientes?JSON.parse(a.ambientes):[];
+    const ambs = (a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
     ambs.forEach(am => {
       ranking[a.vendedor_id].valTotal += (am.valor||0);
       if(am.vendeu===true) ranking[a.vendedor_id].vendido += (am.valor||0);
@@ -3974,7 +3974,7 @@ async function loadDRE(){
   // Valor vendido (ambientes com vendeu===true)
   let vendaTotal=0;
   (ats||[]).forEach(a=>{
-    const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+    const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
     vendaTotal+=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0);
   });
   const baseCalc=recTotal||vendaTotal;
@@ -4458,14 +4458,17 @@ function buildColuna(label, cor, bg, cards, totalVal){
   for(const etapa of AT_ETAPAS){
     const cards=todos.filter(a=>a.etapa===etapa.id&&a.status==='em_andamento');
     const totalVal=cards.reduce((s,a)=>{
-      const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+      const ambs=(a.ambientes&&a.ambientes!=='')? (() => { try{return JSON.parse(a.ambientes);}catch{return [];} })() : [];
       return s+ambs.reduce((ss,am)=>ss+(am.valor||0),0);
     },0)||cards.reduce((s,a)=>s+(a.estimativa||0),0);
     html+=buildColuna(etapa.label, etapa.cor, etapa.bg, cards, totalVal);
   }
 
   const fechados=todos.filter(a=>a.status==='concluido_fechado');
-  const valFechados=fechados.reduce((s,a)=>{const ambs=a.ambientes?JSON.parse(a.ambientes):[];return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);},0);
+  const valFechados=fechados.reduce((s,a)=>{
+    const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
+    return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);
+  },0);
   html+=buildColuna('✓ Fechados','var(--green)','var(--green-bg)',fechados,valFechados);
 
   const perdidos=todos.filter(a=>a.status==='concluido_perdido');
@@ -4478,7 +4481,7 @@ function buildColuna(label, cor, bg, cards, totalVal){
 function renderFunilCard(a, cor){
   const tipoLabel={lead:'Lead',porta:'Porta',retorno:'Retorno',indicacao:'Indicação'}[a.tipo]||a.tipo;
   const tipoIcon={lead:'🎯',porta:'🚶',retorno:'🔄',indicacao:'👥'}[a.tipo]||'•';
-  const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+  const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
   const totalVal=ambs.reduce((s,am)=>s+(am.valor||0),0)||(a.estimativa||0);
   const vendidos=ambs.filter(am=>am.vendeu===true).length;
   const naoVendidos=ambs.filter(am=>am.vendeu===false).length;
@@ -4526,7 +4529,7 @@ async function abrirModalAt(id){
   if(!a){document.getElementById('modal-at-body').innerHTML='<p>Erro ao carregar.</p>';return}
   const {data:motivos}=await db.from('motivos_perda').select('*').order('descricao');
   const {data:vendedores}=await db.from('vendedores').select('id,nome').order('nome');
-  const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+  const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
   const tipoLabel={lead:'🎯 Lead',porta:'🚶 Cliente de porta',retorno:'🔄 Já é cliente',indicacao:'👥 Indicação'}[a.tipo]||a.tipo;
   const etapaAtual=a.etapa||'entrada';
   const statusAtual=a.status||'em_andamento';
@@ -4752,7 +4755,7 @@ async function atualizarProdutividadeVendedor(vendedorId){
   if(!ats||ats.length<2)return;
   // Média mensal do valor real dos ambientes projetados
   const totalVal=ats.reduce((s,a)=>{
-    const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+    const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
     return s+ambs.reduce((ss,am)=>ss+(am.valor||0),0);
   },0);
   const mediaValMensal=Math.round(totalVal/3);
@@ -4779,7 +4782,7 @@ async function loadRelatorioAt(){
     const todos=ats||[];
     let totalAmbs=0,vendidos=0,naoVendidos=0,valTotal=0,valVendido=0;
     todos.forEach(a=>{
-      const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+      const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
       totalAmbs+=ambs.length;
       ambs.forEach(am=>{
         valTotal+=(am.valor||0);
@@ -4847,7 +4850,7 @@ async function exportarFunil(){
   const tipoLabel={lead:'Lead',porta:'Cliente de porta',retorno:'Já é cliente',indicacao:'Indicação'};
   let csv='Data;Cliente;Tipo;Vendedor;Ambiente;Etapa;Status;Motivo Perda;Ambientes;Valor Total;Valor Vendido\n';
   data.forEach(a=>{
-    const ambs=a.ambientes?JSON.parse(a.ambientes):[];
+    const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
     const valTotal=ambs.reduce((s,am)=>s+(am.valor||0),0);
     const valVendido=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0);
     const ambStr=ambs.map(am=>am.nome+(am.vendeu===true?' (V)':am.vendeu===false?' (NV)':'')).join(' | ');
