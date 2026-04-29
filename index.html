@@ -299,6 +299,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <button class="nav-item active" id="nav-solicitar" onclick="showSection('solicitar',this)">Solicitar orçamento</button>
     <button class="nav-item" id="nav-projetos" onclick="showSection('projetos',this)">Meus projetos</button>
     <button class="nav-item" id="nav-atendimento" style="display:none" onclick="showSection('atendimento',this)">Atendimento</button>
+    <button class="nav-item" id="nav-conferencia" style="display:none" onclick="showSection('conferencia',this)">Conferência</button>
     <button class="nav-item" id="nav-montagem" style="display:none" onclick="showSection('montagem',this)">Montagem</button>
     <button class="nav-item" id="nav-ocorrencias" style="display:none" onclick="showSection('ocorrencias',this)">Ocorrências</button>
     <button class="nav-item" id="nav-vistoria" style="display:none" onclick="showSection('vistoria',this)">Vistoria Final</button>
@@ -372,6 +373,17 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         </button>
         <div id="proj-detalhe-content"></div>
       </div>
+    </div>
+
+    <!-- CONFERÊNCIA -->
+    <div id="conferencia" class="section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="conf-busca" placeholder="🔍 Buscar por nome..." oninput="filtrarConferencia(this.value)"
+            style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;min-width:200px;">
+        </div>
+      </div>
+      <div id="conf-content"><div class="loader">Carregando...</div></div>
     </div>
 
     <!-- MONTAGEM -->
@@ -1437,6 +1449,7 @@ async function onLogin(user){
   document.getElementById('nav-solicitar').style.display=isStaff?'none':'block';
   document.getElementById('nav-projetos').textContent=isStaff?'Projetos':'Meus projetos';
   document.getElementById('nav-atendimento').style.display=isStaff?'block':'none';
+  document.getElementById('nav-conferencia').style.display=isStaff?'block':'none';
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
@@ -1472,6 +1485,7 @@ function showSection(id,btn){
   if(id==='projetos')loadProjetos();
   if(id==='admin')loadAdmin();
   if(id==='montagem')loadFilaMt();
+  if(id==='conferencia')loadConferencia();
   if(id==='usuarios')loadUsuarios();
   if(id==='dashboard')loadDashboard();
   if(id==='rh'){
@@ -4613,9 +4627,108 @@ let _funis = [];
 let _funilAtual = null;
 let _etapasFunilAtual = [];
 
+/* ── CONFERÊNCIA ── */
+let _funilConferencia = null;
+let _etapasConferencia = [];
+let _colunasOcultas = new Set(JSON.parse(localStorage.getItem('colunasOcultas')||'[]'));
+
+async function loadConferencia(){
+  const cont = document.getElementById('conf-content');
+  if(!cont) return;
+  cont.innerHTML = '<div class="loader">Carregando...</div>';
+
+  // Buscar funil de conferência
+  if(!_funilConferencia){
+    const {data:funis} = await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
+    _funilConferencia = funis?.[0] || null;
+    if(_funilConferencia){
+      const {data:etapas} = await db.from('funis_etapas').select('*').eq('funil_id',_funilConferencia.id).order('ordem');
+      _etapasConferencia = etapas || [];
+    }
+  }
+
+  if(!_funilConferencia){ cont.innerHTML='<div class="empty-state"><p>Funil de Conferência não encontrado.</p></div>'; return; }
+
+  const {data} = await db.from('atendimentos').select('*').eq('funil_id',_funilConferencia.id).order('created_at',{ascending:false});
+  window._todosConferencia = data || [];
+  renderConferencia(window._todosConferencia, cont);
+}
+
+function filtrarConferencia(busca){
+  const lista = window._todosConferencia || [];
+  const cont = document.getElementById('conf-content');
+  const filtrado = busca?.trim()
+    ? lista.filter(a=>(a.cliente_nome||'').toLowerCase().includes(busca.toLowerCase())||(a.ambiente_desejado||'').toLowerCase().includes(busca.toLowerCase()))
+    : lista;
+  renderConferencia(filtrado, cont);
+}
+
+function renderConferencia(todos, cont){
+  let html = '<div class="funil-wrap">';
+  for(const etapa of _etapasConferencia){
+    const oculta = _colunasOcultas.has(etapa.id);
+    const cards = todos.filter(a=>a.etapa_funil_id===etapa.id&&a.status==='em_andamento');
+    const cardHtml = cards.length
+      ? cards.map(a=>renderFunilCard(a, etapa.cor)).join('')
+      : `<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum</div>`;
+
+    html += `<div class="funil-col" style="${oculta?'min-width:60px;max-width:60px;':''}">
+      <div class="funil-col-header" style="background:${etapa.bg};color:${etapa.cor};position:relative;">
+        ${oculta
+          ? `<div style="writing-mode:vertical-rl;font-size:11px;font-weight:600;padding:8px 4px;cursor:pointer;" onclick="toggleColunaConf('${etapa.id}')" title="Expandir">${etapa.nome}</div>`
+          : `<div class="funil-col-header-info">
+              <span style="font-size:12px;font-weight:600;">${etapa.nome}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="background:${etapa.cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
+              <button onclick="toggleColunaConf('${etapa.id}')" title="Ocultar coluna" style="background:transparent;border:none;cursor:pointer;color:${etapa.cor};font-size:14px;opacity:0.7;">⊖</button>
+            </div>`
+        }
+      </div>
+      ${!oculta?`<div class="funil-col-body"
+        ondragover="dragOver(event)"
+        ondragleave="dragLeave(event)"
+        ondrop="dropConf(event,'${etapa.id}')">${cardHtml}</div>`:''}
+    </div>`;
+  }
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+function toggleColunaConf(etapaId){
+  if(_colunasOcultas.has(etapaId)) _colunasOcultas.delete(etapaId);
+  else _colunasOcultas.add(etapaId);
+  localStorage.setItem('colunasOcultas', JSON.stringify([..._colunasOcultas]));
+  const cont = document.getElementById('conf-content');
+  renderConferencia(window._todosConferencia||[], cont);
+}
+
+async function dropConf(event, etapaId){
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  const atId = _dragAtId || event.dataTransfer.getData('text/plain');
+  if(!atId||!etapaId) return;
+  const at = window._todosConferencia?.find(a=>a.id===atId);
+  if(at?.etapa_funil_id===etapaId) return;
+  await db.from('atendimentos').update({etapa_funil_id:etapaId}).eq('id',atId);
+  if(at) at.etapa_funil_id = etapaId;
+  const cont = document.getElementById('conf-content');
+  renderConferencia(window._todosConferencia||[], cont);
+  _dragAtId = null;
+}
+
+/* ── OCULTAR COLUNAS NO FUNIL DE VENDAS ── */
+let _colunasOcultasFunil = new Set(JSON.parse(localStorage.getItem('colunasOcultasFunil')||'[]'));
+
+function toggleColunaFunil(etapaId){
+  if(_colunasOcultasFunil.has(etapaId)) _colunasOcultasFunil.delete(etapaId);
+  else _colunasOcultasFunil.add(etapaId);
+  localStorage.setItem('colunasOcultasFunil', JSON.stringify([..._colunasOcultasFunil]));
+  const cont = document.getElementById('at-funil-content');
+  renderFunilDinamico(window._todosAtendimentos||[], cont);
+}
+
 async function loadFunis(){
-  const {data} = await db.from('funis').select('*').eq('ativo',true).order('ordem');
-  _funis = data || [];
 
   const vendas = _funis.filter(f=>['vendas','conferencia'].includes(f.tipo));
   const historico = _funis.filter(f=>['vendas_ano','perdas_ano'].includes(f.tipo));
@@ -4701,27 +4814,34 @@ function renderFunilDinamico(todos, cont){
 
   let html = '<div class="funil-wrap">';
   for(const etapa of _etapasFunilAtual){
+    const oculta = _colunasOcultasFunil.has(etapa.id);
     const cards = todos.filter(a => a.etapa_funil_id === etapa.id && a.status === 'em_andamento');
     const totalVal = cards.reduce((s,a)=>s+(a.estimativa||0),0);
     const cardHtml = cards.length
       ? cards.map(a=>renderFunilCard(a, etapa.cor)).join('')
       : `<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum atendimento</div>`;
 
-    html += `<div class="funil-col">
+    html += `<div class="funil-col" style="${oculta?'min-width:56px;max-width:56px;flex-shrink:0;':''}">
       <div class="funil-col-header" style="background:${etapa.bg};color:${etapa.cor};">
-        <div class="funil-col-header-info">
-          <span style="font-size:12px;font-weight:600;">${etapa.nome}</span>
-          ${totalVal>0?`<span style="font-size:11px;opacity:0.85;">${fmt(totalVal)}</span>`:''}
-        </div>
-        <span style="background:${etapa.cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
+        ${oculta
+          ? `<div style="writing-mode:vertical-rl;font-size:11px;font-weight:600;padding:8px 4px;cursor:pointer;white-space:nowrap;" onclick="toggleColunaFunil('${etapa.id}')" title="Expandir">${etapa.nome} (${cards.length})</div>`
+          : `<div class="funil-col-header-info">
+              <span style="font-size:12px;font-weight:600;">${etapa.nome}</span>
+              ${totalVal>0?`<span style="font-size:11px;opacity:0.85;">${fmt(totalVal)}</span>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="background:${etapa.cor};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
+              <button onclick="toggleColunaFunil('${etapa.id}')" title="Ocultar coluna" style="background:transparent;border:none;cursor:pointer;color:${etapa.cor};font-size:16px;line-height:1;opacity:0.7;padding:0;">⊖</button>
+            </div>`
+        }
       </div>
-      <div class="funil-col-body" 
+      ${!oculta?`<div class="funil-col-body"
         ondragover="dragOver(event)"
         ondragleave="dragLeave(event)"
         ondrop="drop(event,'${etapa.id}')"
         data-etapa-id="${etapa.id}">
         ${cardHtml}
-      </div>
+      </div>`:''}
     </div>`;
   }
 
