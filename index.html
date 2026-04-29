@@ -5606,21 +5606,30 @@ async function abrirModalAt(id){
       const isApres1 = nomeEtapaAtual.includes('apresenta') && !nomeEtapaAtual.includes('nova') && !nomeEtapaAtual.includes('2') && !nomeEtapaAtual.includes('segunda') && !nomeEtapaAtual.includes('executivo');
       const isApres2 = nomeEtapaAtual.includes('nova apresenta') || nomeEtapaAtual.includes('segunda apresenta') || (nomeEtapaAtual.includes('apresenta') && (nomeEtapaAtual.includes('2') || nomeEtapaAtual.includes('nova')));
       const isApresExec = nomeEtapaAtual.includes('executivo') || nomeEtapaAtual.includes('exec');
-      if(!isApres1 && !isApres2 && !isApresExec) return '';
-      const campo = isApres2 ? 'link_gravacao_2apresentacao' : isApresExec ? 'link_gravacao_exec' : 'link_gravacao_apresentacao';
-      const titulo = isApres2 ? '🎥 Gravação — 2ª Reunião de Apresentação' : isApresExec ? '🎥 Gravação — Apresentação do Projeto Executivo' : '🎥 Gravação da reunião de apresentação';
-      const linkSalvo = a[campo]||'';
-      return '<div style="background:#f0f4ff;border:1px solid #b0c4ff;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">'
-        +'<div style="font-size:12px;font-weight:600;color:#1a3a8a;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;">'+titulo+'</div>'
-        +'<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Cole o link do Google Drive da gravação. <strong style="color:var(--red);">Obrigatório para avançar a etapa.</strong></div>'
-        +'<div style="display:flex;gap:8px;align-items:center;">'
-        +'<input type="text" id="at-link-gravacao-'+id+'" value="'+linkSalvo+'" placeholder="https://drive.google.com/..." '
-        +'style="flex:1;padding:8px 12px;border:1px solid '+(linkSalvo?'#a7d9a3':'#b0c4ff')+';border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:#fff;outline:none;">'
-        +(linkSalvo?'<a href="'+linkSalvo+'" target="_blank" style="background:var(--green);color:#fff;padding:8px 14px;border-radius:6px;font-size:12px;text-decoration:none;font-weight:500;white-space:nowrap;">▶ Abrir</a>':'')
-        +'<button onclick="salvarLinkGravacaoAt(\''+id+'\',\''+campo+'\')" style="background:#1a3a8a;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">💾 Salvar</button>'
-        +'</div>'
-        +(linkSalvo?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ Link salvo</div>':'<div style="font-size:11px;color:var(--red);margin-top:4px;" id="at-link-grav-warn-'+id+'"></div>')
-        +'</div>';
+
+      const links = [
+        { campo:'link_gravacao_apresentacao',   titulo:'🎥 Gravação — Reunião de Apresentação',           ativo: isApres1 },
+        { campo:'link_gravacao_2apresentacao',  titulo:'🎥 Gravação — 2ª Reunião de Apresentação',        ativo: isApres2 },
+        { campo:'link_gravacao_exec',           titulo:'🎥 Gravação — Apresentação do Projeto Executivo', ativo: isApresExec },
+      ];
+
+      return links.map(({campo, titulo, ativo})=>{
+        const linkSalvo = a[campo]||'';
+        // Mostrar se: etapa atual é essa, OU se o link já foi salvo (histórico)
+        if(!ativo && !linkSalvo) return '';
+        return '<div style="background:#f0f4ff;border:1px solid #b0c4ff;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">'
+          +'<div style="font-size:12px;font-weight:600;color:#1a3a8a;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;">'+titulo+'</div>'
+          +(ativo&&!linkSalvo?'<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Cole o link do Google Drive da gravação. <strong style="color:var(--red);">Obrigatório para avançar a etapa.</strong></div>':'')
+          +'<div style="display:flex;gap:8px;align-items:center;">'
+          +'<input type="text" id="at-link-gravacao-'+id+'" value="'+linkSalvo+'" placeholder="https://drive.google.com/..." '
+          +(linkSalvo?'readonly ':'' )
+          +'style="flex:1;padding:8px 12px;border:1px solid '+(linkSalvo?'#a7d9a3':'#b0c4ff')+';border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:'+(linkSalvo?'#f0faf0':'#fff')+';outline:none;'+(linkSalvo?'color:var(--green);cursor:default;':'')+'">'
+          +(linkSalvo?'<a href="'+linkSalvo+'" target="_blank" style="background:var(--green);color:#fff;padding:8px 14px;border-radius:6px;font-size:12px;text-decoration:none;font-weight:500;white-space:nowrap;">▶ Abrir</a>':'')
+          +(!linkSalvo?'<button onclick="salvarLinkGravacaoAt(\''+id+'\',\''+campo+'\')" style="background:#1a3a8a;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">💾 Salvar</button>':'')
+          +'</div>'
+          +(linkSalvo?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ Link salvo</div>':'<div style="font-size:11px;color:var(--red);margin-top:4px;" id="at-link-grav-warn-'+id+'"></div>')
+          +'</div>';
+      }).join('');
     })()}
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
       <select id="modal-at-etapa" style="flex:1;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">${etapasOpts}</select>
