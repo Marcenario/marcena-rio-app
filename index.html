@@ -5361,6 +5361,13 @@ async function abrirModalAt(id){
     a.etapa_funil_nome = etapaData?.nome||'';
   }
 
+  // Detectar se é funil de conferência
+  let isConferencia = false;
+  if(a.funil_id){
+    const {data:funilData}=await db.from('funis').select('tipo').eq('id',a.funil_id).single();
+    isConferencia = funilData?.tipo === 'conferencia';
+  }
+
   // Buscar etapas dinâmicas do funil deste atendimento
   let etapasDinamicas = [];
   if(a.funil_id){
@@ -5502,8 +5509,8 @@ async function abrirModalAt(id){
       <div id="at-end-alert-${id}" style="margin-top:6px;"></div>
     </div>
 
-    <!-- Número de contrato + Iniciar Conferência — só na etapa Vendas -->
-    ${(a.etapa_funil_nome||'').toLowerCase()==='vendas'||a.numero_contrato?`
+    <!-- Número de contrato + Iniciar Conferência — aparece quando atendimento está fechado (Vendas) -->
+    ${statusAtual==='concluido_fechado'?`
     <div style="background:var(--green-bg);border:1px solid #a7d9a3;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
       <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">📄 Número de contrato</div>
       <div style="display:flex;gap:8px;align-items:end;margin-bottom:10px;">
@@ -5550,18 +5557,24 @@ async function abrirModalAt(id){
       <button onclick="avancarEtapaAt('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Salvar etapa</button>
     </div>
     <div class="divider"></div>
-    <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Concluir atendimento</div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">${isConferencia?'Concluir conferência':'Concluir atendimento'}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button onclick="concluirAt('${id}','fechado')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✓ Fechado</button>
-      <button onclick="document.getElementById('modal-at-perda').style.display='block'" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✗ Perdido</button>
+      ${isConferencia?`
+        <button onclick="concluirConferencia('${id}','em_andamento')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Em andamento</button>
+        <button onclick="concluirConferencia('${id}','concluido')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✓ Concluído</button>
+      `:`
+        <button onclick="concluirAt('${id}','fechado')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✓ Fechado</button>
+        <button onclick="document.getElementById('modal-at-perda').style.display='block'" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✗ Perdido</button>
+      `}
     </div>
+    ${!isConferencia?`
     <div id="modal-at-perda" style="display:none;margin-top:12px;background:var(--red-bg);border:1px solid #f0a8a8;border-radius:var(--radius-sm);padding:12px;">
       <div style="font-size:12px;font-weight:500;color:var(--red);margin-bottom:8px;">Selecione o motivo da perda</div>
       <select id="modal-at-motivo" style="width:100%;padding:9px 12px;border:1px solid #f0a8a8;border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;outline:none;margin-bottom:8px;">
         <option value="">Selecione...</option>${motivosOpts}
       </select>
       <button onclick="concluirAt('${id}','perdido')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;width:100%;">Confirmar perda</button>
-    </div>`:`<div class="alert alert-${statusAtual==='concluido_fechado'?'success':'error'}">${statusAtual==='concluido_fechado'?'✓ Atendimento fechado':'✗ Atendimento perdido'+(a.motivo_perda?' — '+a.motivo_perda:'')}</div>`}
+    </div>`:''}
     <div id="modal-at-alert" style="margin-top:8px;"></div>
   `;
   // Guarda referência dos ambientes para toggleVendeuModal
@@ -5852,7 +5865,31 @@ async function atualizarProdutividadeVendedor(vendedorId){
 function fecharModalAt(){document.getElementById('modal-at').style.display='none';}
 
 /* ── RELATÓRIO VENDEDORES ── */
-async function loadRelatorioAt(){
+async function concluirConferencia(id, resultado){
+  // Buscar etapa "Em andamento" ou "Concluído" do funil de conferência
+  if(!_funilConferencia){
+    const {data:funis}=await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
+    _funilConferencia=funis?.[0]||null;
+    if(_funilConferencia){
+      const {data:etapas}=await db.from('funis_etapas').select('*').eq('funil_id',_funilConferencia.id).order('ordem');
+      _etapasConferencia=etapas||[];
+    }
+  }
+  const nomeAlvo = resultado==='concluido' ? 'concluído' : 'em andamento';
+  const etapaAlvo = _etapasConferencia.find(e=>(e.nome||'').toLowerCase().trim()===nomeAlvo)
+    || _etapasConferencia.find(e=>(e.nome||'').toLowerCase().includes(resultado==='concluido'?'conclu':'andamento'));
+
+  const updates = {
+    status: resultado==='concluido' ? 'concluido_fechado' : 'em_andamento',
+    etapa_funil_id: etapaAlvo?.id || null
+  };
+  await db.from('atendimentos').update(updates).eq('id',id);
+  const msg = resultado==='concluido' ? '✅ Conferência concluída!' : '🔄 Marcado como Em andamento.';
+  notify(msg);
+  document.getElementById('modal-at').style.display='none';
+  loadConferencia();
+}
+
   const cont=document.getElementById('at-rel-content');
   cont.innerHTML='<div class="loader">Carregando...</div>';
   const {data:vds}=await db.from('vendedores').select('*').order('produtividade_atual',{ascending:false});
