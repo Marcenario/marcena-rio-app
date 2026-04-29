@@ -5648,6 +5648,22 @@ async function abrirModalAt(id){
         ${a.anexo_montagem_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_montagem_nome+'</div>':''}
       </div>
 
+      <!-- Projeto Revisado -->
+      <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div>
+            <span style="font-size:12px;font-weight:600;">✏️ Projeto revisado</span>
+            <span style="font-size:10px;color:var(--text3);margin-left:6px;">.rar, .zip ou qualquer extensão</span>
+          </div>
+          ${a.anexo_revisado_url?'<a href="'+a.anexo_revisado_url+'" target="_blank" style="font-size:11px;background:var(--green);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-weight:500;">⬇ Baixar</a>':''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="file" id="at-anexo-rev-${id}" style="flex:1;font-size:12px;font-family:'DM Sans',sans-serif;">
+          <button onclick="uploadAnexoAt('${id}','revisado')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">📤 Enviar</button>
+        </div>
+        ${a.anexo_revisado_nome?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ '+a.anexo_revisado_nome+'</div>':''}
+      </div>
+
       <!-- Lista de Eletros -->
       <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -5766,7 +5782,7 @@ async function salvarAnotacoesAt(id, auto=false){
 
 /* ── UPLOAD DE ANEXOS ── */
 async function uploadAnexoAt(atId, tipo){
-  const inputId = tipo==='projeto' ? `at-anexo-proj-${atId}` : tipo==='montagem' ? `at-anexo-mont-${atId}` : `at-anexo-elet-${atId}`;
+  const inputId = tipo==='projeto' ? `at-anexo-proj-${atId}` : tipo==='montagem' ? `at-anexo-mont-${atId}` : tipo==='revisado' ? `at-anexo-rev-${atId}` : `at-anexo-elet-${atId}`;
   const input = document.getElementById(inputId);
   if(!input?.files[0]){notify('Selecione um arquivo.','error');return}
   const file = input.files[0];
@@ -5780,7 +5796,9 @@ async function uploadAnexoAt(atId, tipo){
     ? {anexo_projeto_url: urlData.publicUrl, anexo_projeto_nome: file.name}
     : tipo==='montagem'
       ? {anexo_montagem_url: urlData.publicUrl, anexo_montagem_nome: file.name}
-      : {anexo_eletros_url: urlData.publicUrl, anexo_eletros_nome: file.name};
+      : tipo==='revisado'
+        ? {anexo_revisado_url: urlData.publicUrl, anexo_revisado_nome: file.name}
+        : {anexo_eletros_url: urlData.publicUrl, anexo_eletros_nome: file.name};
   await db.from('atendimentos').update(campos).eq('id',atId);
   notify('✅ Arquivo enviado!');
   abrirModalAt(atId);
