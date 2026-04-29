@@ -5360,6 +5360,28 @@ async function abrirModalAt(id){
     const {data:etapaData}=await db.from('funis_etapas').select('nome').eq('id',a.etapa_funil_id).single();
     a.etapa_funil_nome = etapaData?.nome||'';
   }
+
+  // Buscar etapas dinâmicas do funil deste atendimento
+  let etapasDinamicas = [];
+  if(a.funil_id){
+    const {data:etapasDB}=await db.from('funis_etapas').select('*').eq('funil_id',a.funil_id).order('ordem');
+    etapasDinamicas = etapasDB||[];
+  } else {
+    // Atendimento antigo sem funil_id: buscar Funil de Vendas e vincular
+    const {data:fv}=await db.from('funis').select('id').eq('nome','Funil de Vendas').limit(1).single();
+    if(fv?.id){
+      const {data:etapasDB}=await db.from('funis_etapas').select('*').eq('funil_id',fv.id).order('ordem');
+      etapasDinamicas = etapasDB||[];
+      // Vincular funil ao atendimento e definir etapa de entrada se não tiver
+      const primeiraEtapa = etapasDinamicas[0];
+      await db.from('atendimentos').update({
+        funil_id: fv.id,
+        etapa_funil_id: a.etapa_funil_id || primeiraEtapa?.id || null
+      }).eq('id',id);
+      a.funil_id = fv.id;
+      if(!a.etapa_funil_id && primeiraEtapa) a.etapa_funil_id = primeiraEtapa.id;
+    }
+  }
   const {data:motivos}=await db.from('motivos_perda').select('*').order('descricao');
   const {data:vendedores}=await db.from('vendedores').select('id,nome').order('nome');
   const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
@@ -5383,13 +5405,21 @@ async function abrirModalAt(id){
     </div>`;
   }
 
-  const etapasOpts=statusAtual==='em_andamento'?AT_ETAPAS.map(e=>`<option value="${e.id}" ${e.id===etapaAtual?'selected':''}>${e.label}</option>`).join(''):'';
+  // Excluir etapas de conclusão do dropdown (Vendas/Perdas são via botões dedicados)
+  const etapasNavegaveis = etapasDinamicas.filter(e=>{
+    const n=(e.nome||'').toLowerCase().trim();
+    return n!=='vendas' && n!=='perdas';
+  });
+  const etapasOpts = statusAtual==='em_andamento'
+    ? etapasNavegaveis.map(e=>`<option value="${e.id}" ${e.id===a.etapa_funil_id?'selected':''}>${e.nome}</option>`).join('')
+    : '';
   const motivosOpts=(motivos||[]).map(m=>`<option value="${m.id}">${m.descricao}</option>`).join('');
 
   document.getElementById('modal-at-body').innerHTML=`
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem;">
       <span class="badge badge-blue">${tipoLabel}</span>
       <span class="badge badge-amber">${a.vendedor_nome||'—'}</span>
+      ${a.etapa_funil_nome?`<span class="badge" style="background:var(--bg);border:1px solid var(--border2);color:var(--text2);">📍 ${a.etapa_funil_nome}</span>`:''}
       <span style="font-size:12px;color:var(--text3);">Registrado em ${dataStr}</span>
     </div>
     ${userNivel==='admin'&&vendedores?.length?`
@@ -5554,9 +5584,10 @@ async function toggleVendeuModal(atId,idx,val){
 }
 
 async function avancarEtapaAt(id){
-  const etapa=document.getElementById('modal-at-etapa').value;
-  await db.from('atendimentos').update({etapa}).eq('id',id);
-  notify('Etapa atualizada!');abrirModalAt(id);loadFunil();
+  const etapaFunilId = document.getElementById('modal-at-etapa').value;
+  if(!etapaFunilId){notify('Selecione uma etapa.','error');return}
+  await db.from('atendimentos').update({etapa_funil_id: etapaFunilId}).eq('id',id);
+  notify('Etapa atualizada!'); abrirModalAt(id); loadFunil();
 }
 
 /* ── ENDEREÇO ── */
