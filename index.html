@@ -4052,20 +4052,26 @@ async function gerarRelatorioRH() {
   ]);
   if(!func){ notify('Funcionário não encontrado.','error'); return; }
 
-  // 2. Agrupar pontos por dia e calcular totais
+  // 2. Agrupar pontos por dia — horário vem do created_at pois o campo horario não é salvo no insert
   const porDia = {};
-  (pontos||[]).forEach(p=>{ if(!porDia[p.data]) porDia[p.data]={}; porDia[p.data][p.tipo]=p.horario; });
+  (pontos||[]).forEach(p=>{
+    if(!porDia[p.data]) porDia[p.data]={};
+    // Usar campo horario se existir, senão extrair do created_at (ajuste de fuso BR -3h)
+    const hora = p.horario
+      || (p.created_at ? new Date(new Date(p.created_at).getTime()-3*3600000).toISOString().slice(11,16) : null);
+    porDia[p.data][p.tipo] = hora;
+  });
   const folgas_set = new Set((folgas||[]).map(f=>f.data));
   const mesLabel = new Date(mes+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
 
   let totalMin=0, diasTrabalhados=0;
+  const parseHM = v => { if(!v) return null; const [h,m]=(v||'').split(':').map(Number); return isNaN(h)?null:{h,m}; };
   Object.entries(porDia).forEach(([d,reg])=>{
-    const ent=reg.entrada, sai=reg.saida;
+    const ent=parseHM(reg.entrada), sai=parseHM(reg.saida);
     if(ent&&sai){
-      const [eh,em]=ent.split(':').map(Number), [sh,sm]=sai.split(':').map(Number);
-      const almMin=(reg.saida_almoco&&reg.retorno_almoco)
-        ?(()=>{ const [ah,am]=reg.retorno_almoco.split(':').map(Number); const [bh,bm]=reg.saida_almoco.split(':').map(Number); return (ah*60+am)-(bh*60+bm); })():60;
-      totalMin+=(sh*60+sm)-(eh*60+em)-almMin;
+      const sa=parseHM(reg.saida_almoco), ra=parseHM(reg.retorno_almoco);
+      const almMin=(sa&&ra)?(ra.h*60+ra.m)-(sa.h*60+sa.m):60;
+      totalMin+=(sai.h*60+sai.m)-(ent.h*60+ent.m)-Math.max(0,almMin);
       diasTrabalhados++;
     }
   });
