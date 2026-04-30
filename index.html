@@ -6010,6 +6010,30 @@ async function abrirModalAt(id){
           +'</div>';
       }).join('');
     })()}
+    ${(()=>{
+      if(!isConferencia) return '';
+      const nomeEt=(a.etapa_funil_nome||'').toLowerCase();
+      if(!nomeEt.includes('implantar')&&!nomeEt.includes('implantação')) return '';
+      const temDesc=!!(a.itens_extras_desc&&a.itens_extras_desc.trim());
+      const semExtras=!!a.itens_sem_extras;
+      return '<div style="background:#f0f6ff;border:1px solid #b0ccff;border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">'
+        +'<div style="font-size:12px;font-weight:600;color:#1a3a8a;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">📋 Especificação de itens extras</div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Descreva os itens extras a implantar. <strong style="color:var(--red);">Obrigatório para avançar.</strong></div>'
+        +(semExtras
+          ? '<div style="font-size:12px;color:var(--green);font-weight:500;margin-bottom:6px;">✓ Sem itens extras</div>'
+            +(userNivel==='admin'?'<button onclick="desmarcarSemExtrasConf(\''+id+'\')" style="font-size:11px;background:transparent;border:1px solid var(--border2);border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--text2);">↩ Desmarcar</button>':'')
+          : '<textarea id="at-itens-extras-'+id+'" placeholder="Ex: Puxador adicional, iluminação embutida, prateleira extra..." style="width:100%;min-height:80px;padding:8px 12px;border:1px solid #b0ccff;border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:#fff;outline:none;resize:vertical;box-sizing:border-box;">'+(a.itens_extras_desc||'')+'</textarea>'
+            +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:6px;">'
+            +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;">'
+            +'<input type="checkbox" id="at-sem-extras-'+id+'" style="width:15px;height:15px;cursor:pointer;">'
+            +'<span>Não há itens extras para este projeto</span>'
+            +'</label>'
+            +'<button onclick="salvarItensExtrasConf(\''+id+'\')" style="background:#1a3a8a;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;font-weight:500;">💾 Salvar</button>'
+            +'</div>'
+            +(temDesc?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ Descrição salva</div>':'<div id="at-extras-warn-'+id+'" style="font-size:11px;color:var(--red);margin-top:4px;"></div>')
+        )
+        +'</div>';
+    })()}
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
       <select id="modal-at-etapa" style="flex:1;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">${etapasOpts}</select>
       <button onclick="avancarEtapaAt('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Salvar etapa</button>
@@ -6174,12 +6198,67 @@ async function toggleVendeuModal(atId,idx,val){
   abrirModalAt(atId);
 }
 
+/* ── ITENS EXTRAS CONFERÊNCIA ── */
+async function salvarItensExtrasConf(id){
+  const semExtras = document.getElementById(`at-sem-extras-${id}`)?.checked;
+  const desc = (document.getElementById(`at-itens-extras-${id}`)?.value||'').trim();
+  if(!semExtras && !desc){
+    const warn=document.getElementById(`at-extras-warn-${id}`);
+    if(warn) warn.textContent='⚠️ Descreva os itens extras ou marque que não há itens.';
+    notify('Preencha a especificação de itens extras.','error');
+    return;
+  }
+  const {error}=await db.from('atendimentos').update({
+    itens_extras_desc: semExtras?'':desc,
+    itens_sem_extras: semExtras
+  }).eq('id',id);
+  if(error){notify('Erro ao salvar.','error');return}
+  notify('✅ Itens extras salvos!');
+  abrirModalAt(id);
+}
+
+async function desmarcarSemExtrasConf(id){
+  await db.from('atendimentos').update({itens_sem_extras:false,itens_extras_desc:''}).eq('id',id);
+  abrirModalAt(id);
+}
+
 async function avancarEtapaAt(id){
   const etapaFunilId = document.getElementById('modal-at-etapa').value;
   if(!etapaFunilId){notify('Selecione uma etapa.','error');return}
 
-  // Validar link de gravação se estiver numa etapa de Apresentação
   const {data:atAtual}=await db.from('atendimentos').select('*').eq('id',id).single();
+
+  // Validar itens extras se estiver na etapa "Projetos para Implantar" no funil de conferência
+  if(atAtual?.etapa_funil_id){
+    const {data:etapaAtual}=await db.from('funis_etapas').select('nome').eq('id',atAtual.etapa_funil_id).single();
+    const nomeEt=(etapaAtual?.nome||'').toLowerCase();
+    const isImplantar=nomeEt.includes('implantar')||nomeEt.includes('implantação');
+    if(isImplantar){
+      // Verificar próxima etapa selecionada
+      const {data:proxEtapa}=await db.from('funis_etapas').select('nome').eq('id',etapaFunilId).single();
+      const proxNome=(proxEtapa?.nome||'').toLowerCase();
+      const avancandoParaImplantado=proxNome.includes('implantado')||proxNome.includes('implantação');
+      if(avancandoParaImplantado){
+        const semExtras=atAtual.itens_sem_extras;
+        const desc=(atAtual.itens_extras_desc||'').trim();
+        const inputDesc=(document.getElementById(`at-itens-extras-${id}`)?.value||'').trim();
+        const checkSem=document.getElementById(`at-sem-extras-${id}`)?.checked;
+        if(!semExtras&&!checkSem&&!desc&&!inputDesc){
+          const warn=document.getElementById(`at-extras-warn-${id}`);
+          if(warn) warn.textContent='⚠️ Preencha os itens extras antes de avançar.';
+          notify('⚠️ Especifique os itens extras ou marque que não há itens.','error');
+          return;
+        }
+        // Auto-salvar se digitou no campo mas não salvou
+        if(inputDesc||checkSem){
+          await db.from('atendimentos').update({
+            itens_extras_desc:checkSem?'':inputDesc,
+            itens_sem_extras:!!checkSem
+          }).eq('id',id);
+        }
+      }
+    }
+  }
   if(atAtual?.etapa_funil_id){
     const {data:etapaAtual}=await db.from('funis_etapas').select('nome').eq('id',atAtual.etapa_funil_id).single();
     const nomeEt=(etapaAtual?.nome||'').toLowerCase();
