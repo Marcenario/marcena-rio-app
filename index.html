@@ -749,6 +749,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <button class="nav-item" id="rh-nav-funcionarios" style="display:none" onclick="showSubRH('rh-funcionarios',this)">Funcionários</button>
         <button class="nav-item" id="rh-nav-relatorios" style="display:none" onclick="showSubRH('rh-relatorios',this)">Relatórios</button>
         <button class="nav-item" id="rh-nav-folgas" style="display:none" onclick="showSubRH('rh-folgas',this)">Folgas</button>
+        <button class="nav-item" id="rh-nav-pasta" style="display:none" onclick="showSubRH('rh-pasta',this)">📁 Pasta do Funcionário</button>
       </div>
 
       <!-- MEU PONTO -->
@@ -861,9 +862,58 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         </div>
         <div id="rh-folgas-list" style="margin-top:1rem;"><div class="loader">Carregando...</div></div>
       </div>
-    </div>
 
-    <!-- FINANCEIRO -->
+      <!-- PASTA DO FUNCIONÁRIO -->
+      <div id="rh-pasta" style="display:none;">
+        <div class="card" style="margin-bottom:1rem;">
+          <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+            <div style="flex:1;">
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Funcionário</label>
+              <select id="rh-pasta-func" onchange="loadPastaFuncionario()" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <button onclick="abrirNovoDocFuncionario()" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">+ Adicionar documento</button>
+          </div>
+        </div>
+
+        <!-- Modal novo documento -->
+        <div id="modal-novo-doc-func" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+          <div style="background:var(--bg2);border-radius:var(--radius);padding:24px;max-width:480px;margin:60px auto;position:relative;">
+            <button onclick="document.getElementById('modal-novo-doc-func').style.display='none'" style="position:absolute;top:12px;right:12px;background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--text3);">✕</button>
+            <div style="font-size:15px;font-weight:600;margin-bottom:16px;">Adicionar documento ao funcionário</div>
+            <div style="margin-bottom:12px;">
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Tipo de documento</label>
+              <select id="doc-func-tipo" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+                <option value="cartao_ponto">📅 Cartão de ponto</option>
+                <option value="atestado">🏥 Atestado médico</option>
+                <option value="advertencia">⚠️ Advertência</option>
+                <option value="suspensao">🚫 Suspensão</option>
+                <option value="elogio">⭐ Elogio</option>
+                <option value="premio">🏆 Prêmio</option>
+                <option value="outro">📄 Outro</option>
+              </select>
+            </div>
+            <div style="margin-bottom:12px;">
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Título / Descrição</label>
+              <input type="text" id="doc-func-titulo" placeholder="Ex: Advertência verbal — 15/04/2026" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:12px;">
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Observações</label>
+              <textarea id="doc-func-obs" placeholder="Detalhes..." style="width:100%;min-height:70px;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;resize:vertical;box-sizing:border-box;"></textarea>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Arquivo (PDF, imagem, doc)</label>
+              <input type="file" id="doc-func-arquivo" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="font-size:13px;">
+            </div>
+            <div id="doc-func-alert" style="margin-bottom:8px;"></div>
+            <button onclick="salvarDocFuncionario()" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:10px 24px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;width:100%;">💾 Salvar documento</button>
+          </div>
+        </div>
+
+        <div id="rh-pasta-content"><div class="loader">Carregando...</div></div>
+      </div>
+    </div>
     <div id="financeiro" class="section">
       <!-- Seletor de empresa -->
       <div style="display:flex;align-items:center;gap:10px;padding:10px 0 0 0;margin-bottom:0;">
@@ -1494,7 +1544,7 @@ async function onLogin(user){
   document.getElementById('nav-projetos').textContent=isStaff?'Projetos':'Meus projetos';
   document.getElementById('nav-atendimento').style.display=isStaff?'block':'none';
   document.getElementById('nav-conferencia').style.display=isStaff?'block':'none';
-  document.getElementById('conf-nav-conferentes').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('rh-nav-pasta').style.display=isStaff?'block':'none';
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
@@ -3533,7 +3583,7 @@ async function loadDashMontadoresRanking(mes) {
 let rhFuncAtual = null; // dados do funcionário logado
 
 function showSubRH(id, btn) {
-  ['rh-ponto','rh-atestado','rh-folha','rh-funcionarios','rh-relatorios','rh-folgas'].forEach(s => {
+  ['rh-ponto','rh-atestado','rh-folha','rh-funcionarios','rh-relatorios','rh-folgas','rh-pasta'].forEach(s => {
     const el = document.getElementById(s); if(el) el.style.display = 'none';
   });
   document.querySelectorAll('#rh .sub-nav .nav-item').forEach(n => n.classList.remove('active'));
@@ -3544,6 +3594,7 @@ function showSubRH(id, btn) {
   if(id === 'rh-folha') { preencherFiltroRHMes('rh-folha-mes'); loadFuncSelectRH('rh-folha-func'); loadFolhaMes(); }
   if(id === 'rh-funcionarios') loadFuncionariosRH();
   if(id === 'rh-relatorios') { preencherFiltroRHMes('rh-rel-mes'); loadFuncSelectRH('rh-rel-func'); loadRelatoriosRH(); }
+  if(id === 'rh-pasta') { loadFuncSelectRH('rh-pasta-func'); loadPastaFuncionario(); }
   if(id === 'rh-folgas') { loadFuncSelectRH('rh-folga-func', true); loadFolgasRH(); }
 }
 
@@ -4139,6 +4190,9 @@ async function gerarRelatorioRH() {
 
   if(relErr){ notify('Erro ao registrar relatório.','error'); return; }
 
+  // Arquivar na pasta do funcionário automaticamente
+  await arquivarCartaoPontoNaPasta(funcId, pdfUrl, mes, func.nome);
+
   // 6. Enviar para assinatura via Edge Function (mesmo fluxo dos projetos)
   notify('Enviando para assinatura...','info');
   try{
@@ -4227,14 +4281,150 @@ async function regerarRelatorioRH(funcId, mes){
 /* ── ATESTADOS ADMIN ── */
 async function aprovarAtestado(id, acao) {
   await db.from('rh_atestados').update({status: acao}).eq('id', id);
-  notify(acao === 'aprovado' ? '✅ Atestado aprovado!' : '❌ Atestado rejeitado.');
+  // Arquivar atestado na pasta do funcionário quando aprovado
+  if(acao==='aprovado'){
+    const {data:at}=await db.from('rh_atestados').select('funcionario_id,data_inicio,dias,foto_url').eq('id',id).single();
+    if(at){
+      const titulo=`Atestado médico — ${new Date(at.data_inicio+'T12:00').toLocaleDateString('pt-BR')} (${at.dias} dia${at.dias>1?'s':''})`;
+      await db.from('rh_documentos_funcionario').insert({
+        funcionario_id:at.funcionario_id, tipo:'atestado', titulo,
+        arquivo_url:at.foto_url||null, criado_por:currentUser.id, criado_em:new Date().toISOString()
+      });
+    }
+  }
+  notify(acao === 'aprovado' ? '✅ Atestado aprovado e arquivado na pasta!' : '❌ Atestado rejeitado.');
   loadMeusAtestados();
 }
 
 
 /* ═══════════════════════════════════════════
-   FINANCEIRO
+   PASTA DO FUNCIONÁRIO
 ═══════════════════════════════════════════ */
+const DOC_TIPO_LABEL = {
+  cartao_ponto:'📅 Cartão de ponto', atestado:'🏥 Atestado', advertencia:'⚠️ Advertência',
+  suspensao:'🚫 Suspensão', elogio:'⭐ Elogio', premio:'🏆 Prêmio', outro:'📄 Outro'
+};
+const DOC_TIPO_COR = {
+  cartao_ponto:'var(--brand)', atestado:'var(--blue)', advertencia:'#e67e22',
+  suspensao:'var(--red)', elogio:'var(--green)', premio:'#8e44ad', outro:'var(--text2)'
+};
+
+function abrirNovoDocFuncionario(){
+  const funcId=document.getElementById('rh-pasta-func').value;
+  if(!funcId){notify('Selecione um funcionário primeiro.','error');return}
+  document.getElementById('modal-novo-doc-func').style.display='block';
+}
+
+async function salvarDocFuncionario(){
+  const funcId=document.getElementById('rh-pasta-func').value;
+  const tipo=document.getElementById('doc-func-tipo').value;
+  const titulo=document.getElementById('doc-func-titulo').value.trim();
+  const obs=document.getElementById('doc-func-obs').value.trim();
+  const file=document.getElementById('doc-func-arquivo').files[0];
+  const alertEl=document.getElementById('doc-func-alert');
+  if(!titulo){alertEl.innerHTML='<div class="alert alert-error">Informe o título.</div>';return}
+
+  let arquivo_url=null, arquivo_nome=null;
+  if(file){
+    alertEl.innerHTML='<div class="alert alert-info">Enviando arquivo...</div>';
+    const ext=file.name.split('.').pop();
+    const path=`rh/pasta/${funcId}/${tipo}_${Date.now()}.${ext}`;
+    const {error:upErr}=await db.storage.from('arquivos').upload(path,file,{upsert:true});
+    if(upErr){alertEl.innerHTML=`<div class="alert alert-error">Erro: ${upErr.message}</div>`;return}
+    const {data:urlData}=db.storage.from('arquivos').getPublicUrl(path);
+    arquivo_url=urlData.publicUrl;
+    arquivo_nome=file.name;
+  }
+
+  const {error}=await db.from('rh_documentos_funcionario').insert({
+    funcionario_id:funcId, tipo, titulo, observacoes:obs,
+    arquivo_url, arquivo_nome, criado_por:currentUser.id,
+    criado_em:new Date().toISOString()
+  });
+  if(error){alertEl.innerHTML=`<div class="alert alert-error">Erro ao salvar: ${error.message}</div>`;return}
+  document.getElementById('modal-novo-doc-func').style.display='none';
+  notify('✅ Documento adicionado à pasta do funcionário!');
+  document.getElementById('doc-func-titulo').value='';
+  document.getElementById('doc-func-obs').value='';
+  document.getElementById('doc-func-arquivo').value='';
+  loadPastaFuncionario();
+}
+
+async function loadPastaFuncionario(){
+  const cont=document.getElementById('rh-pasta-content');
+  if(!cont) return;
+  const funcId=document.getElementById('rh-pasta-func')?.value;
+  if(!funcId){cont.innerHTML='<div class="empty-state"><p>Selecione um funcionário para ver a pasta.</p></div>';return}
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+
+  const [{data:func},{data:docs}]=await Promise.all([
+    db.from('rh_funcionarios').select('nome,cargo,email').eq('id',funcId).single(),
+    db.from('rh_documentos_funcionario').select('*').eq('funcionario_id',funcId).order('criado_em',{ascending:false})
+  ]);
+
+  // Agrupar por tipo
+  const grupos={};
+  (docs||[]).forEach(d=>{
+    if(!grupos[d.tipo]) grupos[d.tipo]=[];
+    grupos[d.tipo].push(d);
+  });
+
+  const tiposOrdem=['cartao_ponto','atestado','advertencia','suspensao','elogio','premio','outro'];
+  const totalDocs=(docs||[]).length;
+
+  cont.innerHTML=`
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:15px;font-weight:600;">${func?.nome||'—'}</div>
+        <div style="font-size:12px;color:var(--text2);">${func?.cargo||'—'} · ${func?.email||'Sem e-mail cadastrado'}</div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <div style="font-size:20px;font-weight:700;color:var(--brand);">${totalDocs}</div>
+        <div style="font-size:11px;color:var(--text3);">documentos</div>
+      </div>
+    </div>
+    ${totalDocs===0?'<div class="empty-state"><p>Nenhum documento nesta pasta ainda.</p></div>':''}
+    ${tiposOrdem.filter(t=>grupos[t]?.length).map(tipo=>`
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;color:${DOC_TIPO_COR[tipo]};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">${DOC_TIPO_LABEL[tipo]} (${grupos[tipo].length})</div>
+        ${grupos[tipo].map(d=>`
+          <div style="display:flex;align-items:start;justify-content:space-between;padding:10px 14px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);margin-bottom:6px;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:500;">${d.titulo}</div>
+              ${d.observacoes?`<div style="font-size:12px;color:var(--text2);margin-top:2px;">${d.observacoes}</div>`:''}
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">${new Date(d.criado_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              ${d.arquivo_url?`<a href="${d.arquivo_url}" target="_blank" style="font-size:11px;background:var(--brand);color:#fff;padding:4px 10px;border-radius:4px;text-decoration:none;font-weight:500;">📄 Ver</a>`:''}
+              ${userNivel==='admin'?`<button onclick="excluirDocFunc('${d.id}')" style="font-size:11px;background:transparent;border:1px solid var(--border2);border-radius:4px;padding:4px 8px;cursor:pointer;color:var(--text3);">✕</button>`:''}
+            </div>
+          </div>`).join('')}
+      </div>`).join('')}
+  `;
+}
+
+async function excluirDocFunc(docId){
+  if(!confirm('Excluir este documento da pasta?')) return;
+  await db.from('rh_documentos_funcionario').delete().eq('id',docId);
+  notify('Documento removido.');
+  loadPastaFuncionario();
+}
+
+/* ── Arquivar cartão de ponto automaticamente na pasta ── */
+async function arquivarCartaoPontoNaPasta(funcId, pdfUrl, mes, funcNome){
+  const mesLabel=new Date(mes+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  await db.from('rh_documentos_funcionario').insert({
+    funcionario_id: funcId,
+    tipo: 'cartao_ponto',
+    titulo: `Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)}`,
+    arquivo_url: pdfUrl,
+    arquivo_nome: `cartao_ponto_${mes}.html`,
+    criado_por: currentUser.id,
+    criado_em: new Date().toISOString()
+  });
+}
+
+
 
 let finEmpresa='marcenario';
 
