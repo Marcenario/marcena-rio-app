@@ -4193,32 +4193,19 @@ async function gerarRelatorioRH() {
   // Arquivar na pasta do funcionário automaticamente
   await arquivarCartaoPontoNaPasta(funcId, pdfUrl, mes, func.nome);
 
-  // 6. Enviar para assinatura via Edge Function (mesmo fluxo dos projetos)
-  notify('Enviando para assinatura...','info');
+  // 6. Enviar para assinatura via mesma Edge Function do relatório de vistoria
+  notify('Enviando para assinatura eletrônica...','info');
   try{
-    const email = func.email || currentUser.email;
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/assinar-projeto-atendimento`,{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body: JSON.stringify({
-        registro_id: relRec.id,
-        tipo: 'cartao_ponto',
-        tabela: 'rh_relatorios',
-        pdf_url: pdfUrl,
-        nome_documento: `Cartão de Ponto — ${func.nome} — ${mesLabel}`,
-        email_signatario: email,
-        nome_signatario: func.nome
-      })
+      body:JSON.stringify({relatorio_id:relRec.id, tabela:'rh_relatorios', tipo:'cartao_ponto'})
     });
-    const json = await res.json();
+    const json=await res.json();
     if(!res.ok) throw new Error(json.error||'Erro ao enviar para assinatura');
-    notify('✅ Relatório gerado e enviado para assinatura! O funcionário receberá um e-mail.');
+    notify('✅ Cartão de ponto gerado e enviado para assinatura! O funcionário receberá um e-mail.');
   }catch(e){
-    // Se a edge function falhar, abre o relatório localmente mesmo assim
-    notify('Relatório salvo. Abrindo para impressão manual...','info');
-    const win=window.open('','_blank','width=800,height=900');
-    win.document.write(htmlRel);
-    win.document.close();
+    notify(`✅ Relatório salvo. Clique em "Enviar assinatura" para reenviar. (${e.message})`,'info');
   }
   loadRelatoriosRH();
 }
@@ -4238,8 +4225,8 @@ async function loadRelatoriosRH() {
         ${r.pdf_url?`<a href="${r.pdf_url}" target="_blank" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--blue);text-decoration:none;">📄 Ver</a>`:''}
         <button onclick="regerarRelatorioRH('${r.funcionario_id}','${r.mes_ref}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🖨 Reimprimir</button>
         ${r.status!=='assinado'?`
-          <button onclick="sincronizarRelPonto('${r.id}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🔄 Verificar</button>
-          <button onclick="marcarAssinadoRH('${r.id}')" style="font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;">✓ Marcar assinado</button>
+          <button onclick="enviarAssinaturaRelPonto('${r.id}')" style="font-size:11px;background:var(--brand);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">✉ Enviar assinatura</button>
+          <button onclick="sincronizarRelPonto('${r.id}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🔄 Sincronizar</button>
         `:''}
       </div>
     </div>`).join('');
@@ -4248,22 +4235,64 @@ async function loadRelatoriosRH() {
 async function sincronizarRelPonto(relId){
   notify('Verificando assinatura...','info');
   try{
-    const {data:rel}=await db.from('rh_relatorios').select('doc_id').eq('id',relId).single();
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura-projetos`,{
+    const {data:rel}=await db.from('rh_relatorios').select('doc_id,funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({projeto_id:relId, tipo:'cartao_ponto', tabela:'rh_relatorios', doc_id:rel?.doc_id})
+      body:JSON.stringify({relatorio_id:relId, doc_id:rel?.doc_id})
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||'Erro');
     if(json.assinado){
-      await db.from('rh_relatorios').update({status:'assinado',assinado_em:new Date().toISOString()}).eq('id',relId);
-      notify('✅ Documento assinado!');
+      // Atualizar status e pdf assinado
+      const pdfAssinado=json.pdf_url||rel?.pdf_url;
+      await db.from('rh_relatorios').update({
+        status:'assinado',
+        assinado_em:new Date().toISOString(),
+        pdf_url:pdfAssinado
+      }).eq('id',relId);
+      // Arquivar PDF assinado na pasta do funcionário
+      if(rel?.funcionario_id){
+        const mesLabel=new Date((rel.mes_ref||'')+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+        const {data:jaArquivado}=await db.from('rh_documentos_funcionario')
+          .select('id').eq('funcionario_id',rel.funcionario_id).eq('tipo','cartao_ponto')
+          .ilike('titulo','%'+rel.mes_ref+'%').limit(1);
+        // Atualizar se já existe, inserir se não
+        if(jaArquivado?.length){
+          await db.from('rh_documentos_funcionario').update({arquivo_url:pdfAssinado}).eq('id',jaArquivado[0].id);
+        } else {
+          await db.from('rh_documentos_funcionario').insert({
+            funcionario_id:rel.funcionario_id,
+            tipo:'cartao_ponto',
+            titulo:`Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)} ✓ Assinado`,
+            arquivo_url:pdfAssinado,
+            arquivo_nome:`cartao_ponto_${rel.mes_ref}_assinado.pdf`,
+            criado_por:currentUser.id,
+            criado_em:new Date().toISOString()
+          });
+        }
+      }
+      notify('✅ Documento assinado e arquivado na pasta do funcionário!');
     } else {
-      notify(`Aguardando assinatura (${json.assinados||0}/${json.total||1})`, 'info');
+      notify(`Aguardando assinatura (${json.assinados||0}/${json.total||1}).`,'info');
     }
     loadRelatoriosRH();
   }catch(e){ notify('Erro ao verificar: '+e.message,'error'); }
+}
+
+async function enviarAssinaturaRelPonto(relId){
+  notify('Enviando para assinatura...','info');
+  try{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({relatorio_id:relId, tabela:'rh_relatorios', tipo:'cartao_ponto'})
+    });
+    const json=await res.json();
+    if(!res.ok) throw new Error(json.error||'Erro');
+    notify('✅ Enviado! O funcionário receberá o e-mail para assinar.');
+    loadRelatoriosRH();
+  }catch(e){ notify('Erro: '+e.message,'error'); }
 }
 
 async function marcarAssinadoRH(relId){
