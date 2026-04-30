@@ -3539,7 +3539,7 @@ async function loadDashMontadoresRanking(mes) {
 
   const [{data:equipes},{data:pedidos}] = await Promise.all([
     db.from('equipes_montagem').select('*').order('nome'),
-    db.from('pedidos_montagem').select('equipe_id,equipe_nome,valor_total,status,prod_dia_real').eq('mes_ref',mes)
+    db.from('pedidos_montagem').select('equipe_id,equipe_nome,valor_total,status').eq('mes_ref',mes)
   ]);
 
   if(!equipes||!equipes.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma equipe cadastrada.</p></div>';return;}
@@ -3625,7 +3625,7 @@ async function loadPontoHoje() {
   cont.innerHTML = '<div class="loader">Carregando...</div>';
 
   // Busca dados do funcionário pelo user atual
-  const {data: func} = await db.from('rh_funcionarios').select('*').eq('user_id', currentUser.id).single();
+  const {data: func} = await db.from('rh_funcionarios').select('*').eq('user_id', currentUser.id).maybeSingle();
   if(!func) {
     cont.innerHTML = '<div class="empty-state"><p>Nenhum perfil de funcionário associado a este usuário.</p></div>';
     return;
@@ -3809,7 +3809,7 @@ async function enviarAtestado() {
   const obs = document.getElementById('rh-at-obs').value.trim();
   if(!dataIni || !dias || !file) { setAlert('rh-at-alert', 'Preencha todos os campos e anexe a foto.', 'error'); return; }
 
-  const {data: func} = await db.from('rh_funcionarios').select('id').eq('user_id', currentUser.id).single();
+  const {data: func} = await db.from('rh_funcionarios').select('*').eq('user_id', currentUser.id).maybeSingle();
   if(!func) { setAlert('rh-at-alert', 'Perfil não encontrado.', 'error'); return; }
 
   const ext = file.name.split('.').pop();
@@ -3863,7 +3863,7 @@ async function loadMeusAtestados() {
     }
   }
 
-  const {data: func} = await db.from('rh_funcionarios').select('id').eq('user_id', currentUser.id).single();
+  const {data: func} = await db.from('rh_funcionarios').select('*').eq('user_id', currentUser.id).maybeSingle();
   if(!func) return;
   const {data} = await db.from('rh_atestados').select('*').eq('funcionario_id', func.id).order('created_at', {ascending: false});
   if(!data || !data.length) { cont.innerHTML = ''; return; }
@@ -4097,7 +4097,7 @@ async function gerarRelatorioRH() {
 
   // 1. Buscar dados do funcionário e registros do mês
   const [{data:func},{data:pontos},{data:folgas}] = await Promise.all([
-    db.from('rh_funcionarios').select('*').eq('id',funcId).single(),
+    db.from('rh_funcionarios').select('*').eq('id',funcId).maybeSingle(),
     db.from('rh_pontos').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes).order('data').order('created_at'),
     db.from('rh_folgas').select('*').eq('funcionario_id',funcId).gte('data',mes+'-01').lte('data',mes+'-31')
   ]);
@@ -4199,7 +4199,7 @@ async function gerarRelatorioRH() {
     const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({relatorio_id:relRec.id, tabela:'rh_relatorios', tipo:'cartao_ponto'})
+      body:JSON.stringify({relatorio_id:relRec.id})
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||'Erro ao enviar para assinatura');
@@ -4286,7 +4286,7 @@ async function enviarAssinaturaRelPonto(relId){
     const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({relatorio_id:relId, tabela:'rh_relatorios', tipo:'cartao_ponto'})
+      body:JSON.stringify({relatorio_id:relId})
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||'Erro');
@@ -4387,7 +4387,7 @@ async function loadPastaFuncionario(){
   cont.innerHTML='<div class="loader">Carregando...</div>';
 
   const [{data:func},{data:docs}]=await Promise.all([
-    db.from('rh_funcionarios').select('nome,cargo,email').eq('id',funcId).single(),
+    db.from('rh_funcionarios').select('nome,cargo,email').eq('id',funcId).maybeSingle(),
     db.from('rh_documentos_funcionario').select('*').eq('funcionario_id',funcId).order('criado_em',{ascending:false})
   ]);
 
