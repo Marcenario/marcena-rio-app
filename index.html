@@ -3537,12 +3537,14 @@ async function loadDashMontadoresRanking(mes) {
   const cont = document.getElementById('dash-mont-rank-content');
   if(!cont) return;
 
-  const inicioMes = mes + '-01';
-  const fimMes = mes + '-31';
+  const inicioMes = mes + '-01T00:00:00';
+  const proximoMes = new Date(mes + '-01');
+  proximoMes.setMonth(proximoMes.getMonth() + 1);
+  const fimMes = proximoMes.toISOString().slice(0,10) + 'T00:00:00';
   const [{data:equipes},{data:pedidos}] = await Promise.all([
     db.from('equipes_montagem').select('*').order('nome'),
     db.from('pedidos_montagem').select('equipe_id,equipe_nome,valor_total,status')
-      .gte('data_chegada', inicioMes).lte('data_chegada', fimMes)
+      .gte('created_at', inicioMes).lt('created_at', fimMes)
   ]);
 
   if(!equipes||!equipes.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma equipe cadastrada.</p></div>';return;}
@@ -4102,7 +4104,8 @@ async function gerarRelatorioRH() {
   const [{data:func},{data:pontos},{data:folgas}] = await Promise.all([
     db.from('rh_funcionarios').select('*').eq('id',funcId).maybeSingle(),
     db.from('rh_pontos').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes).order('data').order('created_at'),
-    db.from('rh_folgas').select('*').eq('funcionario_id',funcId).gte('data',mes+'-01').lte('data',mes+'-31')
+    db.from('rh_folgas').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes)
+      .catch(()=>db.from('rh_folgas').select('*').eq('funcionario_id',funcId).gte('data',mes+'-01').lte('data',mes+'-31'))
   ]);
   if(!func){ notify('Funcionário não encontrado.','error'); return; }
 
@@ -4214,7 +4217,6 @@ async function gerarRelatorioRH() {
       loadRelatoriosRH();
       return;
     }
-    // Tentar via assinar-relatorio — se der 500, salva mesmo assim
     const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
@@ -4222,9 +4224,10 @@ async function gerarRelatorioRH() {
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||`HTTP ${res.status}`);
-    notify('✅ Cartão de ponto gerado e enviado para assinatura! O funcionário receberá um e-mail.');
+    notify('✅ Cartão de ponto gerado e enviado para assinatura!');
   }catch(e){
-    notify(`✅ Relatório salvo! Clique em "✉ Enviar assinatura" para reenviar. (${e.message})`,'info');
+    // Edge Function assinar-relatorio ainda não suporta rh_relatorios — usar botão manual
+    notify('✅ Cartão de ponto gerado! Clique em "✉ Enviar assinatura" na lista para enviar ao funcionário.','info');
   }
   loadRelatoriosRH();
 }
@@ -4461,7 +4464,7 @@ async function excluirDocFunc(docId){
 /* ── Arquivar cartão de ponto automaticamente na pasta ── */
 async function arquivarCartaoPontoNaPasta(funcId, pdfUrl, mes, funcNome){
   const mesLabel=new Date(mes+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  await db.from('rh_documentos_funcionario').insert({
+  const {error}=await db.from('rh_documentos_funcionario').insert({
     funcionario_id: funcId,
     tipo: 'cartao_ponto',
     titulo: `Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)}`,
@@ -4470,6 +4473,13 @@ async function arquivarCartaoPontoNaPasta(funcId, pdfUrl, mes, funcNome){
     criado_por: currentUser.id,
     criado_em: new Date().toISOString()
   });
+  if(error){
+    if(error.code==='42501'||error.message?.includes('403')||error.message?.includes('Forbidden')){
+      console.warn('rh_documentos_funcionario: RLS bloqueando. Execute o SQL no Supabase para liberar.');
+    } else {
+      console.warn('Erro ao arquivar na pasta:', error.message);
+    }
+  }
 }
 
 
