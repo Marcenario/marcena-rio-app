@@ -4222,7 +4222,7 @@ async function loadRelatoriosRH() {
         <button onclick="regerarRelatorioRH('${r.funcionario_id}','${r.mes_ref}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🖨 Reimprimir</button>
         ${r.status!=='assinado'?`
           <button onclick="enviarAssinaturaRelPonto('${r.id}')" style="font-size:11px;background:var(--brand);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">✉ Enviar assinatura</button>
-          <button onclick="sincronizarRelPonto('${r.id}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🔄 Sincronizar</button>
+          ${r.envelope_id?`<button onclick="sincronizarRelPonto('${r.id}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🔄 Sincronizar</button>`:''}
         `:''}
       </div>
     </div>`).join('');
@@ -4231,11 +4231,11 @@ async function loadRelatoriosRH() {
 async function sincronizarRelPonto(relId){
   notify('Verificando assinatura...','info');
   try{
-    const {data:rel}=await db.from('rh_relatorios').select('doc_id,funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
+    const {data:rel}=await db.from('rh_relatorios').select('envelope_id,funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
     const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({relatorio_id:relId, doc_id:rel?.doc_id})
+      body:JSON.stringify({relatorio_id:relId, doc_id:rel?.envelope_id})
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||'Erro');
