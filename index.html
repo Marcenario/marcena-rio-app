@@ -721,12 +721,12 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div id="dash-vend-content"><div class="loader">Carregando...</div></div>
         </div>
 
-        <!-- MONTADORES -->
-        <div class="card" id="dash-card-mont">
+        <!-- MONTADORES RANKING -->
+        <div class="card" id="dash-card-mont-rank">
           <div class="card-header" style="margin-bottom:1rem;">
             <div class="card-title" style="font-size:15px;">🔧 Montadores do mês</div>
           </div>
-          <div id="dash-mont-content"><div class="loader">Carregando...</div></div>
+          <div id="dash-mont-rank-content"><div class="loader">Carregando...</div></div>
         </div>
 
         <!-- CONFERÊNCIA -->
@@ -3162,7 +3162,7 @@ async function loadDashboard() {
     loadDashFinanceiro(),
     loadDashRH(),
     loadDashVendedores(mes),
-    loadDashMontadores(mes),
+    loadDashMontadoresRanking(mes),
     loadDashConferencia(),
     loadDashAlertas(mes),
   ]);
@@ -3474,8 +3474,8 @@ async function loadDashVendedores(mes) {
 }
 
 
-async function loadDashMontadores(mes) {
-  const cont = document.getElementById('dash-mont-content');
+async function loadDashMontadoresRanking(mes) {
+  const cont = document.getElementById('dash-mont-rank-content');
   if(!cont) return;
 
   const [{data:equipes},{data:pedidos}] = await Promise.all([
@@ -3498,21 +3498,23 @@ async function loadDashMontadores(mes) {
   });
 
   const sorted = Object.values(ranking).sort((a,b)=>b.concluido-a.concluido);
-  const maxVal = sorted[0]?.concluido||1;
+  const maxVal = sorted.find(v=>v.concluido>0)?.concluido||1;
 
   cont.innerHTML = sorted.map((v,i)=>{
     const pct = Math.round((v.concluido/maxVal)*100);
-    const badge = i===0&&v.concluido>0?'🥇':i===sorted.length-1&&sorted.length>1&&v.concluido===0?'🔴':'';
-    const corBar = i===0&&v.concluido>0?'var(--green)':v.concluido===0?'var(--red)':'var(--accent)';
+    const isTop = i===0&&v.concluido>0;
+    const isZero = v.concluido===0;
+    const badge = isTop?'🥇':isZero&&sorted.length>1?'🔴':'';
+    const corBar = isTop?'var(--green)':isZero?'var(--red)':'var(--accent)';
     return `<div style="margin-bottom:12px;">
       <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:4px;">
         <span>${badge} ${v.nome}</span>
-        <span style="color:var(--green);">${fmt(v.concluido)}</span>
+        <span style="color:${isZero?'var(--text3)':'var(--green)'};">${fmt(v.concluido)}</span>
       </div>
       <div style="height:5px;background:var(--bg);border-radius:3px;">
         <div style="height:5px;border-radius:3px;background:${corBar};width:${pct}%;"></div>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px;">${v.pedidos} pedido(s) · Em andamento: ${fmt(v.emAndamento)} · Prod. atual: ${fmt(v.prodReal)}/dia</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">${v.pedidos} pedido(s) · Em andamento: ${fmt(v.emAndamento)} · Prod.: ${fmt(v.prodReal)}/dia</div>
     </div>`;
   }).join('');
 }
