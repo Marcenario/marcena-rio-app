@@ -52,7 +52,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .nav-item.active{color:var(--text);border-bottom-color:var(--accent);font-weight:500}
 .main-content{max-width:900px;margin:0 auto;padding:2rem}.main-content.funil-mode{max-width:100%;padding:1.5rem 1.5rem}
 .section{display:none}
-.section.active{display:block}
+.section.active{display:block;width:100%;overflow-x:hidden;}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1rem;box-shadow:var(--shadow)}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 .card-title{font-size:16px;font-weight:500;color:var(--text)}
@@ -227,7 +227,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .funil-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
 .funil-card-dias{font-size:10px;font-weight:500;padding:2px 7px;border-radius:8px;}
 .funil-card-empresa{font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;}
-.funil-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:1rem;align-items:flex-start;}
+.funil-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:1rem;align-items:flex-start;width:100%;}
 .at-amb-row{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;align-items:center;}
 .btn-vende{padding:4px 10px;border:none;border-radius:4px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;}
 .btn-vende.sim{background:var(--green-bg);color:var(--green);border:1px solid #a8dfc0;}
@@ -383,14 +383,14 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       </div>
 
       <!-- FUNIL DE CONFERÊNCIA -->
-      <div id="conf-funil">
+      <div id="conf-funil" style="width:100%;overflow-x:auto;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <input type="text" id="conf-busca" placeholder="🔍 Buscar por nome..." oninput="filtrarConferencia(this.value)"
               style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;min-width:200px;">
           </div>
         </div>
-        <div id="conf-content"><div class="loader">Carregando...</div></div>
+        <div id="conf-content" style="width:100%;overflow-x:auto;"><div class="loader">Carregando...</div></div>
       </div>
 
       <!-- CONFERENTES -->
@@ -4738,20 +4738,29 @@ let _etapasConferencia = [];
 let _colunasOcultas = new Set(JSON.parse(localStorage.getItem('colunasOcultas')||'[]'));
 
 async function loadConferencia(){
+  // Garantir que o sub-painel correto esteja visível
+  const funilEl=document.getElementById('conf-funil');
+  const confEl=document.getElementById('conf-conferentes');
+  if(funilEl) funilEl.style.display='block';
+  if(confEl) confEl.style.display='none';
+  document.getElementById('conf-nav-funil')?.classList.add('active');
+  document.getElementById('conf-nav-conferentes')?.classList.remove('active');
+
   const cont = document.getElementById('conf-content');
   if(!cont) return;
   cont.innerHTML = '<div class="loader">Carregando...</div>';
 
-  if(!_funilConferencia){
-    const {data:funis} = await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
-    _funilConferencia = funis?.[0] || null;
-    if(_funilConferencia){
-      const {data:etapas} = await db.from('funis_etapas').select('*').eq('funil_id',_funilConferencia.id).order('ordem');
-      _etapasConferencia = etapas || [];
-    }
+  // Sempre recarregar funil e etapas (evita cache corrompido)
+  const {data:funis} = await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
+  _funilConferencia = funis?.[0] || null;
+  _etapasConferencia = [];
+  if(_funilConferencia){
+    const {data:etapas} = await db.from('funis_etapas').select('*').eq('funil_id',_funilConferencia.id).order('ordem');
+    _etapasConferencia = etapas || [];
   }
 
-  if(!_funilConferencia){ cont.innerHTML='<div class="empty-state"><p>Funil de Conferência não encontrado.</p></div>'; return; }
+  if(!_funilConferencia){ cont.innerHTML='<div class="empty-state"><p>Funil de Conferência não encontrado. Verifique se existe um funil com tipo "conferencia" no banco.</p></div>'; return; }
+  if(!_etapasConferencia.length){ cont.innerHTML='<div class="empty-state"><p>O Funil de Conferência não tem etapas cadastradas.</p></div>'; return; }
 
   const {data} = await db.from('atendimentos').select('*').eq('funil_id',_funilConferencia.id).order('created_at',{ascending:false});
   window._todosConferencia = data || [];
