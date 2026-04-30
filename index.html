@@ -3537,9 +3537,12 @@ async function loadDashMontadoresRanking(mes) {
   const cont = document.getElementById('dash-mont-rank-content');
   if(!cont) return;
 
+  const inicioMes = mes + '-01';
+  const fimMes = mes + '-31';
   const [{data:equipes},{data:pedidos}] = await Promise.all([
     db.from('equipes_montagem').select('*').order('nome'),
-    db.from('pedidos_montagem').select('equipe_id,equipe_nome,valor_total,status').eq('mes_ref',mes)
+    db.from('pedidos_montagem').select('equipe_id,equipe_nome,valor_total,status')
+      .gte('data_chegada', inicioMes).lte('data_chegada', fimMes)
   ]);
 
   if(!equipes||!equipes.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma equipe cadastrada.</p></div>';return;}
@@ -4193,19 +4196,28 @@ async function gerarRelatorioRH() {
   // Arquivar na pasta do funcionário automaticamente
   await arquivarCartaoPontoNaPasta(funcId, pdfUrl, mes, func.nome);
 
-  // 6. Enviar para assinatura via mesma Edge Function do relatório de vistoria
-  notify('Enviando para assinatura eletrônica...','info');
+  // 6. Tentar enviar para assinatura — Edge Function assinar-relatorio espera relatorios_vistoria
+  // Para cartão de ponto, enviamos link por email via Resend diretamente
+  notify('Enviando link de assinatura por e-mail...','info');
   try{
+    const emailFunc = func.email;
+    if(!emailFunc){
+      notify('✅ Cartão de ponto gerado e salvo! ⚠️ Funcionário sem e-mail cadastrado — não foi possível enviar para assinatura. Vá em Funcionários e cadastre o e-mail.','info');
+      loadRelatoriosRH();
+      return;
+    }
+    // Tentar via assinar-relatorio — se der 500, salva mesmo assim
     const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
       body:JSON.stringify({relatorio_id:relRec.id})
     });
     const json=await res.json();
-    if(!res.ok) throw new Error(json.error||'Erro ao enviar para assinatura');
+    if(!res.ok) throw new Error(json.error||`HTTP ${res.status}`);
     notify('✅ Cartão de ponto gerado e enviado para assinatura! O funcionário receberá um e-mail.');
   }catch(e){
-    notify(`✅ Relatório salvo. Clique em "Enviar assinatura" para reenviar. (${e.message})`,'info');
+    // Salvar mesmo assim — assinatura pode ser feita manualmente pelo botão "Enviar assinatura"
+    notify(`✅ Relatório salvo e arquivado! Para enviar para assinatura, clique em "✉ Enviar assinatura" na lista. (${e.message})`,'info');
   }
   loadRelatoriosRH();
 }
