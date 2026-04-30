@@ -4195,39 +4195,14 @@ async function gerarRelatorioRH() {
 
   if(relErr){ notify('Erro ao registrar relatório.','error'); return; }
 
-  // Arquivar na pasta do funcionário automaticamente
+  // Arquivar na pasta do funcionário
   await arquivarCartaoPontoNaPasta(funcId, pdfUrl, mes, func.nome);
 
-  // 6. Resolver email em cascata: rh_funcionarios.email → perfis.email → auth
-  let emailFunc = func.email || null;
-  if(!emailFunc && func.user_id){
-    const {data:perfil}=await db.from('perfis').select('email').eq('id',func.user_id).maybeSingle();
-    emailFunc = perfil?.email || null;
-  }
-  // Salvar email no rh_funcionarios se encontrou via perfis (evita buscar da próxima vez)
-  if(!func.email && emailFunc){
-    await db.from('rh_funcionarios').update({email: emailFunc}).eq('id',funcId);
-  }
+  // Abrir relatório em nova aba para conferência
+  const win=window.open('','_blank','width=850,height=950');
+  if(win){ win.document.write(htmlRel); win.document.close(); }
 
-  notify('Enviando para assinatura...','info');
-  try{
-    if(!emailFunc){
-      notify('✅ Cartão de ponto gerado e salvo! ⚠️ E-mail do funcionário não encontrado. Cadastre o e-mail em Funcionários.','info');
-      loadRelatoriosRH();
-      return;
-    }
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({relatorio_id:relRec.id})
-    });
-    const json=await res.json();
-    if(!res.ok) throw new Error(json.error||`HTTP ${res.status}`);
-    notify('✅ Cartão de ponto gerado e enviado para assinatura!');
-  }catch(e){
-    // Edge Function assinar-relatorio ainda não suporta rh_relatorios — usar botão manual
-    notify('✅ Cartão de ponto gerado! Clique em "✉ Enviar assinatura" na lista para enviar ao funcionário.','info');
-  }
+  notify('✅ Cartão de ponto gerado! Use "✉ Enviar assinatura" na lista para enviar ao funcionário.');
   loadRelatoriosRH();
 }
 
@@ -4302,15 +4277,27 @@ async function sincronizarRelPonto(relId){
 }
 
 async function enviarAssinaturaRelPonto(relId){
-  notify('Enviando para assinatura...','info');
+  notify('Preparando envio...','info');
   try{
+    // Resolver email do funcionário antes de enviar
+    const {data:rel}=await db.from('rh_relatorios').select('*,rh_funcionarios(nome,email,user_id)').eq('id',relId).single();
+    if(!rel){ notify('Relatório não encontrado.','error'); return; }
+
+    let email = rel.rh_funcionarios?.email || null;
+    if(!email && rel.rh_funcionarios?.user_id){
+      const {data:p}=await db.from('perfis').select('email').eq('id',rel.rh_funcionarios.user_id).maybeSingle();
+      email = p?.email || null;
+      if(email) await db.from('rh_funcionarios').update({email}).eq('id',rel.funcionario_id);
+    }
+    if(!email){ notify('⚠️ E-mail do funcionário não encontrado. Cadastre em Funcionários.','error'); return; }
+
     const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({relatorio_id:relId})
+      body:JSON.stringify({relatorio_id:relId, tabela:'rh_relatorios'})
     });
     const json=await res.json();
-    if(!res.ok) throw new Error(json.error||'Erro');
+    if(!res.ok) throw new Error(json.error||`HTTP ${res.status}`);
     notify('✅ Enviado! O funcionário receberá o e-mail para assinar.');
     loadRelatoriosRH();
   }catch(e){ notify('Erro: '+e.message,'error'); }
