@@ -4105,7 +4105,6 @@ async function gerarRelatorioRH() {
     db.from('rh_funcionarios').select('*').eq('id',funcId).maybeSingle(),
     db.from('rh_pontos').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes).order('data').order('created_at'),
     db.from('rh_folgas').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes)
-      .catch(()=>db.from('rh_folgas').select('*').eq('funcionario_id',funcId).gte('data',mes+'-01').lte('data',mes+'-31'))
   ]);
   if(!func){ notify('Funcionário não encontrado.','error'); return; }
 
