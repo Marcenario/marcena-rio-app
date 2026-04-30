@@ -721,6 +721,14 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div id="dash-vend-content"><div class="loader">Carregando...</div></div>
         </div>
 
+        <!-- MONTADORES -->
+        <div class="card" id="dash-card-mont">
+          <div class="card-header" style="margin-bottom:1rem;">
+            <div class="card-title" style="font-size:15px;">🔧 Montadores do mês</div>
+          </div>
+          <div id="dash-mont-content"><div class="loader">Carregando...</div></div>
+        </div>
+
         <!-- CONFERÊNCIA -->
         <div class="card" id="dash-card-conf">
           <div class="card-header" style="margin-bottom:1rem;">
@@ -3154,6 +3162,7 @@ async function loadDashboard() {
     loadDashFinanceiro(),
     loadDashRH(),
     loadDashVendedores(mes),
+    loadDashMontadores(mes),
     loadDashConferencia(),
     loadDashAlertas(mes),
   ]);
@@ -3465,9 +3474,50 @@ async function loadDashVendedores(mes) {
 }
 
 
-/* ═══════════════════════════════════════════
-   RH — PONTO ELETRÔNICO
-═══════════════════════════════════════════ */
+async function loadDashMontadores(mes) {
+  const cont = document.getElementById('dash-mont-content');
+  if(!cont) return;
+
+  const [{data:equipes},{data:pedidos}] = await Promise.all([
+    db.from('equipes_montagem').select('*').order('nome'),
+    db.from('pedidos_montagem').select('equipe_id,equipe_nome,valor_total,status,prod_dia_real').eq('mes_ref',mes)
+  ]);
+
+  if(!equipes||!equipes.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma equipe cadastrada.</p></div>';return;}
+
+  const ranking = {};
+  equipes.forEach(eq=>{
+    ranking[eq.id]={nome:eq.nome||'—', concluido:0, emAndamento:0, pedidos:0, prodReal:eq.produtividade_atual||0};
+  });
+
+  (pedidos||[]).forEach(p=>{
+    if(!ranking[p.equipe_id]) ranking[p.equipe_id]={nome:p.equipe_nome||'—',concluido:0,emAndamento:0,pedidos:0,prodReal:0};
+    ranking[p.equipe_id].pedidos++;
+    if(p.status==='concluido') ranking[p.equipe_id].concluido+=(p.valor_total||0);
+    else ranking[p.equipe_id].emAndamento+=(p.valor_total||0);
+  });
+
+  const sorted = Object.values(ranking).sort((a,b)=>b.concluido-a.concluido);
+  const maxVal = sorted[0]?.concluido||1;
+
+  cont.innerHTML = sorted.map((v,i)=>{
+    const pct = Math.round((v.concluido/maxVal)*100);
+    const badge = i===0&&v.concluido>0?'🥇':i===sorted.length-1&&sorted.length>1&&v.concluido===0?'🔴':'';
+    const corBar = i===0&&v.concluido>0?'var(--green)':v.concluido===0?'var(--red)':'var(--accent)';
+    return `<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:4px;">
+        <span>${badge} ${v.nome}</span>
+        <span style="color:var(--green);">${fmt(v.concluido)}</span>
+      </div>
+      <div style="height:5px;background:var(--bg);border-radius:3px;">
+        <div style="height:5px;border-radius:3px;background:${corBar};width:${pct}%;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">${v.pedidos} pedido(s) · Em andamento: ${fmt(v.emAndamento)} · Prod. atual: ${fmt(v.prodReal)}/dia</div>
+    </div>`;
+  }).join('');
+}
+
+
 
 let rhFuncAtual = null; // dados do funcionário logado
 
