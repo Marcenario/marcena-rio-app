@@ -254,6 +254,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .tipo-btn.active-asteca{background:#8a1a1a;color:#fff;box-shadow:var(--shadow);}
 .asteca-urgente{border-left:4px solid #8a1a1a !important;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 <div id="notif"></div>
@@ -4098,9 +4100,9 @@ async function gerarRelatorioRH() {
   const mes = document.getElementById('rh-rel-mes').value;
   if(!funcId){ notify('Selecione um funcionário.','error'); return; }
 
-  notify('Gerando relatório...','info');
+  notify('Gerando cartão de ponto...','info');
 
-  // 1. Buscar dados do funcionário e registros do mês
+  // 1. Buscar dados
   const [{data:func},{data:pontos},{data:folgas}] = await Promise.all([
     db.from('rh_funcionarios').select('*').eq('id',funcId).maybeSingle(),
     db.from('rh_pontos').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes).order('data').order('created_at'),
@@ -4108,13 +4110,11 @@ async function gerarRelatorioRH() {
   ]);
   if(!func){ notify('Funcionário não encontrado.','error'); return; }
 
-  // 2. Agrupar pontos por dia — horário vem do created_at pois o campo horario não é salvo no insert
+  // 2. Agrupar pontos por dia
   const porDia = {};
   (pontos||[]).forEach(p=>{
     if(!porDia[p.data]) porDia[p.data]={};
-    // Usar campo horario se existir, senão extrair do created_at (ajuste de fuso BR -3h)
-    const hora = p.horario
-      || (p.created_at ? new Date(new Date(p.created_at).getTime()-3*3600000).toISOString().slice(11,16) : null);
+    const hora = p.horario || (p.created_at ? new Date(new Date(p.created_at).getTime()-3*3600000).toISOString().slice(11,16) : null);
     porDia[p.data][p.tipo] = hora;
   });
   const folgas_set = new Set((folgas||[]).map(f=>f.data));
@@ -4133,53 +4133,72 @@ async function gerarRelatorioRH() {
   });
   const totalH=Math.floor(totalMin/60), totalM=Math.abs(totalMin%60);
 
-  // 3. Montar HTML do relatório
-  const linhas=Object.entries(porDia).map(([d,reg])=>{
-    const dia=new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
-    const fol=folgas_set.has(d)?'<br><small style="color:#b45309">folga</small>':'';
-    return `<tr><td>${dia}${fol}</td><td>${reg.entrada||'—'}</td><td>${reg.saida_almoco||'—'}</td><td>${reg.retorno_almoco||'—'}</td><td>${reg.saida||'—'}</td></tr>`;
-  }).join('');
+  // 3. Gerar PDF com jsPDF
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
 
-  const htmlRel=`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <style>
-    body{font-family:Arial,sans-serif;padding:32px;font-size:13px;color:#222;}
-    h2{font-size:18px;margin-bottom:4px;}
-    .info{color:#555;margin-bottom:16px;}
-    .totais{display:flex;gap:20px;margin-bottom:20px;}
-    .tot{background:#f8f8f8;border:1px solid #e5e5e5;border-radius:6px;padding:10px 16px;min-width:110px;}
-    .tot-val{font-size:18px;font-weight:700;color:#333;}
-    .tot-label{font-size:11px;color:#888;margin-top:2px;}
-    table{width:100%;border-collapse:collapse;margin-bottom:28px;}
-    th,td{border:1px solid #ddd;padding:7px 10px;text-align:center;}
-    th{background:#f3f3f3;font-weight:600;}
-    .assinaturas{display:flex;gap:48px;margin-top:40px;}
-    .ass{border-top:1px solid #666;padding-top:6px;font-size:12px;color:#555;min-width:180px;text-align:center;}
-    @media print{button{display:none}}
-  </style></head><body>
-  <h2>Cartão de Ponto — ${func.nome}</h2>
-  <div class="info">Mês: ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)} · Cargo: ${func.cargo||'—'} · Empresa: ${func.empresa||'—'}</div>
-  <div class="totais">
-    <div class="tot"><div class="tot-val">${diasTrabalhados}</div><div class="tot-label">Dias trabalhados</div></div>
-    <div class="tot"><div class="tot-val">${totalH}h ${String(totalM).padStart(2,'0')}m</div><div class="tot-label">Total de horas</div></div>
-    <div class="tot"><div class="tot-val">${(folgas||[]).length}</div><div class="tot-label">Folgas</div></div>
-  </div>
-  <table>
-    <thead><tr><th>Data</th><th>Entrada</th><th>Saída almoço</th><th>Retorno</th><th>Saída</th></tr></thead>
-    <tbody>${linhas||'<tr><td colspan="5">Nenhum registro no mês</td></tr>'}</tbody>
-  </table>
-  <div class="assinaturas">
-    <div><div class="ass">Assinatura do funcionário<br>${func.nome}</div></div>
-    <div><div class="ass">Responsável / Admin</div></div>
-    <div><div class="ass">Data: ___/___/_______</div></div>
-  </div>
-  <p style="margin-top:24px;font-size:10px;color:#aaa;">Gerado em ${new Date().toLocaleString('pt-BR')} · Sistema Marcena Rio</p>
-  </body></html>`;
+  // Cabeçalho
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('Cartão de Ponto', 14, 20);
+  doc.setFontSize(11); doc.setFont('helvetica','normal');
+  doc.text(func.nome, 14, 28);
+  doc.setFontSize(9); doc.setTextColor(100);
+  const mesCapital = mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1);
+  doc.text(`Mês: ${mesCapital}  |  Cargo: ${func.cargo||'—'}  |  Empresa: ${func.empresa||'—'}`, 14, 34);
+  doc.setTextColor(0);
 
-  // 4. Upload do HTML para o storage
-  const blob = new Blob([htmlRel], {type:'text/html'});
-  const path = `rh/cartao-ponto/${funcId}_${mes}_${Date.now()}.html`;
-  const {error:upErr} = await db.storage.from('arquivos').upload(path, blob, {upsert:true, contentType:'text/html'});
-  if(upErr){ notify('Erro ao salvar relatório: '+upErr.message,'error'); return; }
+  // Totais
+  doc.setFillColor(248,248,248);
+  doc.roundedRect(14, 38, 55, 16, 2, 2, 'F');
+  doc.roundedRect(74, 38, 55, 16, 2, 2, 'F');
+  doc.roundedRect(134, 38, 55, 16, 2, 2, 'F');
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text(String(diasTrabalhados), 41, 47, {align:'center'});
+  doc.text(`${totalH}h ${String(totalM).padStart(2,'0')}m`, 101, 47, {align:'center'});
+  doc.text(String((folgas||[]).length), 161, 47, {align:'center'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(120);
+  doc.text('Dias trabalhados', 41, 52, {align:'center'});
+  doc.text('Total de horas', 101, 52, {align:'center'});
+  doc.text('Folgas', 161, 52, {align:'center'});
+  doc.setTextColor(0);
+
+  // Tabela
+  const linhasTab = Object.entries(porDia).map(([d,reg])=>{
+    const dia = new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+    const fol = folgas_set.has(d) ? ' (folga)' : '';
+    return [dia+fol, reg.entrada||'—', reg.saida_almoco||'—', reg.retorno_almoco||'—', reg.saida||'—'];
+  });
+
+  doc.autoTable({
+    startY: 60,
+    head: [['Data','Entrada','Saída almoço','Retorno','Saída']],
+    body: linhasTab.length ? linhasTab : [['Nenhum registro no mês','','','','']],
+    theme: 'grid',
+    headStyles: { fillColor: [243,243,243], textColor: 0, fontStyle:'bold', fontSize:9 },
+    bodyStyles: { fontSize:9, halign:'center' },
+    columnStyles: { 0: { halign:'left' } },
+    margin: { left:14, right:14 }
+  });
+
+  // Assinaturas
+  const y = doc.lastAutoTable.finalY + 20;
+  doc.setDrawColor(100);
+  doc.line(14, y, 80, y);
+  doc.line(90, y, 156, y);
+  doc.line(166, y, 196, y);
+  doc.setFontSize(8); doc.setTextColor(80);
+  doc.text('Assinatura do funcionário', 47, y+5, {align:'center'});
+  doc.text(func.nome, 47, y+9, {align:'center'});
+  doc.text('Responsável / Admin', 123, y+5, {align:'center'});
+  doc.text('Data: ___/___/______', 181, y+5, {align:'center'});
+  doc.setFontSize(7); doc.setTextColor(160);
+  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} · Sistema Marcena Rio`, 14, 290);
+
+  // 4. Converter para Blob e fazer upload
+  const pdfBlob = doc.output('blob');
+  const path = `rh/cartao-ponto/${funcId}_${mes}_${Date.now()}.pdf`;
+  const {error:upErr} = await db.storage.from('arquivos').upload(path, pdfBlob, {upsert:true, contentType:'application/pdf'});
+  if(upErr){ notify('Erro ao salvar PDF: '+upErr.message,'error'); return; }
   const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
   const pdfUrl = urlData.publicUrl;
 
@@ -4192,17 +4211,17 @@ async function gerarRelatorioRH() {
     gerado_em: new Date().toISOString(),
     gerado_por: currentUser.id
   }).select().single();
+  if(relErr){ notify('Erro ao registrar: '+relErr.message,'error'); return; }
 
-  if(relErr){ notify('Erro ao registrar relatório.','error'); return; }
-
-  // Arquivar na pasta do funcionário
+  // 6. Arquivar na pasta do funcionário
   await arquivarCartaoPontoNaPasta(funcId, pdfUrl, mes, func.nome);
 
-  // Abrir relatório em nova aba para conferência
-  const win=window.open('','_blank','width=850,height=950');
-  if(win){ win.document.write(htmlRel); win.document.close(); }
+  // 7. Abrir PDF para conferência
+  const pdfDataUri = doc.output('datauristring');
+  const win = window.open('','_blank');
+  if(win){ win.document.write('<iframe src="'+pdfDataUri+'" width="100%" height="100%" style="border:none;"></iframe>'); win.document.close(); }
 
-  notify('✅ Cartão de ponto gerado! Use "✉ Enviar assinatura" na lista para enviar ao funcionário.');
+  notify('✅ Cartão de ponto gerado em PDF! Use "✉ Enviar assinatura" para enviar ao funcionário.');
   loadRelatoriosRH();
 }
 
