@@ -4232,10 +4232,10 @@ async function sincronizarRelPonto(relId){
   notify('Verificando assinatura...','info');
   try{
     const {data:rel}=await db.from('rh_relatorios').select('envelope_id,funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura-projetos`,{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-cartao-ponto`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({projeto_id:relId, tipo:'cartao_ponto', doc_id:rel?.envelope_id, tabela:'rh_relatorios'})
+      body:JSON.stringify({relatorio_id:relId, envelope_id:rel?.envelope_id})
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||'Erro');
@@ -4291,16 +4291,15 @@ async function enviarAssinaturaRelPonto(relId){
     }
     if(!email){ notify('⚠️ E-mail do funcionário não encontrado. Cadastre em Funcionários.','error'); return; }
 
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-projeto-atendimento`,{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-cartao-ponto`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
       body:JSON.stringify({
-        registro_id: relId,
-        tipo: 'cartao_ponto',
-        tabela: 'rh_relatorios',
-        email_signatario: email,
-        nome_signatario: rel.rh_funcionarios?.nome || 'Funcionário',
-        pdf_url: rel.pdf_url
+        relatorio_id: relId,
+        email: email,
+        nome: rel.rh_funcionarios?.nome || 'Funcionário',
+        pdf_url: rel.pdf_url,
+        mes_ref: rel.mes_ref
       })
     });
     const json=await res.json();
