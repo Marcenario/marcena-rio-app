@@ -747,7 +747,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <button class="nav-item" id="rh-nav-atestado" onclick="showSubRH('rh-atestado',this)">Atestado</button>
         <button class="nav-item" id="rh-nav-folha" style="display:none" onclick="showSubRH('rh-folha',this)">Folha do mês</button>
         <button class="nav-item" id="rh-nav-funcionarios" style="display:none" onclick="showSubRH('rh-funcionarios',this)">Funcionários</button>
-        <button class="nav-item" id="rh-nav-relatorios" style="display:none" onclick="showSubRH('rh-relatorios',this)">Relatórios</button>
+        <button class="nav-item" id="rh-nav-relatorios" style="display:none" onclick="showSubRH('rh-relatorios',this)">📅 Cartão de Ponto</button>
         <button class="nav-item" id="rh-nav-folgas" style="display:none" onclick="showSubRH('rh-folgas',this)">Folgas</button>
         <button class="nav-item" id="rh-nav-pasta" style="display:none" onclick="showSubRH('rh-pasta',this)">📁 Pasta do Funcionário</button>
       </div>
@@ -4232,10 +4232,10 @@ async function sincronizarRelPonto(relId){
   notify('Verificando assinatura...','info');
   try{
     const {data:rel}=await db.from('rh_relatorios').select('envelope_id,funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`,{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura-projetos`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({relatorio_id:relId, doc_id:rel?.envelope_id})
+      body:JSON.stringify({projeto_id:relId, tipo:'cartao_ponto', doc_id:rel?.envelope_id, tabela:'rh_relatorios'})
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||'Erro');
@@ -4291,10 +4291,17 @@ async function enviarAssinaturaRelPonto(relId){
     }
     if(!email){ notify('⚠️ E-mail do funcionário não encontrado. Cadastre em Funcionários.','error'); return; }
 
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-relatorio`,{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/assinar-projeto-atendimento`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({relatorio_id:relId, tabela:'rh_relatorios'})
+      body:JSON.stringify({
+        registro_id: relId,
+        tipo: 'cartao_ponto',
+        tabela: 'rh_relatorios',
+        email_signatario: email,
+        nome_signatario: rel.rh_funcionarios?.nome || 'Funcionário',
+        pdf_url: rel.pdf_url
+      })
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||`HTTP ${res.status}`);
