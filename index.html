@@ -4246,8 +4246,11 @@ async function loadRelatoriosRH() {
           ${r.pdf_url?`<a href="${r.pdf_url}" target="_blank" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;color:var(--blue);text-decoration:none;">📄 Ver PDF</a>`:''}
           <button onclick="regerarRelatorioRH('${r.funcionario_id}','${r.mes_ref}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🔄 Regerar</button>
           ${r.pdf_url&&r.status!=='assinado'?`
-            <button onclick="enviarAssinaturaRelPonto('${r.id}')" style="font-size:11px;background:var(--brand);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">✉ Enviar assinatura</button>
-            ${r.envelope_id?`<button onclick="sincronizarRelPonto('${r.id}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;">🔄 Sincronizar</button>`:''}
+            ${!r.envelope_id
+              ? `<button onclick="enviarAssinaturaRelPonto('${r.id}')" style="font-size:11px;background:var(--brand);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">✉ Enviar assinatura</button>`
+              : `<button onclick="sincronizarRelPonto('${r.id}')" style="font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">🔄 Sincronizar</button>
+                 <button onclick="enviarAssinaturaRelPonto('${r.id}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">↩ Reenviar</button>`
+            }
           `:''}
         </div>
       </div>
