@@ -4194,56 +4194,52 @@ async function gerarRelatorioRH() {
   doc.setFontSize(7); doc.setTextColor(160);
   doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} · Sistema Marcena Rio`, 14, 290);
 
-  // 4. Converter para Blob e fazer upload
-  const pdfBlob = doc.output('blob');
-  const path = `rh/cartao-ponto/${funcId}_${mes}_${Date.now()}.pdf`;
-  const {error:upErr} = await db.storage.from('arquivos').upload(path, pdfBlob, {upsert:true, contentType:'application/pdf'});
-  if(upErr){ notify('Erro ao salvar PDF: '+upErr.message,'error'); return; }
-  const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
-  const pdfUrl = urlData.publicUrl;
+  // 4. Baixar PDF localmente (sem upload automático)
+  doc.save(`cartao_ponto_${func.nome.replace(/ /g,'_')}_${mes}.pdf`);
 
-  // 5. Salvar no banco
+  // 5. Criar registro no banco sem pdf_url (será preenchido quando o usuário anexar)
   const {data:relRec, error:relErr} = await db.from('rh_relatorios').insert({
     funcionario_id: funcId,
     mes_ref: mes,
     status: 'pendente',
-    pdf_url: pdfUrl,
     gerado_em: new Date().toISOString(),
     gerado_por: currentUser.id
   }).select().single();
   if(relErr){ notify('Erro ao registrar: '+relErr.message,'error'); return; }
 
-  // 6. Arquivar na pasta do funcionário
-  await arquivarCartaoPontoNaPasta(funcId, pdfUrl, mes, func.nome);
-
-  // 7. Abrir PDF para conferência
-  const pdfDataUri = doc.output('datauristring');
-  const win = window.open('','_blank');
-  if(win){ win.document.write('<iframe src="'+pdfDataUri+'" width="100%" height="100%" style="border:none;"></iframe>'); win.document.close(); }
-
-  notify('✅ Cartão de ponto gerado em PDF! Use "✉ Enviar assinatura" para enviar ao funcionário.');
+  notify('✅ PDF baixado! Agora anexe o arquivo no registro abaixo e clique em "✉ Enviar assinatura".');
   loadRelatoriosRH();
 }
 
 async function loadRelatoriosRH() {
   const cont = document.getElementById('rh-rel-list');
-  const {data} = await db.from('rh_relatorios').select('*, rh_funcionarios(nome,cargo)').order('created_at', {ascending: false}).limit(50);
-  if(!data || !data.length) { cont.innerHTML = '<div class="empty-state"><p>Nenhum relatório gerado.</p></div>'; return; }
+  const {data} = await db.from('rh_relatorios').select('*, rh_funcionarios(nome,cargo,user_id,email)').order('created_at', {ascending: false}).limit(50);
+  if(!data || !data.length) { cont.innerHTML = '<div class="empty-state"><p>Nenhum cartão gerado ainda.</p></div>'; return; }
   cont.innerHTML = data.map(r => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;flex-wrap:wrap;gap:8px;">
-      <div>
-        <div style="font-size:13px;font-weight:500;">${r.rh_funcionarios?.nome||'—'} · ${r.mes_ref}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Gerado em ${new Date(r.created_at).toLocaleDateString('pt-BR')} ${r.rh_funcionarios?.cargo?'· '+r.rh_funcionarios.cargo:''}</div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;background:var(--bg2);margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:${!r.pdf_url?'10':'0'}px;">
+        <div>
+          <div style="font-size:13px;font-weight:500;">${r.rh_funcionarios?.nome||'—'} · ${r.mes_ref}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">Gerado em ${new Date(r.created_at).toLocaleDateString('pt-BR')} ${r.rh_funcionarios?.cargo?'· '+r.rh_funcionarios.cargo:''}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span class="badge ${r.status==='assinado'?'badge-green':r.status==='enviado'?'badge-blue':'badge-amber'}">${r.status==='assinado'?'✓ Assinado':r.status==='enviado'?'📨 Enviado':'⏳ Pendente'}</span>
+          ${r.pdf_url?`<a href="${r.pdf_url}" target="_blank" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;color:var(--blue);text-decoration:none;">📄 Ver PDF</a>`:''}
+          <button onclick="regerarRelatorioRH('${r.funcionario_id}','${r.mes_ref}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🔄 Regerar</button>
+          ${r.pdf_url&&r.status!=='assinado'?`
+            <button onclick="enviarAssinaturaRelPonto('${r.id}')" style="font-size:11px;background:var(--brand);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">✉ Enviar assinatura</button>
+            ${r.envelope_id?`<button onclick="sincronizarRelPonto('${r.id}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;">🔄 Sincronizar</button>`:''}
+          `:''}
+        </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <span class="badge ${r.status==='assinado'?'badge-green':'badge-amber'}">${r.status==='assinado'?'✓ Assinado':'⏳ Pendente'}</span>
-        ${r.pdf_url?`<a href="${r.pdf_url}" target="_blank" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--blue);text-decoration:none;">📄 Ver</a>`:''}
-        <button onclick="regerarRelatorioRH('${r.funcionario_id}','${r.mes_ref}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🖨 Reimprimir</button>
-        ${r.status!=='assinado'?`
-          <button onclick="enviarAssinaturaRelPonto('${r.id}')" style="font-size:11px;background:var(--brand);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">✉ Enviar assinatura</button>
-          ${r.envelope_id?`<button onclick="sincronizarRelPonto('${r.id}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">🔄 Sincronizar</button>`:''}
-        `:''}
-      </div>
+      ${!r.pdf_url?`
+      <div style="background:#fff8e1;border:1px dashed #f0c040;border-radius:6px;padding:10px 12px;margin-top:4px;">
+        <div style="font-size:12px;color:#8a6000;margin-bottom:6px;font-weight:500;">📎 Anexe o PDF do cartão de ponto para enviar para assinatura</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="file" id="pdf-upload-${r.id}" accept="application/pdf" style="font-size:12px;flex:1;">
+          <button onclick="anexarPdfCartao('${r.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">📤 Anexar PDF</button>
+        </div>
+      </div>`:''}
     </div>`).join('');
 }
 
@@ -4293,6 +4289,22 @@ async function sincronizarRelPonto(relId){
     }
     loadRelatoriosRH();
   }catch(e){ notify('Erro ao verificar: '+e.message,'error'); }
+}
+
+async function anexarPdfCartao(relId){
+  const input = document.getElementById(`pdf-upload-${relId}`);
+  if(!input?.files[0]){ notify('Selecione um arquivo PDF.','error'); return; }
+  const file = input.files[0];
+  if(file.type !== 'application/pdf'){ notify('Selecione apenas arquivos PDF.','error'); return; }
+  notify('Enviando PDF...','info');
+  const path = `rh/cartao-ponto/${relId}_${Date.now()}.pdf`;
+  const {error:upErr} = await db.storage.from('arquivos').upload(path, file, {upsert:true, contentType:'application/pdf'});
+  if(upErr){ notify('Erro ao enviar: '+upErr.message,'error'); return; }
+  const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
+  const pdfUrl = urlData.publicUrl;
+  await db.from('rh_relatorios').update({pdf_url: pdfUrl}).eq('id', relId);
+  notify('✅ PDF anexado! Agora clique em "✉ Enviar assinatura".');
+  loadRelatoriosRH();
 }
 
 async function enviarAssinaturaRelPonto(relId){
