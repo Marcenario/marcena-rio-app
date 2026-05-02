@@ -4246,7 +4246,7 @@ async function loadRelatoriosRH() {
           ${r.pdf_url&&r.status!=='assinado'?`
             ${!r.envelope_id
               ? `<button onclick="enviarAssinaturaRelPonto('${r.id}')" style="font-size:11px;background:var(--brand);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">✉ Enviar assinatura</button>`
-              : `<button onclick="sincronizarRelPonto('${r.id}')" style="font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">🔄 Sincronizar</button>
+              : `<button onclick="sincronizarRelPonto('${r.id}','${r.envelope_id}')" style="font-size:11px;background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:500;">🔄 Sincronizar</button>
                  <button onclick="enviarAssinaturaRelPonto('${r.id}')" style="font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;cursor:pointer;color:var(--text2);">↩ Reenviar</button>`
             }
           `:''}
@@ -4263,32 +4263,44 @@ async function loadRelatoriosRH() {
     </div>`).join('');
 }
 
-async function sincronizarRelPonto(relId){
+async function sincronizarRelPonto(relId, envelopeId){
   notify('Verificando assinatura...','info');
   try{
-    // Buscar só envelope_id que existe na tabela
-    const {data:rel}=await db.from('rh_relatorios').select('envelope_id,funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
-    if(!rel?.envelope_id){ notify('⚠️ Envelope ID não encontrado. Envie para assinatura primeiro.','error'); return; }
+    if(!envelopeId){ notify('⚠️ Envelope ID não encontrado. Envie para assinatura primeiro.','error'); return; }
 
-    // Usar Edge Function dedicada para cartão de ponto
     const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-cartao-ponto`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({registro_id:relId, envelope_id:rel.envelope_id})
+      body:JSON.stringify({registro_id:relId, envelope_id:envelopeId})
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||'Erro');
 
     if(json.assinado){
-      const pdfAssinado=json.pdf_url||rel?.pdf_url;
-      await db.from('rh_relatorios').update({status:'assinado',assinado_em:new Date().toISOString(),pdf_url:pdfAssinado||rel.pdf_url}).eq('id',relId);
+      // Atualizar status no banco
+      await db.from('rh_relatorios').update({
+        status:'assinado',
+        assinado_em:new Date().toISOString(),
+        pdf_url: json.pdf_url || undefined
+      }).eq('id',relId);
+
+      // Arquivar na pasta do funcionário
+      const {data:rel}=await db.from('rh_relatorios').select('funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
       if(rel?.funcionario_id){
+        const pdfFinal = json.pdf_url || rel.pdf_url;
         const mesLabel=new Date((rel.mes_ref||'')+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
         const {data:jaArq}=await db.from('rh_documentos_funcionario').select('id').eq('funcionario_id',rel.funcionario_id).eq('tipo','cartao_ponto').ilike('titulo','%'+rel.mes_ref+'%').limit(1);
         if(jaArq?.length){
-          await db.from('rh_documentos_funcionario').update({arquivo_url:pdfAssinado||rel.pdf_url}).eq('id',jaArq[0].id);
+          await db.from('rh_documentos_funcionario').update({arquivo_url:pdfFinal}).eq('id',jaArq[0].id);
         } else {
-          await db.from('rh_documentos_funcionario').insert({funcionario_id:rel.funcionario_id,tipo:'cartao_ponto',titulo:`Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)} ✓ Assinado`,arquivo_url:pdfAssinado||rel.pdf_url,criado_por:currentUser.id,criado_em:new Date().toISOString()});
+          await db.from('rh_documentos_funcionario').insert({
+            funcionario_id:rel.funcionario_id,
+            tipo:'cartao_ponto',
+            titulo:`Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)} ✓ Assinado`,
+            arquivo_url:pdfFinal,
+            criado_por:currentUser.id,
+            criado_em:new Date().toISOString()
+          });
         }
       }
       notify('✅ Cartão de ponto assinado e arquivado na pasta do funcionário!');
