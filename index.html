@@ -4210,8 +4210,6 @@ async function gerarRelatorioRH() {
     funcionario_id: funcId,
     mes_ref: mes,
     status: 'pendente',
-    cliente_email: emailFunc,
-    cliente_nome: func.nome,
     gerado_em: new Date().toISOString(),
     gerado_por: currentUser.id
   }).select().single();
