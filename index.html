@@ -4265,26 +4265,29 @@ async function loadRelatoriosRH() {
 async function sincronizarRelPonto(relId){
   notify('Verificando assinatura...','info');
   try{
-    const {data:rel}=await db.from('rh_relatorios').select('docusign_envelope_id,envelope_id,funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
-    const docId = rel?.docusign_envelope_id || rel?.envelope_id;
-    // Usar EXATAMENTE a mesma Edge Function do projeto de venda
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura-projetos`,{
+    // Buscar só envelope_id que existe na tabela
+    const {data:rel}=await db.from('rh_relatorios').select('envelope_id,funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
+    if(!rel?.envelope_id){ notify('⚠️ Envelope ID não encontrado. Envie para assinatura primeiro.','error'); return; }
+
+    // Usar Edge Function dedicada para cartão de ponto
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-cartao-ponto`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({projeto_id:relId, tipo:'cartao_ponto', doc_id:docId})
+      body:JSON.stringify({registro_id:relId, envelope_id:rel.envelope_id})
     });
     const json=await res.json();
     if(!res.ok) throw new Error(json.error||'Erro');
+
     if(json.assinado){
       const pdfAssinado=json.pdf_url||rel?.pdf_url;
-      await db.from('rh_relatorios').update({status:'assinado',assinado_em:new Date().toISOString(),pdf_url:pdfAssinado}).eq('id',relId);
+      await db.from('rh_relatorios').update({status:'assinado',assinado_em:new Date().toISOString(),pdf_url:pdfAssinado||rel.pdf_url}).eq('id',relId);
       if(rel?.funcionario_id){
         const mesLabel=new Date((rel.mes_ref||'')+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
         const {data:jaArq}=await db.from('rh_documentos_funcionario').select('id').eq('funcionario_id',rel.funcionario_id).eq('tipo','cartao_ponto').ilike('titulo','%'+rel.mes_ref+'%').limit(1);
         if(jaArq?.length){
-          await db.from('rh_documentos_funcionario').update({arquivo_url:pdfAssinado}).eq('id',jaArq[0].id);
+          await db.from('rh_documentos_funcionario').update({arquivo_url:pdfAssinado||rel.pdf_url}).eq('id',jaArq[0].id);
         } else {
-          await db.from('rh_documentos_funcionario').insert({funcionario_id:rel.funcionario_id,tipo:'cartao_ponto',titulo:`Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)} ✓ Assinado`,arquivo_url:pdfAssinado,criado_por:currentUser.id,criado_em:new Date().toISOString()});
+          await db.from('rh_documentos_funcionario').insert({funcionario_id:rel.funcionario_id,tipo:'cartao_ponto',titulo:`Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)} ✓ Assinado`,arquivo_url:pdfAssinado||rel.pdf_url,criado_por:currentUser.id,criado_em:new Date().toISOString()});
         }
       }
       notify('✅ Cartão de ponto assinado e arquivado na pasta do funcionário!');
