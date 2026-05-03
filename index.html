@@ -1780,19 +1780,23 @@ async function enviarOrcamento(){
   }
 
   // Email de boas-vindas com link para o projeto recém-criado
-  fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-    body:JSON.stringify({
-      nome,
-      email: currentUser.email,
-      senha: null,
-      numero_atendimento: null,
-      empresa: 'marcenario',
-      projeto_id: proj?.id||null,
-      usuario_novo: false
-    })
-  }).catch(e=>console.warn('Email boas-vindas portal não enviado:',e));
+  try{
+    const emailResp2 = await fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({
+        nome,
+        email: currentUser.email,
+        senha: null,
+        numero_atendimento: null,
+        empresa: 'marcenario',
+        projeto_id: proj?.id||null,
+        usuario_novo: false
+      })
+    });
+    const emailJson2 = await emailResp2.json().catch(()=>({}));
+    console.log('[EMAIL] Portal boas-vindas:', emailResp2.status, emailJson2);
+  }catch(e){ console.error('[EMAIL] Portal exceção:', e.message); }
   await enviarRD(nome,currentUser.email,tel,ambiente,desc,investimento);
   setAlert('orc-alert','Solicitação enviada! Acompanhe em "Meus projetos".','success');
   document.getElementById('orc-nome').value='';document.getElementById('orc-tel').value='';
@@ -6820,18 +6824,29 @@ async function salvarAtendimento(){
     }
     // Enviar email de boas-vindas com link para o projeto (novo ou existente)
     if(email){
-      fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-        body:JSON.stringify({
-          nome, email,
-          senha: senhaCliente||null,
-          numero_atendimento: numeroAt,
-          empresa: atEmpresa,
-          projeto_id: projetoId||null,
-          usuario_novo: !!senhaCliente
-        })
-      }).catch(e=>console.warn('Email boas-vindas não enviado:',e));
+      try{
+        const emailResp = await fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+          body:JSON.stringify({
+            nome, email,
+            senha: senhaCliente||null,
+            numero_atendimento: numeroAt,
+            empresa: atEmpresa,
+            projeto_id: projetoId||null,
+            usuario_novo: !!senhaCliente
+          })
+        });
+        const emailJson = await emailResp.json().catch(()=>({}));
+        if(!emailResp.ok){
+          console.error('[EMAIL] Erro boas-vindas:', emailResp.status, emailJson);
+          notify(`⚠️ Email de boas-vindas não enviado (${emailResp.status}). Verifique a edge function.`,'error');
+        } else {
+          console.log('[EMAIL] Boas-vindas enviado para', email, emailJson);
+        }
+      }catch(e){
+        console.error('[EMAIL] Exceção boas-vindas:', e.message);
+      }
     }
   }
   setAlert('at-novo-alert',`Atendimento distribuído para ${vendedor.nome}!${loginInfo}`,'success');
