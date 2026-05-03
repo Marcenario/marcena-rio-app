@@ -382,6 +382,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <div class="sub-nav">
         <button class="nav-item active" id="conf-nav-funil" onclick="showSubConf('conf-funil',this)">Funil</button>
         <button class="nav-item" id="conf-nav-conferentes" style="display:none" onclick="showSubConf('conf-conferentes',this)">Conferentes</button>
+        <button class="nav-item" id="conf-nav-relatorio" style="display:none" onclick="showSubConf('conf-relatorio',this)">Relatório</button>
       </div>
 
       <!-- FUNIL DE CONFERÊNCIA -->
@@ -413,6 +414,32 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div id="conf-novo-alert" style="margin-top:8px;"></div>
         </div>
         <div id="conf-conferentes-content"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- RELATÓRIO CONFERÊNCIA -->
+      <div id="conf-relatorio" style="display:none;">
+        <div class="card" style="margin-bottom:1rem;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Relatório de conferências</div>
+          <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+            <div>
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Conferente</label>
+              <select id="conf-rel-conferente" style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;min-width:200px;">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Período</label>
+              <select id="conf-rel-periodo" style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+                <option value="30">Últimos 30 dias</option>
+                <option value="60">Últimos 60 dias</option>
+                <option value="90">Últimos 90 dias</option>
+                <option value="365">Último ano</option>
+              </select>
+            </div>
+            <button onclick="gerarRelatorioConf()" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">▶ Gerar</button>
+          </div>
+        </div>
+        <div id="conf-rel-content"><div class="empty-state"><p>Selecione os filtros e clique em Gerar.</p></div></div>
       </div>
     </div>
 
@@ -1577,6 +1604,8 @@ async function onLogin(user){
   document.getElementById('nav-usuarios').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('mt-nav-equipes').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('mt-nav-relatorio').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('conf-nav-conferentes').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('conf-nav-relatorio').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('at-nav-vendedores').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('at-nav-relatorio').style.display=isStaff?'block':'none';
   document.getElementById('at-nav-motivos').style.display=userNivel==='admin'?'block':'none';
@@ -5354,13 +5383,76 @@ async function loadConferencia(){
 
 /* ── SUB-NAV CONFERÊNCIA ── */
 function showSubConf(id, btn){
-  ['conf-funil','conf-conferentes'].forEach(s=>{
+  ['conf-funil','conf-conferentes','conf-relatorio'].forEach(s=>{
     const el=document.getElementById(s);
     if(el) el.style.display=s===id?'block':'none';
   });
   document.querySelectorAll('#conferencia .nav-item').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   if(id==='conf-conferentes') loadConferentes();
+  if(id==='conf-relatorio') carregarConferentesSelect();
+}
+
+async function carregarConferentesSelect(){
+  const sel=document.getElementById('conf-rel-conferente');
+  if(!sel) return;
+  const {data}=await db.from('conferentes').select('id,nome').order('nome');
+  sel.innerHTML='<option value="">Todos</option>'+(data||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+}
+
+async function gerarRelatorioConf(){
+  const cont=document.getElementById('conf-rel-content');
+  cont.innerHTML='<div class="loader">Carregando...</div>';
+  const confId=document.getElementById('conf-rel-conferente').value;
+  const dias=parseInt(document.getElementById('conf-rel-periodo').value)||30;
+  const desde=new Date(); desde.setDate(desde.getDate()-dias);
+
+  if(!_funilConferencia){
+    const {data:funis}=await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
+    _funilConferencia=funis?.[0]||null;
+  }
+  if(!_funilConferencia){cont.innerHTML='<div class="empty-state"><p>Funil de conferência não encontrado.</p></div>';return}
+
+  let query=db.from('atendimentos').select('*').eq('funil_id',_funilConferencia.id).gte('created_at',desde.toISOString()).order('created_at',{ascending:false});
+  if(confId) query=query.eq('conferente_id',confId);
+  const {data}=await query;
+
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma conferência no período.</p></div>';return}
+
+  const concluidos=data.filter(a=>a.status==='concluido_fechado');
+  const andamento=data.filter(a=>a.status==='em_andamento');
+  const tempoMedio=concluidos.filter(a=>a.conf_inicio&&a.conf_fim).reduce((s,a)=>{
+    return s+Math.round((new Date(a.conf_fim)-new Date(a.conf_inicio))/86400000);
+  },0)/(concluidos.filter(a=>a.conf_inicio&&a.conf_fim).length||1);
+
+  cont.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+      <div class="card" style="text-align:center;"><div style="font-size:24px;font-weight:700;color:var(--brand);">${data.length}</div><div style="font-size:12px;color:var(--text2);">Total no período</div></div>
+      <div class="card" style="text-align:center;"><div style="font-size:24px;font-weight:700;color:var(--green);">${concluidos.length}</div><div style="font-size:12px;color:var(--text2);">Concluídos</div></div>
+      <div class="card" style="text-align:center;"><div style="font-size:24px;font-weight:700;color:var(--accent);">${Math.round(tempoMedio)}d</div><div style="font-size:12px;color:var(--text2);">Tempo médio</div></div>
+    </div>
+    <div class="card">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:2px solid var(--border);">
+          <th style="text-align:left;padding:8px;font-size:12px;color:var(--text2);">Cliente</th>
+          <th style="text-align:left;padding:8px;font-size:12px;color:var(--text2);">Conferente</th>
+          <th style="text-align:left;padding:8px;font-size:12px;color:var(--text2);">Início</th>
+          <th style="text-align:left;padding:8px;font-size:12px;color:var(--text2);">Status</th>
+          <th style="text-align:right;padding:8px;font-size:12px;color:var(--text2);">Dias</th>
+        </tr></thead>
+        <tbody>${data.map(a=>{
+          const dias=a.conf_inicio?Math.round((new Date()-(new Date(a.conf_inicio)))/86400000):0;
+          const cor=a.status==='concluido_fechado'?'var(--green)':dias>=15?'var(--red)':dias>=10?'#f59e0b':'var(--text2)';
+          return `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:8px;font-size:13px;">${a.cliente_nome||'—'}</td>
+            <td style="padding:8px;font-size:12px;color:var(--text2);">${a.conferente_nome||'—'}</td>
+            <td style="padding:8px;font-size:12px;color:var(--text2);">${a.conf_inicio?new Date(a.conf_inicio).toLocaleDateString('pt-BR'):'—'}</td>
+            <td style="padding:8px;"><span class="badge ${a.status==='concluido_fechado'?'badge-green':'badge-blue'}">${a.status==='concluido_fechado'?'Concluído':'Em andamento'}</span></td>
+            <td style="padding:8px;text-align:right;font-size:12px;font-weight:600;color:${cor};">${a.conf_inicio?dias+'d':'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
 }
 
 /* ── CONFERENTES CRUD ── */
