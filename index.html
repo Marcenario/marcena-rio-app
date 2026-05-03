@@ -256,6 +256,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
 <body>
 <div id="notif"></div>
@@ -2051,31 +2052,39 @@ function renderProjeto(p){
           }
         </div>` : '';
 
+      const pdfUrlsProj = parsePdfUrls(pdfAtual);
+      const temPdfProj = pdfUrlsProj.length > 0;
+      const listaPdfsProj = pdfUrlsProj.map((url,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <span>📎</span>
+          <a href="${url}" target="_blank" style="color:var(--blue);text-decoration:none;flex:1;">Arquivo ${i+1}</a>
+          ${statusAss==='assinado'
+            ?`<span style="font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);padding:2px 8px;border-radius:8px;">✓ Assinado</span>`
+            :statusAss==='enviado'
+            ?`<span style="font-size:11px;color:#b45309;background:#fff7ed;padding:2px 8px;border-radius:8px;">⏳ Aguardando</span>`
+            :`<button onclick="removerPdfProjetoEtapa('${p.id}','${etAtual.key}','${url}')" style="background:none;border:1px solid var(--red);color:var(--red);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">✕</button>`}
+        </div>`).join('');
+
       campoExtra=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
-        <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📄 ${nomeDoc}</div>
-        ${pdfAtual?`
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-            <a href="${pdfAtual}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none;">📎 Ver PDF</a>
-            ${statusAss==='assinado'
-              ?`<span style="font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);padding:2px 8px;border-radius:8px;">✓ Assinado</span>`
-              :statusAss==='enviado'
-              ?`<span style="font-size:11px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 8px;border-radius:8px;">⏳ Aguardando assinatura</span>`
-              :`<span style="font-size:11px;color:var(--text3);">PDF carregado — pronto para enviar</span>`}
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            ${statusAss!=='assinado'?`<button onclick="enviarProjetoAssinatura('${p.id}','${tipoAss}','proj')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✉ Enviar para assinatura</button>`:''}
-            ${statusAss==='enviado'&&docId?`<button onclick="sincronizarProjetoProj('${p.id}','${tipoAss}','${docId}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Sincronizar</button>`:''}
-            ${statusAss==='assinado'?`<a href="${pdfAtual}" target="_blank" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;text-decoration:none;">⬇ Baixar assinado</a>`:''}
-            <label style="cursor:pointer;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;">
-              📎 Trocar PDF
-              <input type="file" id="campo-arquivo-${p.id}" accept="application/pdf" style="display:none;" onchange="salvarArquivoEtapa('${p.id}','${etAtual.key}',this)">
-            </label>
-          </div>`
-        :`
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="file" id="campo-arquivo-${p.id}" accept="application/pdf" style="font-size:11px;flex:1;">
-            <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">📤 Enviar PDF</button>
-          </div>`}
+        <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">
+          📄 ${nomeDoc}
+          ${temPdfProj?`<span style="font-size:10px;font-weight:400;color:var(--text2);text-transform:none;margin-left:6px;">${pdfUrlsProj.length} arquivo(s)</span>`:''}
+        </div>
+        ${temPdfProj?`<div style="margin-bottom:8px;">${listaPdfsProj}</div>`:''}
+        ${statusAss!=='assinado'?`
+          ${!temPdfProj?`<div style="background:var(--bg2);border:1px dashed var(--border2);border-radius:4px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--text2);">
+            💡 Selecione um ou mais PDFs — múltiplos arquivos serão <strong>unificados automaticamente</strong>.
+          </div>`:''}
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:${temPdfProj?'8':'0'}px;">
+            <input type="file" id="campo-arquivo-${p.id}" accept="application/pdf" multiple style="font-size:11px;flex:1;">
+            <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">
+              📤 ${temPdfProj?'Substituir PDF':'Enviar PDF'}
+            </button>
+          </div>`:''}
+        ${temPdfProj?`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${statusAss!=='assinado'?`<button onclick="enviarProjetoAssinatura('${p.id}','${tipoAss}','proj')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✉ Enviar para assinatura</button>`:''}
+          ${statusAss==='enviado'&&docId?`<button onclick="sincronizarProjetoProj('${p.id}','${tipoAss}','${docId}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Sincronizar</button>`:''}
+        </div>`:''}
       </div>${questExtraHtml}`;
     }
   }
@@ -2533,24 +2542,58 @@ async function salvarQuestionarioMontagem(projetoId, inputEl){
 }
 
 async function salvarArquivoEtapa(projetoId,campo,inputEl){
-  const file=inputEl.files[0];
-  if(!file){notify('Selecione um arquivo.','error');return}
-  notify('Enviando arquivo...','info');
-  const ext=file.name.split('.').pop();
-  const path=`orcamentos/${projetoId}_${Date.now()}.${ext}`;
-  const {error:upErr}=await db.storage.from('projetos').upload(path,file,{upsert:true});
-  if(upErr){notify('Erro ao enviar arquivo: '+upErr.message,'error');return}
-  const {data:urlData}=db.storage.from('projetos').getPublicUrl(path);
-  const url=urlData.publicUrl;
-  const {error}=await db.from('projetos').update({[campo]:url}).eq('id',projetoId);
-  if(error){notify('Erro ao salvar URL.','error');return}
-  // Para etapas de assinatura, atualizar status
   const etapasAss=['projeto_venda_url','projeto_exec_url'];
-  if(etapasAss.includes(campo)){
+  const isAssEtapa = etapasAss.includes(campo);
+
+  if(isAssEtapa){
+    const files = Array.from(inputEl.files||[]);
+    if(!files.length){notify('Selecione ao menos um PDF.','error');return}
+    let blob;
+    if(files.length===1){
+      blob=files[0];
+      notify('Enviando PDF...','info');
+    } else {
+      notify(`Juntando ${files.length} PDFs em um único arquivo...`,'info');
+      try{ blob = await mergePdfs(files); }
+      catch(e){ notify('Erro ao juntar PDFs: '+e.message,'error'); return; }
+      notify('Enviando PDF unificado...','info');
+    }
+    const path=`orcamentos/${projetoId}_${campo}_${Date.now()}.pdf`;
+    const {error:upErr}=await db.storage.from('projetos').upload(path,blob,{upsert:true,contentType:'application/pdf'});
+    if(upErr){notify('Erro ao enviar PDF: '+upErr.message,'error');return}
+    const {data:urlData}=db.storage.from('projetos').getPublicUrl(path);
     const campoStatus=campo==='projeto_venda_url'?'projeto_venda_status':'projeto_exec_status';
-    await db.from('projetos').update({[campoStatus]:'carregado'}).eq('id',projetoId);
+    await db.from('projetos').update({[campo]:urlData.publicUrl,[campoStatus]:'carregado'}).eq('id',projetoId);
+    notify(files.length>1?`✅ ${files.length} PDFs unificados e enviados!`:'✅ PDF enviado!');
+  } else {
+    const file=inputEl.files[0];
+    if(!file){notify('Selecione um arquivo.','error');return}
+    notify('Enviando arquivo...','info');
+    const ext=file.name.split('.').pop();
+    const path=`orcamentos/${projetoId}_${Date.now()}.${ext}`;
+    const {error:upErr}=await db.storage.from('projetos').upload(path,file,{upsert:true});
+    if(upErr){notify('Erro ao enviar arquivo: '+upErr.message,'error');return}
+    const {data:urlData}=db.storage.from('projetos').getPublicUrl(path);
+    const {error}=await db.from('projetos').update({[campo]:urlData.publicUrl}).eq('id',projetoId);
+    if(error){notify('Erro ao salvar URL.','error');return}
+    notify('Arquivo enviado com sucesso!');
   }
-  notify('Arquivo enviado com sucesso!');
+  const _dv2=document.getElementById('proj-detalhe-view');
+  if(_dv2&&_dv2.style.display!=='none'){
+    const {data:_p2}=await db.from('projetos').select('*').eq('id',projetoId).single();
+    if(_p2){_todosProj=_todosProj.map(x=>x.id===_p2.id?_p2:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p2);}
+  } else {loadProjetos();}
+}
+
+async function removerPdfProjetoEtapa(projetoId, campo, urlRemover){
+  if(!confirm('Remover este PDF?')) return;
+  const {data:proj} = await db.from('projetos').select(campo).eq('id',projetoId).single();
+  const urls = parsePdfUrls(proj?.[campo]).filter(u=>u!==urlRemover);
+  const campoStatus=campo==='projeto_venda_url'?'projeto_venda_status':'projeto_exec_status';
+  const updates = {[campo]: urls.length?stringifyPdfUrls(urls):null};
+  if(!urls.length) updates[campoStatus]='pendente';
+  await db.from('projetos').update(updates).eq('id',projetoId);
+  notify('PDF removido.');
   const _dv2=document.getElementById('proj-detalhe-view');
   if(_dv2&&_dv2.style.display!=='none'){
     const {data:_p2}=await db.from('projetos').select('*').eq('id',projetoId).single();
@@ -7840,6 +7883,64 @@ async function sincronizarProjetoAt(atId, tipo){
   }
 }
 
+
+/* ── MULTI-PDF COM MERGE (pdf-lib) ── */
+
+// Carrega pdf-lib dinamicamente se ainda não estiver disponível
+async function garantirPdfLib(){
+  if(window.PDFLib) return true;
+  return new Promise(resolve=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+    s.onload=()=>resolve(true);
+    s.onerror=()=>resolve(false);
+    document.head.appendChild(s);
+  });
+}
+
+async function mergePdfs(files){
+  const ok = await garantirPdfLib();
+  if(!ok) throw new Error('pdf-lib não carregou');
+  const { PDFDocument } = PDFLib;
+  const merged = await PDFDocument.create();
+  for(const file of files){
+    const bytes = await file.arrayBuffer();
+    const doc = await PDFDocument.load(bytes, {ignoreEncryption:true});
+    const pages = await merged.copyPages(doc, doc.getPageIndices());
+    pages.forEach(p=>merged.addPage(p));
+  }
+  const mergedBytes = await merged.save();
+  return new Blob([mergedBytes],{type:'application/pdf'});
+}
+
+async function uploadProjetoAt(atId, tipo){
+  const inputId = `at-pdf-input-${tipo}-${atId}`;
+  const input = document.getElementById(inputId);
+  if(!input||!input.files.length){notify('Selecione ao menos um PDF.','error');return}
+  const files = Array.from(input.files);
+  if(files.some(f=>f.type!=='application/pdf')){notify('Apenas arquivos PDF são aceitos.','error');return}
+
+  const campo = tipo==='projeto_venda'?'projeto_venda_url':'projeto_exec_url';
+  let blob;
+  if(files.length===1){
+    blob = files[0];
+    notify('Enviando PDF...','info');
+  } else {
+    notify(`Juntando ${files.length} PDFs em um único arquivo...`,'info');
+    try{ blob = await mergePdfs(files); }
+    catch(e){ notify('Erro ao juntar PDFs: '+e.message,'error'); return; }
+    notify('Enviando PDF unificado...','info');
+  }
+
+  const path = `projetos_atendimento/${atId}_${tipo}_${Date.now()}.pdf`;
+  const {error:upErr} = await db.storage.from('projetos').upload(path, blob, {upsert:true, contentType:'application/pdf'});
+  if(upErr){notify('Erro ao enviar PDF: '+upErr.message,'error');return}
+  const {data:urlData} = db.storage.from('projetos').getPublicUrl(path);
+  await db.from('atendimentos').update({[campo]: urlData.publicUrl}).eq('id',atId);
+  notify(files.length>1 ? `✅ ${files.length} PDFs unificados e enviados!` : '✅ PDF enviado!');
+  abrirModalAt(atId);
+}
+
 function renderBlocoProjetoAt(at, tipo){
   const campo = tipo==='projeto_venda'?'projeto_venda_url':'projeto_exec_url';
   const campoStatus = tipo==='projeto_venda'?'projeto_venda_status':'projeto_exec_status';
@@ -7854,7 +7955,7 @@ function renderBlocoProjetoAt(at, tipo){
     <div style="font-size:12px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📄 ${label}</div>
     ${pdfUrl?`
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-        <a href="${pdfUrl}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none;">📎 Ver PDF enviado</a>
+        <a href="${pdfUrl}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none;">📎 Ver PDF unificado</a>
         ${status==='assinado'?`<span style="font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);padding:2px 8px;border-radius:8px;">✓ Assinado</span>`
           :status==='enviado'?`<span style="font-size:11px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 8px;border-radius:8px;">⏳ Aguardando assinatura</span>`
           :`<span style="font-size:11px;color:var(--text3);">PDF carregado</span>`}
@@ -7862,11 +7963,17 @@ function renderBlocoProjetoAt(at, tipo){
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${status!=='assinado'?`<button onclick="enviarProjetoAssinatura('${at.id}','${tipo}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✉ Enviar para assinatura</button>`:''}
         ${status==='enviado'&&docId?`<button onclick="sincronizarProjetoAt('${at.id}','${tipo}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Sincronizar</button>`:''}
-        ${status==='assinado'&&pdfUrl?`<a href="${pdfUrl}" target="_blank" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;text-decoration:none;">⬇ Baixar assinado</a>`:''}
+        ${status!=='assinado'?`<label style="cursor:pointer;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;">
+          🔄 Substituir PDF
+          <input id="${inputId}" type="file" accept="application/pdf" multiple style="display:none;" onchange="uploadProjetoAt('${at.id}','${tipo}')">
+        </label>`:''}
       </div>`
     :`
+      <div style="background:var(--bg2);border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;font-size:11px;color:var(--text2);">
+        💡 Selecione um ou mais PDFs — múltiplos arquivos serão <strong>unificados automaticamente</strong> em um único documento.
+      </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <input type="file" id="${inputId}" accept="application/pdf" style="font-size:12px;flex:1;">
+        <input type="file" id="${inputId}" accept="application/pdf" multiple style="font-size:12px;flex:1;">
         <button onclick="uploadProjetoAt('${at.id}','${tipo}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;">📤 Enviar PDF</button>
       </div>`}
   </div>`;
