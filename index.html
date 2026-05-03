@@ -2120,30 +2120,40 @@ function renderProjeto(p){
   // Bloco de garantia — visível para todos quando projeto concluído E data_conclusao preenchida
   let garantiaHtml='';
   if(concluido&&p.data_conclusao&&p.data_garantia){
-    // Recalcular garantia sempre a partir da data_conclusao para garantir consistência
     const dataConc=new Date(p.data_conclusao+'T12:00:00');
-    const dataGarCorreta=new Date(dataConc);
-    dataGarCorreta.setFullYear(dataGarCorreta.getFullYear()+5);
     const hoje=new Date(); hoje.setHours(0,0,0,0);
-    dataGarCorreta.setHours(0,0,0,0);
-    const diffMs=dataGarCorreta-hoje;
-    const diffDias=Math.ceil(diffMs/(1000*60*60*24));
-    const anosRestantes=dataGarCorreta.getFullYear()-hoje.getFullYear()-(dataGarCorreta.getMonth()<hoje.getMonth()||(dataGarCorreta.getMonth()===hoje.getMonth()&&dataGarCorreta.getDate()<hoje.getDate())?1:0);
-    const dataGarStr=dataGarCorreta.toLocaleDateString('pt-BR');
-    let corGar,iconeGar,mensagemGar,animGar='';
-    if(diffDias<=0){
-      corGar='#cc0000'; iconeGar='⚠️';
-      mensagemGar='SUA GARANTIA TERMINOU';
-      animGar='animation:pisca 1s infinite;';
-    } else if(anosRestantes<=1){
-      corGar='#e07b00'; iconeGar='⏰';
-      mensagemGar=`SUA GARANTIA TERMINA NO DIA ${dataGarStr} — FALTA ${diffDias} DIA${diffDias===1?'':'S'}`;
-    } else {
-      corGar='#1a6b35'; iconeGar='🛡️';
-      mensagemGar=`SUA GARANTIA TERMINA NO DIA ${dataGarStr} — FALTAM ${anosRestantes} ANO${anosRestantes===1?'':'S'}`;
-    }
-    garantiaHtml=`<div style="background:${corGar}20;border:2px solid ${corGar};border-radius:8px;padding:14px 18px;margin-bottom:16px;text-align:center;${animGar}">
-      <div style="font-size:15px;font-weight:700;color:${corGar};text-transform:uppercase;letter-spacing:0.5px;">${iconeGar} ${mensagemGar}</div>
+
+    // Calcular datas de garantia por categoria
+    const gar5anos=new Date(dataConc); gar5anos.setFullYear(gar5anos.getFullYear()+5); gar5anos.setHours(0,0,0,0);
+    const gar1ano=new Date(dataConc); gar1ano.setFullYear(gar1ano.getFullYear()+1); gar1ano.setHours(0,0,0,0);
+
+    const diff5=Math.ceil((gar5anos-hoje)/(1000*60*60*24));
+    const diff1=Math.ceil((gar1ano-hoje)/(1000*60*60*24));
+    const anos5restantes=gar5anos.getFullYear()-hoje.getFullYear()-(gar5anos.getMonth()<hoje.getMonth()||(gar5anos.getMonth()===hoje.getMonth()&&gar5anos.getDate()<hoje.getDate())?1:0);
+
+    // Cor/ícone baseado na garantia principal (módulos 5 anos)
+    let corGar,iconeGar,animGar='';
+    if(diff5<=0){corGar='#cc0000';iconeGar='⚠️';animGar='animation:pisca 1s infinite;';}
+    else if(anos5restantes<=1){corGar='#e07b00';iconeGar='⏰';}
+    else{corGar='#1a6b35';iconeGar='🛡️';}
+
+    const linhaGar=(titulo, diffDias, dataGar, cor) => {
+      if(diffDias<=0) return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid ${cor}20;">
+        <span style="font-size:13px;font-weight:500;">${titulo}</span>
+        <span style="font-size:12px;font-weight:700;color:#cc0000;">⚠️ Vencida</span>
+      </div>`;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid ${cor}20;">
+        <span style="font-size:13px;font-weight:500;">${titulo}</span>
+        <span style="font-size:12px;color:${cor};font-weight:600;">Até ${dataGar.toLocaleDateString('pt-BR')} · ${diffDias} dia${diffDias===1?'':'s'}</span>
+      </div>`;
+    };
+
+    garantiaHtml=`<div style="background:${corGar}10;border:2px solid ${corGar};border-radius:8px;padding:14px 18px;margin-bottom:16px;${animGar}">
+      <div style="font-size:13px;font-weight:700;color:${corGar};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">${iconeGar} Garantia do seu projeto</div>
+      ${linhaGar('🪵 Módulos', diff5, gar5anos, corGar)}
+      ${linhaGar('🔩 Acessórios', diff1, gar1ano, diff1<=0?'#cc0000':'#e07b00')}
+      ${linhaGar('🪟 Portas / frentes de gaveta com vidro', diff1, gar1ano, diff1<=0?'#cc0000':'#e07b00')}
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">Garantia contada a partir da data de conclusão: ${new Date(dataConc).toLocaleDateString('pt-BR')}</div>
     </div>`;
   } else if(concluido&&!p.data_conclusao&&isStaff){
     garantiaHtml=`<div style="background:#fff8f0;border:2px solid var(--accent);border-radius:8px;padding:12px 18px;margin-bottom:16px;text-align:center;">
@@ -2341,7 +2351,8 @@ async function salvarDataConclusao(projetoId, dataConc){
     garantia_notif_anos: 0,
   }).eq('id',projetoId);
   if(error){notify('Erro ao salvar.','error');return}
-  notify('Data de conclusão salva! Garantia até '+new Date(dataGarStr+'T12:00:00').toLocaleDateString('pt-BR')+' ✅');
+  const gar1ano=new Date(dataConc+'T12:00:00'); gar1ano.setFullYear(gar1ano.getFullYear()+1);
+  notify(`Data de conclusão salva! ✅\n🪵 Módulos: até ${new Date(dataGarStr+'T12:00:00').toLocaleDateString('pt-BR')} (5 anos)\n🔩 Acessórios/vidro: até ${gar1ano.toLocaleDateString('pt-BR')} (1 ano)`);
   await loadProjetos();
   const {data:_p}=await db.from('projetos').select('*').eq('id',projetoId).single();
   if(_p){
