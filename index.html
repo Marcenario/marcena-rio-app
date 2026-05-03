@@ -2984,13 +2984,31 @@ async function gerarFichaOcorrenciaAsteca(pedidoId){
 
   // Buscar dados completos do cliente no atendimento (linkado pelo número de contrato)
   let at = null;
+  let atDebug = {contratoBuscado: p.numero_contrato, encontrou: false, total: 0, candidatos: []};
   if(p.numero_contrato){
+    // Tenta match exato
     const {data:ats} = await db.from('atendimentos')
-      .select('cliente_nome,cliente_tel,cliente_email,endereco_cep,endereco_logradouro,endereco_numero,endereco_complemento,endereco_bairro,endereco_cidade,endereco_uf,vendedor_nome')
+      .select('id,numero,numero_contrato,cliente_nome,cliente_tel,cliente_email,endereco_cep,endereco_logradouro,endereco_numero,endereco_complemento,endereco_bairro,endereco_cidade,endereco_uf,vendedor_nome,created_at')
       .eq('numero_contrato', p.numero_contrato)
-      .order('created_at',{ascending:false}).limit(1);
-    if(ats && ats.length) at = ats[0];
+      .order('created_at',{ascending:false}).limit(5);
+    atDebug.total = ats?.length||0;
+    if(ats && ats.length){ at = ats[0]; atDebug.encontrou = true; atDebug.candidatos = ats.map(a=>({id:a.id,nome:a.cliente_nome,tel:a.cliente_tel,end:a.endereco_logradouro})); }
+
+    // Fallback: tenta sem o sufixo "-N" (ex: "200000024-1" → "200000024")
+    if(!at){
+      const base = String(p.numero_contrato).replace(/-\d+$/,'');
+      if(base !== p.numero_contrato){
+        const {data:ats2} = await db.from('atendimentos')
+          .select('id,numero,numero_contrato,cliente_nome,cliente_tel,cliente_email,endereco_cep,endereco_logradouro,endereco_numero,endereco_complemento,endereco_bairro,endereco_cidade,endereco_uf,vendedor_nome,created_at')
+          .eq('numero_contrato', base)
+          .order('created_at',{ascending:false}).limit(5);
+        if(ats2 && ats2.length){ at = ats2[0]; atDebug.encontrou = true; atDebug.fallbackUsado = base; atDebug.candidatos = ats2.map(a=>({id:a.id,nome:a.cliente_nome,tel:a.cliente_tel,end:a.endereco_logradouro})); }
+      }
+    }
   }
+  console.log('[FICHA] Debug atendimento:', atDebug);
+  console.log('[FICHA] Atendimento usado:', at);
+  console.log('[FICHA] Pedido montagem:', p);
 
   const checklist=p.checklist_asteca?(typeof p.checklist_asteca==='string'?JSON.parse(p.checklist_asteca):p.checklist_asteca):[];
   const dataHoje=new Date().toLocaleDateString('pt-BR');
@@ -3054,6 +3072,20 @@ async function gerarFichaOcorrenciaAsteca(pedidoId){
   const cepFmt = (at && at.endereco_cep) ? String(at.endereco_cep).replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2') : '—';
   const responsavel = (at && at.vendedor_nome) || p.equipe_nome || '—';
 
+  // Aviso de diagnóstico no topo da ficha (some quando todos os dados estão ok)
+  const camposVazios = [];
+  if(!at) camposVazios.push('Atendimento não localizado pelo contrato');
+  else {
+    if(!at.endereco_logradouro) camposVazios.push('endereço');
+    if(!at.endereco_bairro) camposVazios.push('bairro');
+    if(!at.endereco_cep) camposVazios.push('CEP');
+    if(!at.cliente_tel) camposVazios.push('telefone');
+    if(!at.cliente_email) camposVazios.push('e-mail');
+  }
+  const avisoHtml = camposVazios.length>0
+    ? `<div style="background:#fff3cd;border:1px solid #ffc107;padding:10px 14px;margin-bottom:12px;border-radius:6px;font-size:11px;color:#856404;">⚠️ <strong>Dados faltando:</strong> ${camposVazios.join(', ')}. ${at?'Preencha no Atendimento (modal do cliente, seção 📍 Endereço) e gere a ficha novamente.':'Verifique se existe atendimento com o contrato <strong>'+(p.numero_contrato||'sem contrato')+'</strong>.'}</div>`
+    : '';
+
   const html=`<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
 <style>
@@ -3080,6 +3112,8 @@ async function gerarFichaOcorrenciaAsteca(pedidoId){
 </head><body>
 
 <button onclick="window.print()" style="margin-bottom:16px;background:#003399;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;cursor:pointer;font-family:Arial,sans-serif;">🖨️ Imprimir / Salvar PDF</button>
+
+${avisoHtml}
 
 <div class="header">
   <div class="logo-cell">Italínea</div>
