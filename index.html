@@ -4277,30 +4277,15 @@ async function sincronizarRelPonto(relId, envelopeId){
     if(!res.ok) throw new Error(json.error||'Erro');
 
     if(json.assinado){
-      // Atualizar status no banco
-      await db.from('rh_relatorios').update({
-        status:'assinado',
-        assinado_em:new Date().toISOString(),
-        pdf_url: json.pdf_url || undefined
-      }).eq('id',relId);
-
-      // Arquivar na pasta do funcionário
-      const {data:rel}=await db.from('rh_relatorios').select('funcionario_id,mes_ref,pdf_url').eq('id',relId).single();
-      if(rel?.funcionario_id){
-        const pdfFinal = json.pdf_url || rel.pdf_url;
+      const pdfFinal=json.pdf_url;
+      const {data:rel}=await db.from('rh_relatorios').select('funcionario_id,mes_ref').eq('id',relId).single();
+      if(rel?.funcionario_id && pdfFinal){
         const mesLabel=new Date((rel.mes_ref||'')+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
         const {data:jaArq}=await db.from('rh_documentos_funcionario').select('id').eq('funcionario_id',rel.funcionario_id).eq('tipo','cartao_ponto').ilike('titulo','%'+rel.mes_ref+'%').limit(1);
         if(jaArq?.length){
           await db.from('rh_documentos_funcionario').update({arquivo_url:pdfFinal}).eq('id',jaArq[0].id);
         } else {
-          await db.from('rh_documentos_funcionario').insert({
-            funcionario_id:rel.funcionario_id,
-            tipo:'cartao_ponto',
-            titulo:`Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)} ✓ Assinado`,
-            arquivo_url:pdfFinal,
-            criado_por:currentUser.id,
-            criado_em:new Date().toISOString()
-          });
+          await db.from('rh_documentos_funcionario').insert({funcionario_id:rel.funcionario_id,tipo:'cartao_ponto',titulo:`Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)} ✓ Assinado`,arquivo_url:pdfFinal,criado_por:currentUser.id,criado_em:new Date().toISOString()});
         }
       }
       notify('✅ Cartão de ponto assinado e arquivado na pasta do funcionário!');
