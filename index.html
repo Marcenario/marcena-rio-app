@@ -2073,15 +2073,25 @@ function renderProjeto(p){
         </div>
         ${temPdfProj?`<div style="margin-bottom:8px;">${listaPdfsProj}</div>`:''}
         ${statusAss!=='assinado'?`
-          ${!temPdfProj?`<div style="background:var(--bg2);border:1px dashed var(--border2);border-radius:4px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--text2);">
-            💡 Selecione um ou mais PDFs — múltiplos arquivos serão <strong>unificados automaticamente</strong>.
-          </div>`:''}
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:${temPdfProj?'8':'0'}px;">
-            <input type="file" id="campo-arquivo-${p.id}" accept="application/pdf" multiple style="font-size:11px;flex:1;">
-            <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">
+          <div style="background:var(--bg2);border:1px dashed var(--border2);border-radius:4px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--text2);">
+            💡 Selecione um ou mais PDFs — múltiplos arquivos serão <strong>unidos em um único documento</strong> automaticamente.
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+            <input type="file" id="campo-arquivo-${p.id}" accept="application/pdf" multiple
+              style="font-size:11px;flex:1;"
+              onchange="(function(el){
+                const n=el.files.length;
+                const badge=document.getElementById('pdf-badge-${p.id}');
+                if(badge) badge.textContent = n===0?'':(n===1?'1 arquivo selecionado':n+' arquivos selecionados — serão unificados');
+                badge && (badge.style.color = n>1 ? 'var(--green)' : 'var(--text2)');
+              })(this)">
+            <button onclick="salvarArquivoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-arquivo-${p.id}'))"
+              style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">
               📤 ${temPdfProj?'Substituir PDF':'Enviar PDF'}
             </button>
-          </div>`:''}
+          </div>
+          <div id="pdf-badge-${p.id}" style="font-size:11px;color:var(--text2);margin-bottom:4px;min-height:16px;"></div>
+          `:''}
         ${temPdfProj?`<div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${statusAss!=='assinado'?`<button onclick="enviarProjetoAssinatura('${p.id}','${tipoAss}','proj')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✉ Enviar para assinatura</button>`:''}
           ${statusAss==='enviado'&&docId?`<button onclick="sincronizarProjetoProj('${p.id}','${tipoAss}','${docId}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Sincronizar</button>`:''}
@@ -7950,19 +7960,35 @@ function renderBlocoProjetoAt(at, tipo){
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${status!=='assinado'?`<button onclick="enviarProjetoAssinatura('${at.id}','${tipo}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✉ Enviar para assinatura</button>`:''}
         ${status==='enviado'&&docId?`<button onclick="sincronizarProjetoAt('${at.id}','${tipo}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">🔄 Sincronizar</button>`:''}
-        ${status!=='assinado'?`<label style="cursor:pointer;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;">
-          🔄 Substituir PDF
-          <input id="${inputId}" type="file" accept="application/pdf" multiple style="display:none;" onchange="uploadProjetoAt('${at.id}','${tipo}')">
-        </label>`:''}
+        ${status!=='assinado'?`<div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="${inputId}" type="file" accept="application/pdf" multiple style="font-size:11px;flex:1;"
+              onchange="(function(el){
+                const n=el.files.length;
+                const b=document.getElementById('pdf-badge-at-${at.id}-${tipo}');
+                if(b) b.textContent=n===0?'':(n===1?'1 arquivo selecionado':n+' arquivos — serão unificados');
+                if(b) b.style.color=n>1?'var(--green)':'var(--text2)';
+              })(this)">
+            <button onclick="uploadProjetoAt('${at.id}','${tipo}')" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:7px 12px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;">🔄 Substituir</button>
+          </div>
+          <div id="pdf-badge-at-${at.id}-${tipo}" style="font-size:11px;min-height:14px;"></div>
+        </div>`:''}
       </div>`
     :`
       <div style="background:var(--bg2);border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;font-size:11px;color:var(--text2);">
-        💡 Selecione um ou mais PDFs — múltiplos arquivos serão <strong>unificados automaticamente</strong> em um único documento.
+        💡 Selecione um ou mais PDFs — múltiplos arquivos serão <strong>unidos em um único documento</strong>.
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <input type="file" id="${inputId}" accept="application/pdf" multiple style="font-size:12px;flex:1;">
+        <input type="file" id="${inputId}" accept="application/pdf" multiple style="font-size:12px;flex:1;"
+          onchange="(function(el){
+            const n=el.files.length;
+            const b=document.getElementById('pdf-badge-at-${at.id}-${tipo}');
+            if(b) b.textContent=n===0?'':(n===1?'1 arquivo selecionado':n+' arquivos — serão unificados');
+            if(b) b.style.color=n>1?'var(--green)':'var(--text2)';
+          })(this)">
         <button onclick="uploadProjetoAt('${at.id}','${tipo}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;white-space:nowrap;">📤 Enviar PDF</button>
-      </div>`}
+      </div>
+      <div id="pdf-badge-at-${at.id}-${tipo}" style="font-size:11px;min-height:14px;margin-top:4px;"></div>`}
   </div>`;
 }
 
