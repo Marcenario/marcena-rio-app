@@ -477,7 +477,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
                 style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
               <div id="mt-at-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:999;max-height:220px;overflow-y:auto;"></div>
             </div>
-            <div id="mt-at-busca-hint" style="font-size:11px;color:var(--text3);margin-top:4px;">Somente atendimentos com negócio fechado (coluna Vendas) aparecem aqui.</div>
+            <div id="mt-at-busca-hint" style="font-size:11px;color:var(--text3);margin-top:4px;">Somente cards na coluna <strong>Concluído</strong> do Funil de Conferência aparecem aqui.</div>
           </div>
 
           <!-- Campos preenchidos automaticamente — somente leitura após vínculo -->
@@ -3480,14 +3480,42 @@ async function onMtAtBuscaInput(val){
   dropdown.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--text3);">Buscando...</div>';
   _mtAtBuscaTimer = setTimeout(async ()=>{
     const q = val.trim();
+
+    // Sempre recarregar funil de conferência para garantir dados frescos
+    const {data:funisMt} = await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
+    _funilConferencia = funisMt?.[0]||null;
+    if(_funilConferencia){
+      const {data:etapasMt} = await db.from('funis_etapas').select('*').eq('funil_id',_funilConferencia.id).order('ordem');
+      _etapasConferencia = etapasMt||[];
+    }
+
+    console.log('[MT-BUSCA] Funil conferência:', _funilConferencia?.id, '| Etapas:', _etapasConferencia.map(e=>e.nome));
+
+    // Identificar etapa "Concluído" — match flexível (acento, caixa, espaço)
+    const normalizar = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    const etapaConcluido = _etapasConferencia.find(e=>normalizar(e.nome).includes('conclu'));
+
+    console.log('[MT-BUSCA] Etapa concluído encontrada:', etapaConcluido?.id, etapaConcluido?.nome);
+
+    if(!_funilConferencia || !etapaConcluido){
+      dropdown.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:#c0392b;">
+        ⚠️ ${!_funilConferencia ? 'Funil de Conferência não encontrado no banco.' : 'Nenhuma etapa com nome "Concluído" encontrada. Etapas disponíveis: '+_etapasConferencia.map(e=>e.nome).join(', ')}
+      </div>`;
+      return;
+    }
+
     const {data,error} = await db.from('atendimentos')
       .select('id,cliente_nome,cliente_tel,numero_contrato,vendedor_nome,estimativa,ambientes')
-      .eq('status','concluido_fechado')
+      .eq('funil_id',_funilConferencia.id)
+      .eq('etapa_funil_id',etapaConcluido.id)
       .or(`cliente_nome.ilike.%${q}%,numero_contrato.ilike.%${q}%`)
       .order('created_at',{ascending:false})
       .limit(8);
+
+    console.log('[MT-BUSCA] Resultados:', data?.length, error);
+
     if(error||!data||!data.length){
-      dropdown.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--text3);">Nenhum atendimento encontrado com negócio fechado.</div>';
+      dropdown.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--text3);">Nenhum card encontrado na coluna Concluído do Funil de Conferência.</div>';
       return;
     }
     // Armazena resultados em memória — evita passar JSON via onclick
