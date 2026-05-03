@@ -7609,10 +7609,32 @@ async function iniciarConferencia(atId){
 
   // Verificar se já existe uma conferência para este contrato
   const {data:confExist} = await db.from('atendimentos')
-    .select('id').eq('numero_contrato',contrato).eq('funil_id',_funilConferencia.id).limit(1);
+    .select('id,status,etapa_funil_id').eq('numero_contrato',contrato).eq('funil_id',_funilConferencia.id).limit(1);
   if(confExist?.length){
-    notify('Já existe uma conferência para este contrato.','error');
+    const ex = confExist[0];
+    console.warn('[CONF] Conferência existente:', ex);
+    // Se existe mas está com etapa_funil_id null, corrige e navega
+    if(!ex.etapa_funil_id || ex.status !== 'em_andamento'){
+      const fix = {};
+      if(!ex.etapa_funil_id && _etapasConferencia[0]) fix.etapa_funil_id = _etapasConferencia[0].id;
+      if(ex.status !== 'em_andamento') fix.status = 'em_andamento';
+      if(Object.keys(fix).length){
+        await db.from('atendimentos').update(fix).eq('id',ex.id);
+        notify('⚠️ Conferência existia com dados incompletos — corrigida e exibida.','info');
+      } else {
+        notify('Conferência já iniciada para este contrato. Acesse o Funil de Conferência.','info');
+      }
+      if(btn){btn.disabled=false;btn.textContent='🚀 Iniciar Conferência';}
+      document.getElementById('modal-at')?.style && (document.getElementById('modal-at').style.display='none');
+      showSection('conferencia', document.getElementById('nav-conferencia'));
+      loadConferencia();
+      return;
+    }
+    notify('Conferência já iniciada para este contrato. Acesse o Funil de Conferência.','info');
     if(btn){btn.disabled=false;btn.textContent='🚀 Iniciar Conferência';}
+    document.getElementById('modal-at')?.style && (document.getElementById('modal-at').style.display='none');
+    showSection('conferencia', document.getElementById('nav-conferencia'));
+    loadConferencia();
     return;
   }
 
@@ -7621,17 +7643,24 @@ async function iniciarConferencia(atId){
 
   // Criar cópia no funil de conferência
   const {id:_omit, created_at:_c, updated_at:_u, ...dadosOrig} = orig;
-  const {error} = await db.from('atendimentos').insert({
+  if(!primeiraEtapaConf){
+    notify('O Funil de Conferência não tem etapas cadastradas. Adicione pelo menos uma etapa e tente novamente.','error');
+    if(btn){btn.disabled=false;btn.textContent='🚀 Iniciar Conferência';}
+    return;
+  }
+  console.log('[CONF] Criando conferência — funil:', _funilConferencia.id, '| etapa:', primeiraEtapaConf.id);
+  const {data:novaConf, error} = await db.from('atendimentos').insert({
     ...dadosOrig,
     funil_id: _funilConferencia.id,
-    etapa_funil_id: primeiraEtapaConf?.id||null,
+    etapa_funil_id: primeiraEtapaConf.id,
     status: 'em_andamento',
     etapa: 'entrada',
     origem_at_id: atId,
     conf_inicio: new Date().toISOString(),
     conferente_id: confEscolhido?.id||null,
     conferente_nome: confEscolhido?.nome||null,
-  });
+  }).select();
+  console.log('[CONF] Insert resultado:', novaConf, error);
 
   if(error){
     notify('Erro ao criar conferência: '+error.message,'error');
