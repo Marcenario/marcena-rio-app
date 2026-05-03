@@ -253,6 +253,29 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .tipo-btn.active-montagem{background:var(--brand);color:#fff;box-shadow:var(--shadow);}
 .tipo-btn.active-asteca{background:#8a1a1a;color:#fff;box-shadow:var(--shadow);}
 .asteca-urgente{border-left:4px solid #8a1a1a !important;}
+
+/* ── AGENDA ── */
+.ag-grid-mes{display:grid;grid-template-columns:repeat(7,1fr);}
+.ag-dia-header{padding:8px 4px;font-size:11px;font-weight:600;color:var(--text2);text-align:center;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+.ag-dia-cell{min-height:90px;padding:4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:top;cursor:pointer;transition:background 0.1s;}
+.ag-dia-cell:hover{background:var(--accent-light,#f5f0ea);}
+.ag-dia-cell.outro-mes{background:var(--bg);opacity:0.5;}
+.ag-dia-cell.hoje .ag-dia-num{background:var(--brand);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
+.ag-dia-cell.feriado{background:#fff8f0;}
+.ag-dia-num{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:4px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
+.ag-evento-pill{font-size:10px;font-weight:500;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;cursor:pointer;}
+.ag-evento-pill.reuniao{outline:2px solid #c0392b;outline-offset:-2px;}
+
+/* Semana */
+.ag-grid-semana{display:grid;grid-template-columns:48px repeat(7,1fr);}
+.ag-sem-header{padding:8px 4px;font-size:11px;font-weight:600;color:var(--text2);text-align:center;border-bottom:1px solid var(--border);border-right:1px solid var(--border);}
+.ag-sem-hora{font-size:10px;color:var(--text3);padding:2px 4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:right;}
+.ag-sem-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-height:40px;padding:2px;}
+.ag-sem-cell.hoje-col{background:rgba(26,26,46,0.03);}
+
+/* Dia */
+.ag-dia-view-evento{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;margin-bottom:8px;color:#fff;}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -308,6 +331,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <button class="nav-item" id="nav-vistoria" style="display:none" onclick="showSection('vistoria',this)">Vistoria Final</button>
     <button class="nav-item" id="nav-rh" style="display:none" onclick="showSection('rh',this)">RH</button>
     <button class="nav-item" id="nav-financeiro" style="display:none" onclick="showSection('financeiro',this)">Financeiro</button>
+    <button class="nav-item" id="nav-agenda" style="display:none" onclick="showSection('agenda',this)">Agenda</button>
     <button class="nav-item" id="nav-dashboard" style="display:none" onclick="showSection('dashboard',this)">Dashboard</button>
     <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin',this)">Painel admin</button>
     <button class="nav-item" id="nav-usuarios" style="display:none" onclick="showSection('usuarios',this)">Usuários</button>
@@ -951,6 +975,79 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <div id="rh-pasta-content"><div class="loader">Carregando...</div></div>
       </div>
     </div>
+
+    <!-- ── AGENDA ── -->
+    <div id="agenda" class="section" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="agendaNavMes(-1)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:16px;">‹</button>
+          <span id="ag-titulo-mes" style="font-size:16px;font-weight:600;min-width:160px;text-align:center;"></span>
+          <button onclick="agendaNavMes(1)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:16px;">›</button>
+          <button onclick="agendaHoje()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Hoje</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <select id="ag-filtro-func" onchange="renderAgenda()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);">
+            <option value="">Todos os funcionários</option>
+          </select>
+          <div style="display:flex;gap:4px;">
+            <button id="ag-view-mes" onclick="setAgendaView('mes')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">Mês</button>
+            <button id="ag-view-sem" onclick="setAgendaView('semana')" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Semana</button>
+            <button id="ag-view-dia" onclick="setAgendaView('dia')" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Dia</button>
+          </div>
+          <button id="ag-btn-reuniao" onclick="abrirModalReuniao()" style="display:none;background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">+ Agendar reunião</button>
+        </div>
+      </div>
+
+      <!-- Legenda de funcionários -->
+      <div id="ag-legenda" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
+
+      <!-- Calendário -->
+      <div id="ag-calendario" style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;"><div class="loader">Carregando agenda...</div></div>
+
+      <!-- Modal detalhe do dia -->
+      <div id="ag-modal-dia" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:24px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 id="ag-modal-dia-titulo" style="margin:0;font-size:16px;font-weight:600;"></h3>
+            <button onclick="document.getElementById('ag-modal-dia').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);">✕</button>
+          </div>
+          <div id="ag-modal-dia-content"></div>
+        </div>
+      </div>
+
+      <!-- Modal nova reunião -->
+      <div id="ag-modal-reuniao" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:24px;max-width:480px;width:90%;max-height:90vh;overflow-y:auto;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 style="margin:0;font-size:16px;font-weight:600;">📅 Agendar reunião</h3>
+            <button onclick="document.getElementById('ag-modal-reuniao').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);">✕</button>
+          </div>
+          <div class="form-row"><label>Título</label><input type="text" id="ag-r-titulo" placeholder="Ex: Reunião de alinhamento"></div>
+          <div class="form-row"><label>Funcionário</label>
+            <select id="ag-r-funcionario" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);">
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+          <div class="form-grid">
+            <div class="form-row"><label>Data início</label><input type="datetime-local" id="ag-r-inicio"></div>
+            <div class="form-row"><label>Data fim</label><input type="datetime-local" id="ag-r-fim"></div>
+          </div>
+          <div class="form-row"><label>Descrição</label><textarea id="ag-r-desc" style="height:70px;resize:none;" placeholder="Pauta da reunião..."></textarea></div>
+          <div class="form-row"><label>Recorrência</label>
+            <select id="ag-r-recorrencia" onchange="toggleRecorrenciaFim()" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);">
+              <option value="">Sem recorrência</option>
+              <option value="diaria">Diária</option>
+              <option value="semanal">Semanal</option>
+              <option value="mensal">Mensal</option>
+            </select>
+          </div>
+          <div id="ag-r-recorrencia-fim-wrap" class="form-row" style="display:none;"><label>Repetir até</label><input type="date" id="ag-r-recorrencia-fim"></div>
+          <div id="ag-r-alert" style="margin-bottom:8px;"></div>
+          <button onclick="salvarReuniao()" style="width:100%;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:11px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">💾 Salvar reunião</button>
+        </div>
+      </div>
+    </div>
+
     <div id="financeiro" class="section">
       <!-- Seletor de empresa -->
       <div style="display:flex;align-items:center;gap:10px;padding:10px 0 0 0;margin-bottom:0;">
@@ -1607,6 +1704,7 @@ async function onLogin(user){
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
   document.getElementById('nav-dashboard').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-rh').style.display=isStaff?'block':'none';
+  document.getElementById('nav-agenda').style.display=isStaff?'block':'none';
   document.getElementById('nav-financeiro').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-admin').style.display=userNivel==='admin'?'block':'none';
   document.getElementById('nav-usuarios').style.display=userNivel==='admin'?'block':'none';
@@ -1640,6 +1738,7 @@ function showSection(id,btn){
   if(id==='admin')loadAdmin();
   if(id==='montagem')loadFilaMt();
   if(id==='conferencia')loadConferencia();
+  if(id==='agenda')loadAgenda();
   if(id==='usuarios')loadUsuarios();
   if(id==='dashboard')loadDashboard();
   if(id==='rh'){
@@ -7636,6 +7735,473 @@ async function salvarLinkGravacaoAt(id, campo){
   if(error){notify('Erro ao salvar link.','error');return}
   notify('✅ Link salvo!');
   abrirModalAt(id);
+}
+
+
+/* ══════════════════════════════════════
+   MÓDULO AGENDA
+══════════════════════════════════════ */
+let _agView = 'mes';        // 'mes' | 'semana' | 'dia'
+let _agDataRef = new Date(); // data de referência para navegação
+let _agEventos = [];         // todos os eventos calculados
+let _agFuncionarios = [];    // lista de funcionários com cores
+
+const AG_CORES = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6',
+                  '#1abc9c','#e67e22','#16a085','#8e44ad','#d35400',
+                  '#27ae60','#2980b9','#c0392b','#7f8c8d'];
+
+/* ── Feriados brasileiros ── */
+function calcularPascoa(ano){
+  const a=ano%19,b=Math.floor(ano/100),c2=ano%100,d=Math.floor(b/4),e=b%4,
+    f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
+    h=(19*a+b-d-g+15)%30,i=Math.floor(c2/4),k=c2%4,
+    l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+    mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1;
+  return new Date(ano,mes-1,dia);
+}
+function getFeriados(ano){
+  const p=calcularPascoa(ano);
+  const add=(d,n)=>{ const r=new Date(d); r.setDate(r.getDate()+n); return r; };
+  const key=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const feriados=new Set([
+    `${ano}-01-01`,`${ano}-04-21`,`${ano}-05-01`,`${ano}-09-07`,
+    `${ano}-10-12`,`${ano}-11-02`,`${ano}-11-15`,`${ano}-12-25`,
+    key(add(p,-47)),key(add(p,-48)),key(add(p,-2)),key(p),key(add(p,60))
+  ]);
+  return feriados;
+}
+const _feriadosCache={};
+function isFeriado(date){
+  const ano=date.getFullYear();
+  if(!_feriadosCache[ano]) _feriadosCache[ano]=getFeriados(ano);
+  const k=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  return _feriadosCache[ano].has(k);
+}
+function isDiaUtil(date){ const d=date.getDay(); return d!==0&&d!==6&&!isFeriado(date); }
+
+function addDiasUteis(dataInicio, dias){
+  let d = new Date(dataInicio); d.setHours(0,0,0,0);
+  let adicionados = 0;
+  while(adicionados < dias){
+    d.setDate(d.getDate()+1);
+    if(isDiaUtil(d)) adicionados++;
+  }
+  return d;
+}
+function proximoDiaUtil(date){
+  let d = new Date(date); d.setHours(0,0,0,0);
+  while(!isDiaUtil(d)) d.setDate(d.getDate()+1);
+  return d;
+}
+
+/* ── Cores dos funcionários ── */
+function atribuirCor(id, lista){
+  const idx = lista.findIndex(f=>f.id===id);
+  return AG_CORES[idx % AG_CORES.length];
+}
+
+/* ── Carregamento principal ── */
+async function loadAgenda(){
+  const cont = document.getElementById('ag-calendario');
+  cont.innerHTML = '<div class="loader">Carregando agenda...</div>';
+  if(userNivel==='admin') document.getElementById('ag-btn-reuniao').style.display='block';
+
+  // Buscar equipes, conferentes, pedidos, conferências e reuniões em paralelo
+  const [eqRes, confRes, pedRes, atRes, reuRes] = await Promise.all([
+    db.from('equipes_montagem').select('*').order('nome'),
+    db.from('conferentes').select('*').order('nome'),
+    db.from('pedidos_montagem').select('*').neq('status','concluido').order('data_chegada'),
+    db.from('atendimentos').select('*').eq('funil_id',(await db.from('funis').select('id').eq('tipo','conferencia').limit(1).single()).data?.id).order('conf_inicio'),
+    db.from('agenda_reunioes').select('*').order('data_inicio')
+  ]);
+
+  const equipes = eqRes.data||[];
+  const conferentes = confRes.data||[];
+  const pedidos = pedRes.data||[];
+  const conferencias = atRes.data||[];
+  const reunioes = reuRes.data||[];
+
+  // Montar lista de funcionários com cores
+  _agFuncionarios = [
+    ...equipes.map((e,i)=>({id:e.id,nome:e.nome,tipo:'equipe',cor:e.cor||AG_CORES[i%AG_CORES.length]})),
+    ...conferentes.map((c,i)=>({id:c.id,nome:c.nome,tipo:'conferente',cor:c.cor||AG_CORES[(equipes.length+i)%AG_CORES.length]}))
+  ];
+
+  // Salvar cores no banco se ainda não tiver
+  for(const eq of equipes){
+    if(!eq.cor){
+      const cor = AG_CORES[equipes.indexOf(eq)%AG_CORES.length];
+      await db.from('equipes_montagem').update({cor}).eq('id',eq.id);
+    }
+  }
+  for(const conf of conferentes){
+    if(!conf.cor){
+      const cor = AG_CORES[(equipes.length+conferentes.indexOf(conf))%AG_CORES.length];
+      await db.from('conferentes').update({cor}).eq('id',conf.id);
+    }
+  }
+
+  // Calcular eventos de montagem
+  const eventosMontagem = calcularEventosMontagem(pedidos, _agFuncionarios);
+  // Calcular eventos de conferência
+  const eventosConf = calcularEventosConferencia(conferencias, _agFuncionarios, conferentes);
+  // Eventos de reunião
+  const eventosReunioes = expandirReunioes(reunioes, _agFuncionarios);
+
+  _agEventos = [...eventosMontagem, ...eventosConf, ...eventosReunioes];
+
+  // Popular filtro de funcionários
+  const sel = document.getElementById('ag-filtro-func');
+  const selR = document.getElementById('ag-r-funcionario');
+  sel.innerHTML = '<option value="">Todos os funcionários</option>';
+  selR.innerHTML = '<option value="">Selecione...</option>';
+  _agFuncionarios.forEach(f=>{
+    sel.innerHTML += `<option value="${f.id}">${f.nome} (${f.tipo==='equipe'?'Equipe':'Conferente'})</option>`;
+    selR.innerHTML += `<option value="${f.id}|${f.tipo}|${encodeURIComponent(f.nome)}">${f.nome}</option>`;
+  });
+
+  renderLegenda();
+  renderAgenda();
+}
+
+function calcularEventosMontagem(pedidos, funcionarios){
+  const eventos = [];
+  // Agrupar por equipe
+  const porEquipe = {};
+  pedidos.forEach(p=>{ (porEquipe[p.equipe_id]=porEquipe[p.equipe_id]||[]).push(p); });
+
+  for(const [equipeId, lista] of Object.entries(porEquipe)){
+    const func = funcionarios.find(f=>f.id===equipeId);
+    if(!func) continue;
+    let cursor = null;
+
+    lista.sort((a,b)=>new Date(a.data_chegada)-new Date(b.data_chegada));
+    lista.forEach(p=>{
+      const isAsteca = p.tipo==='asteca';
+      const prod = (func && func.produtividade) || 3000;
+      const diasPrev = isAsteca ? 1 : Math.max(1, Math.ceil((p.valor_total||0) / (prod||3000)));
+      const inicio = cursor ? proximoDiaUtil(new Date(cursor)) : proximoDiaUtil(new Date(p.data_chegada||new Date()));
+      const fim = addDiasUteis(inicio, diasPrev);
+      cursor = fim;
+      eventos.push({
+        id: p.id,
+        tipo: isAsteca ? 'asteca' : 'montagem',
+        titulo: `${isAsteca?'🔧 ASTECA':'🔨 Montagem'} — ${p.cliente_nome||''}`,
+        funcionario_id: equipeId,
+        funcionario_nome: func.nome,
+        cor: func.cor,
+        data_inicio: new Date(inicio),
+        data_fim: new Date(fim),
+        concluido: p.status==='concluido',
+        data_conclusao: p.data_conclusao,
+        valor: p.valor_total,
+        dias_prev: diasPrev,
+        reuniao: false
+      });
+    });
+  }
+  return eventos;
+}
+
+function calcularEventosConferencia(conferencias, funcionarios, conferentesRaw){
+  const eventos = [];
+  // Filtrar só as em andamento (não concluídas)
+  const ativas = conferencias.filter(a=>a.conferente_id&&!a.conf_fim);
+  const concluidas = conferencias.filter(a=>a.conferente_id&&a.conf_fim);
+
+  // Agrupar por conferente
+  const porConferente = {};
+  [...concluidas, ...ativas].forEach(a=>{ (porConferente[a.conferente_id]=porConferente[a.conferente_id]||[]).push(a); });
+
+  for(const [confId, lista] of Object.entries(porConferente)){
+    const func = funcionarios.find(f=>f.id===confId);
+    const confRaw = conferentesRaw.find(c=>c.id===confId);
+    if(!func||!confRaw) continue;
+    let cursor = null;
+
+    lista.sort((a,b)=>new Date(a.conf_inicio||a.created_at)-new Date(b.conf_inicio||b.created_at));
+    lista.forEach(a=>{
+      const prod = confRaw.produtividade_atual||500;
+      const ambs = (a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
+      const valor = ambs.filter(x=>x.vendeu===true).reduce((s,x)=>s+(x.valor||0),0)||a.estimativa||500;
+      const diasPrev = Math.max(1, Math.ceil(valor/prod));
+      const inicio = cursor ? proximoDiaUtil(new Date(cursor)) : proximoDiaUtil(new Date(a.conf_inicio||a.created_at));
+      const fim = addDiasUteis(inicio, diasPrev);
+      cursor = fim;
+      eventos.push({
+        id: a.id,
+        tipo: 'conferencia',
+        titulo: `📐 Conferência — ${a.cliente_nome||''}`,
+        funcionario_id: confId,
+        funcionario_nome: func.nome,
+        cor: func.cor,
+        data_inicio: new Date(inicio),
+        data_fim: new Date(fim),
+        concluido: !!a.conf_fim,
+        valor,
+        dias_prev: diasPrev,
+        reuniao: false
+      });
+    });
+  }
+  return eventos;
+}
+
+function expandirReunioes(reunioes, funcionarios){
+  const eventos = [];
+  reunioes.forEach(r=>{
+    const func = funcionarios.find(f=>f.id===r.funcionario_id);
+    const cor = func?.cor || '#7f8c8d';
+    const base = {
+      id: r.id,
+      tipo: 'reuniao',
+      titulo: `📅 ${r.titulo}`,
+      funcionario_id: r.funcionario_id,
+      funcionario_nome: r.funcionario_nome,
+      cor,
+      data_inicio: new Date(r.data_inicio),
+      data_fim: new Date(r.data_fim),
+      descricao: r.descricao,
+      reuniao: true,
+      concluido: false
+    };
+    eventos.push({...base});
+
+    // Recorrência
+    if(r.recorrencia_tipo&&r.recorrencia_fim){
+      const fimRec = new Date(r.recorrencia_fim);
+      let next = new Date(r.data_inicio);
+      const dur = new Date(r.data_fim)-new Date(r.data_inicio);
+      for(let i=0;i<200;i++){
+        if(r.recorrencia_tipo==='diaria') next.setDate(next.getDate()+1);
+        else if(r.recorrencia_tipo==='semanal') next.setDate(next.getDate()+7);
+        else if(r.recorrencia_tipo==='mensal') next.setMonth(next.getMonth()+1);
+        if(next>fimRec) break;
+        const fim2 = new Date(next.getTime()+dur);
+        eventos.push({...base, data_inicio:new Date(next), data_fim:new Date(fim2)});
+      }
+    }
+  });
+  return eventos;
+}
+
+/* ── Renderização ── */
+function setAgendaView(view){
+  _agView = view;
+  ['mes','sem','dia'].forEach(v=>{
+    const btn = document.getElementById(`ag-view-${v}`);
+    if(btn){ btn.style.background = (v===view.slice(0,3)||v===view)?'var(--brand)':'var(--bg2)'; btn.style.color = (v===view.slice(0,3)||v===view)?'#fff':'var(--text)'; btn.style.border = (v===view.slice(0,3)||v===view)?'none':'1px solid var(--border2)'; }
+  });
+  renderAgenda();
+}
+
+function agendaNavMes(dir){
+  if(_agView==='mes') _agDataRef.setMonth(_agDataRef.getMonth()+dir);
+  else if(_agView==='semana') _agDataRef.setDate(_agDataRef.getDate()+dir*7);
+  else _agDataRef.setDate(_agDataRef.getDate()+dir);
+  renderAgenda();
+}
+function agendaHoje(){ _agDataRef=new Date(); renderAgenda(); }
+
+function filtrarEventos(){
+  const filtroId = document.getElementById('ag-filtro-func').value;
+  return filtroId ? _agEventos.filter(e=>e.funcionario_id===filtroId) : _agEventos;
+}
+
+function renderLegenda(){
+  const el = document.getElementById('ag-legenda');
+  el.innerHTML = _agFuncionarios.map(f=>`
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer;" onclick="document.getElementById('ag-filtro-func').value='${f.id}';renderAgenda()">
+      <span style="width:12px;height:12px;border-radius:3px;background:${f.cor};display:inline-block;flex-shrink:0;"></span>
+      <span>${f.nome}</span>
+    </div>`).join('');
+}
+
+function renderAgenda(){
+  const eventos = filtrarEventos();
+  const cont = document.getElementById('ag-calendario');
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  if(_agView==='mes'){
+    const ano = _agDataRef.getFullYear(), mes = _agDataRef.getMonth();
+    document.getElementById('ag-titulo-mes').textContent = `${meses[mes]} ${ano}`;
+    const primeiro = new Date(ano,mes,1);
+    const ultimo = new Date(ano,mes+1,0);
+    const inicioGrid = new Date(primeiro); inicioGrid.setDate(1-primeiro.getDay());
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+    let html = '<div class="ag-grid-mes">';
+    dias.forEach(d=>{ html+=`<div class="ag-dia-header">${d}</div>`; });
+
+    for(let i=0;i<42;i++){
+      const data = new Date(inicioGrid); data.setDate(data.getDate()+i);
+      const outroMes = data.getMonth()!==mes;
+      const eHoje = data.getTime()===hoje.getTime();
+      const eFeriado = isFeriado(data);
+      const dStr = data.toISOString().slice(0,10);
+
+      const evsDia = eventos.filter(e=>{
+        const s=new Date(e.data_inicio); s.setHours(0,0,0,0);
+        const f=new Date(e.data_fim); f.setHours(0,0,0,0);
+        return data>=s && data<=f;
+      });
+
+      html+=`<div class="ag-dia-cell${outroMes?' outro-mes':''}${eHoje?' hoje':''}${eFeriado?' feriado':''}" onclick="abrirDiaAgenda('${dStr}')">`;
+      html+=`<div class="ag-dia-num">${data.getDate()}</div>`;
+      const maxPills = 3;
+      evsDia.slice(0,maxPills).forEach(ev=>{
+        html+=`<div class="ag-evento-pill${ev.reuniao?' reuniao':''}" style="background:${ev.cor};" title="${ev.titulo}">${ev.titulo.substring(0,28)}</div>`;
+      });
+      if(evsDia.length>maxPills) html+=`<div style="font-size:9px;color:var(--text3);padding:1px 4px;">+${evsDia.length-maxPills} mais</div>`;
+      html+='</div>';
+    }
+    html+='</div>';
+    cont.innerHTML = html;
+
+  } else if(_agView==='semana'){
+    const semInicio = new Date(_agDataRef);
+    semInicio.setDate(_agDataRef.getDate()-_agDataRef.getDay());
+    semInicio.setHours(0,0,0,0);
+    const semFim = new Date(semInicio); semFim.setDate(semFim.getDate()+6);
+    document.getElementById('ag-titulo-mes').textContent = `${semInicio.getDate()}/${semInicio.getMonth()+1} – ${semFim.getDate()}/${semFim.getMonth()+1}/${semFim.getFullYear()}`;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+    let html='<div class="ag-grid-semana">';
+    html+='<div class="ag-sem-header"></div>';
+    for(let d=0;d<7;d++){
+      const dia = new Date(semInicio); dia.setDate(dia.getDate()+d);
+      const eHoje = dia.getTime()===hoje.getTime();
+      html+=`<div class="ag-sem-header${eHoje?' hoje-col':''}" style="${eHoje?'background:rgba(26,26,46,0.06);font-weight:700;color:var(--brand);':''}">${dias[d]} ${dia.getDate()}/${dia.getMonth()+1}</div>`;
+    }
+    for(let h=7;h<=20;h++){
+      html+=`<div class="ag-sem-hora">${h}h</div>`;
+      for(let d=0;d<7;d++){
+        const dia = new Date(semInicio); dia.setDate(dia.getDate()+d);
+        const eHoje = dia.getTime()===hoje.getTime();
+        const evs = eventos.filter(e=>{
+          const s=new Date(e.data_inicio); s.setHours(0,0,0,0);
+          const f=new Date(e.data_fim); f.setHours(23,59,59,0);
+          return dia>=s && dia<=f;
+        });
+        html+=`<div class="ag-sem-cell${eHoje?' hoje-col':''}">`;
+        if(h===8) evs.forEach(ev=>{ html+=`<div class="ag-evento-pill${ev.reuniao?' reuniao':''}" style="background:${ev.cor};margin-bottom:3px;" title="${ev.titulo}">${ev.titulo.substring(0,20)}</div>`; });
+        html+='</div>';
+      }
+    }
+    html+='</div>';
+    cont.innerHTML = html;
+
+  } else { // dia
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const ref = new Date(_agDataRef); ref.setHours(0,0,0,0);
+    document.getElementById('ag-titulo-mes').textContent = ref.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const evsDia = eventos.filter(e=>{
+      const s=new Date(e.data_inicio); s.setHours(0,0,0,0);
+      const f=new Date(e.data_fim); f.setHours(0,0,0,0);
+      return ref>=s && ref<=f;
+    });
+    let html = evsDia.length ? '' : '<div style="text-align:center;padding:40px;color:var(--text3);font-size:14px;">Nenhum evento neste dia.</div>';
+    evsDia.forEach(ev=>{
+      html+=`<div class="ag-dia-view-evento${ev.reuniao?' reuniao':''}" style="background:${ev.cor};${ev.reuniao?'outline:3px solid #c0392b;outline-offset:2px;':''}">
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;">${ev.titulo}</div>
+          <div style="font-size:12px;opacity:0.85;">${ev.funcionario_nome}</div>
+          ${ev.descricao?`<div style="font-size:12px;margin-top:4px;opacity:0.8;">${ev.descricao}</div>`:''}
+          <div style="font-size:11px;margin-top:4px;opacity:0.75;">
+            ${ev.tipo!=='reuniao'?`${new Date(ev.data_inicio).toLocaleDateString('pt-BR')} → ${new Date(ev.data_fim).toLocaleDateString('pt-BR')} · ${ev.dias_prev||1} dia(s)`
+            :`${new Date(ev.data_inicio).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} – ${new Date(ev.data_fim).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`}
+          </div>
+        </div>
+        <div style="font-size:20px;">${ev.tipo==='montagem'?'🔨':ev.tipo==='asteca'?'🔧':ev.tipo==='conferencia'?'📐':'📅'}</div>
+      </div>`;
+    });
+    cont.innerHTML = `<div style="padding:16px;">${html}</div>`;
+  }
+}
+
+function abrirDiaAgenda(dStr){
+  const data = new Date(dStr+'T12:00:00');
+  _agDataRef = data;
+  if(_agView==='mes'){
+    setAgendaView('dia');
+    return;
+  }
+  const eventos = filtrarEventos();
+  const ref = new Date(dStr+'T00:00:00');
+  const evsDia = eventos.filter(e=>{
+    const s=new Date(e.data_inicio); s.setHours(0,0,0,0);
+    const f=new Date(e.data_fim); f.setHours(0,0,0,0);
+    return ref>=s && ref<=f;
+  });
+  document.getElementById('ag-modal-dia-titulo').textContent = data.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  let html = evsDia.length ? '' : '<p style="color:var(--text3);font-size:14px;text-align:center;padding:20px 0;">Nenhum evento.</p>';
+  evsDia.forEach(ev=>{
+    html+=`<div style="display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:8px;background:${ev.cor}20;border-left:4px solid ${ev.cor};margin-bottom:8px;">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${ev.titulo}</div>
+        <div style="font-size:12px;color:var(--text2);">${ev.funcionario_nome}</div>
+        ${ev.descricao?`<div style="font-size:12px;color:var(--text2);margin-top:3px;">${ev.descricao}</div>`:''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('ag-modal-dia-content').innerHTML = html;
+  document.getElementById('ag-modal-dia').style.display = 'flex';
+}
+
+/* ── Reuniões (admin) ── */
+function abrirModalReuniao(){
+  const now = new Date();
+  const pad = n=>String(n).padStart(2,'0');
+  const dt = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:00`;
+  document.getElementById('ag-r-inicio').value = dt;
+  document.getElementById('ag-r-fim').value = dt;
+  document.getElementById('ag-r-titulo').value='';
+  document.getElementById('ag-r-desc').value='';
+  document.getElementById('ag-r-recorrencia').value='';
+  document.getElementById('ag-r-recorrencia-fim-wrap').style.display='none';
+  document.getElementById('ag-modal-reuniao').style.display='flex';
+}
+function toggleRecorrenciaFim(){
+  const v = document.getElementById('ag-r-recorrencia').value;
+  document.getElementById('ag-r-recorrencia-fim-wrap').style.display = v ? 'block' : 'none';
+}
+
+async function salvarReuniao(){
+  const titulo = document.getElementById('ag-r-titulo').value.trim();
+  const funcVal = document.getElementById('ag-r-funcionario').value;
+  const inicio = document.getElementById('ag-r-inicio').value;
+  const fim = document.getElementById('ag-r-fim').value;
+  const desc = document.getElementById('ag-r-desc').value.trim();
+  const rec = document.getElementById('ag-r-recorrencia').value;
+  const recFim = document.getElementById('ag-r-recorrencia-fim').value;
+  if(!titulo||!funcVal||!inicio||!fim){ setAlert('ag-r-alert','Preencha título, funcionário e datas.','error'); return; }
+  const [funcId, funcTipo, funcNomeEnc] = funcVal.split('|');
+  const funcNome = decodeURIComponent(funcNomeEnc||'');
+  const {error} = await db.from('agenda_reunioes').insert({
+    titulo, descricao:desc,
+    funcionario_id:funcId, funcionario_nome:funcNome, funcionario_tipo:funcTipo,
+    data_inicio:new Date(inicio).toISOString(), data_fim:new Date(fim).toISOString(),
+    recorrencia_tipo:rec||null, recorrencia_fim:recFim||null,
+    criado_por:currentUser.id
+  });
+  if(error){ setAlert('ag-r-alert','Erro ao salvar: '+error.message,'error'); return; }
+
+  // Email de notificação
+  const func = _agFuncionarios.find(f=>f.id===funcId);
+  // Buscar email do funcionário nos perfis
+  const {data:perfil} = await db.from('perfis').select('email').eq('id',funcId).maybeSingle();
+  if(perfil?.email){
+    fetch(`${SUPABASE_URL}/functions/v1/email-reuniao`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({ titulo, descricao:desc, funcionario_nome:funcNome, email:perfil.email, data_inicio:inicio, data_fim:fim })
+    }).catch(e=>console.warn('Email reunião não enviado:',e));
+  }
+
+  notify('Reunião agendada!');
+  document.getElementById('ag-modal-reuniao').style.display='none';
+  loadAgenda();
 }
 
 /* ── ENDEREÇO ── */
