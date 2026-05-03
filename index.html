@@ -5512,9 +5512,152 @@ async function loadConferentes(){
 }
 
 async function removerConferente(id){
-  if(!confirm('Remover este conferente?')) return;
+  if(!confirm('Remover este conferente? Todas as conferências atribuídas a ele serão redistribuídas automaticamente entre os demais.')) return;
+
+  notify('Redistribuindo conferências...','info');
+
+  // 1. Buscar atendimentos deste conferente que ainda estão em andamento
+  const {data:ats}=await db.from('atendimentos')
+    .select('id,ambientes,funil_id')
+    .eq('conferente_id',id)
+    .not('conf_fim','is',null); // só os que não foram concluídos
+
+  // Também buscar os em andamento (sem conf_fim)
+  const {data:atsAndamento}=await db.from('atendimentos')
+    .select('id,ambientes,funil_id')
+    .eq('conferente_id',id)
+    .is('conf_fim',null);
+
+  const todos=[...(ats||[]),...(atsAndamento||[])];
+
+  // 2. Buscar outros conferentes (excluindo o que será removido)
+  const {data:outrosConfs}=await db.from('conferentes').select('*').neq('id',id).order('produtividade_atual',{ascending:false});
+
+  if(todos.length>0){
+    if(!outrosConfs||!outrosConfs.length){
+      notify('⚠️ Não há outros conferentes para redistribuir. Cadastre outro conferente antes de remover.','error');
+      return;
+    }
+
+    // 3. Calcular carga atual dos outros conferentes
+    const {data:emAndamento}=await db.from('atendimentos')
+      .select('conferente_id,ambientes')
+      .not('conferente_id','is',null)
+      .is('conf_fim',null);
+
+    const carga={};
+    outrosConfs.forEach(c=>carga[c.id]=0);
+    (emAndamento||[]).forEach(a=>{
+      if(!carga.hasOwnProperty(a.conferente_id)) return;
+      const ambs=(a.ambientes&&a.ambientes!=='')?JSON.parse(a.ambientes):[];
+      carga[a.conferente_id]+=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0);
+    });
+
+    // 4. Redistribuir cada atendimento com o mesmo critério
+    let redistribuidos=0;
+    for(const at of todos){
+      const ambs=(at.ambientes&&at.ambientes!=='')?JSON.parse(at.ambientes):[];
+      const valorAt=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0)||0;
+
+      // Escolher conferente com menor carga relativa
+      const ordenados=[...outrosConfs].sort((a,b)=>{
+        const rA=(carga[a.id]||0)/((a.produtividade_atual||1)*15);
+        const rB=(carga[b.id]||0)/((b.produtividade_atual||1)*15);
+        return rA-rB;
+      });
+
+      let escolhido=ordenados[0]; // fallback: menor carga
+      for(const c of ordenados){
+        const cap15=(c.produtividade_atual||0)*15;
+        if((carga[c.id]||0)+valorAt<=cap15){escolhido=c;break;}
+      }
+
+      if(escolhido){
+        await db.from('atendimentos').update({
+          conferente_id:escolhido.id,
+          conferente_nome:escolhido.nome
+        }).eq('id',at.id);
+        carga[escolhido.id]=(carga[escolhido.id]||0)+valorAt;
+        redistribuidos++;
+      }
+    }
+    notify(`✅ ${redistribuidos} conferência(s) redistribuída(s).`,'info');
+  }
+
+  // 5. Excluir o conferente
   await db.from('conferentes').delete().eq('id',id);
+  notify('Conferente removido com sucesso!');
   loadConferentes();
+  loadFunis();
+}
+
+async function abrirTrocarConferente(atId, nomeAtual, confIdAtual){
+  const {data:confs}=await db.from('conferentes').select('*').order('nome');
+  if(!confs||!confs.length){notify('Nenhum conferente cadastrado.','error');return}
+
+  const opcoesHtml=confs.map(c=>`
+    <div onclick="selecionarConferente('${atId}','${c.id}','${c.nome.replace(/'/g,"\\'")}',this)"
+      style="padding:10px 14px;border-radius:8px;cursor:pointer;border:2px solid ${c.id===confIdAtual?'var(--brand)':'var(--border)'};background:${c.id===confIdAtual?'var(--brand-light)':'var(--bg)'};margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;"
+      data-conf-id="${c.id}">
+      <div>
+        <div style="font-size:13px;font-weight:500;">${c.nome}</div>
+        <div style="font-size:11px;color:var(--text2);">${fmt(c.produtividade_atual)}/dia</div>
+      </div>
+      ${c.id===confIdAtual?'<span style="font-size:11px;color:var(--brand);font-weight:600;">Atual</span>':''}
+    </div>`).join('');
+
+  const html=`<div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)fecharModalConf()">
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:24px;width:420px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-lg);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-size:16px;font-weight:600;">Trocar conferente</div>
+        <button onclick="fecharModalConf()" style="background:transparent;border:none;cursor:pointer;font-size:18px;color:var(--text3);">✕</button>
+      </div>
+      ${nomeAtual?`<div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Conferente atual: <strong>${nomeAtual}</strong></div>`:''}
+      <div id="conf-troca-opcoes">${opcoesHtml}</div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button onclick="fecharModalConf()" style="flex:1;padding:10px;border:1px solid var(--border2);background:var(--bg);border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;">Cancelar</button>
+        <button onclick="confirmarTrocaConferente('${atId}')" id="btn-conf-troca" disabled style="flex:1;padding:10px;background:var(--brand);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;opacity:0.5;">Confirmar</button>
+      </div>
+    </div>
+  </div>`;
+
+  const div=document.createElement('div');
+  div.id='modal-trocar-conf';
+  div.innerHTML=html;
+  document.body.appendChild(div);
+  window._confTrocaSelecionado=null;
+}
+
+function selecionarConferente(atId, confId, confNome, el){
+  // Resetar seleção visual
+  document.querySelectorAll('#conf-troca-opcoes > div').forEach(d=>{
+    d.style.borderColor='var(--border)';
+    d.style.background='var(--bg)';
+  });
+  el.style.borderColor='var(--brand)';
+  el.style.background='var(--brand-light, #f0f4ff)';
+  window._confTrocaSelecionado={confId, confNome};
+  const btn=document.getElementById('btn-conf-troca');
+  if(btn){btn.disabled=false;btn.style.opacity='1';}
+}
+
+async function confirmarTrocaConferente(atId){
+  const sel=window._confTrocaSelecionado;
+  if(!sel){notify('Selecione um conferente.','error');return}
+  const {error}=await db.from('atendimentos').update({
+    conferente_id:sel.confId,
+    conferente_nome:sel.confNome
+  }).eq('id',atId);
+  if(error){notify('Erro ao trocar conferente.','error');return}
+  fecharModalConf();
+  notify(`✅ Conferente alterado para ${sel.confNome}!`);
+  loadFunis();
+}
+
+function fecharModalConf(){
+  const m=document.getElementById('modal-trocar-conf');
+  if(m) m.remove();
+  window._confTrocaSelecionado=null;
 }
 
 /* ── DISTRIBUIÇÃO DE CONFERENTES ── */
@@ -6286,7 +6429,10 @@ function renderFunilCard(a, cor){
     </div>`:''}
     <div class="funil-card-footer">
       <span style="font-size:11px;color:var(--text3);">${new Date(a.created_at).toLocaleDateString('pt-BR')}</span>
-      <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;${corDias}">${dias}d</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button onclick="event.stopPropagation();abrirTrocarConferente('${a.id}','${(a.conferente_nome||'').replace(/'/g,"\\'")}','${a.conferente_id||''}')" style="font-size:10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:2px 7px;cursor:pointer;color:var(--text2);">👤 Trocar</button>
+        <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;${corDias}">${dias}d</span>
+      </div>
     </div>
   </div>`;
 }
