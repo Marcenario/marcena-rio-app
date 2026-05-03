@@ -3951,29 +3951,77 @@ async function loadFuncionariosRH() {
   const cont = document.getElementById('rh-func-list');
   const {data} = await db.from('rh_funcionarios').select('*').order('nome');
   if(!data || !data.length) { cont.innerHTML = '<div class="empty-state"><p>Nenhum funcionário cadastrado.</p></div>'; return; }
-  cont.innerHTML = '<div class="team-grid">' + data.map(f => `
-    <div class="team-card">
+
+  const ativos = data.filter(f => f.ativo !== false);
+  const inativos = data.filter(f => f.ativo === false);
+
+  const renderCard = (f) => {
+    const inativo = f.ativo === false;
+    const dataDeslig = f.data_desligamento ? new Date(f.data_desligamento).toLocaleDateString('pt-BR') : null;
+    const dataRet = f.data_retencao_docs ? new Date(f.data_retencao_docs).toLocaleDateString('pt-BR') : null;
+    const nomeEsc = f.nome.replace(/'/g,"\\'");
+    return `<div class="team-card" style="${inativo?'opacity:0.7;border:1px dashed var(--border2);':''}">
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px;">
         <div>
-          <div style="font-size:15px;font-weight:500;">${f.nome}</div>
+          <div style="font-size:15px;font-weight:500;">${f.nome} ${inativo?'<span style="font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:4px;">Inativo</span>':''}</div>
           <div style="font-size:12px;color:var(--text2);">${f.cargo||'—'}</div>
+          ${inativo&&dataDeslig?`<div style="font-size:11px;color:var(--red);margin-top:2px;">Desligado em ${dataDeslig} · Docs retidos até ${dataRet}</div>`:''}
         </div>
-        <button onclick="excluirFuncionarioRH('${f.id}','${f.user_id}')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;">Excluir</button>
+        <div style="display:flex;gap:6px;">
+          ${!inativo
+            ? `<button onclick="excluirFuncionarioRH('${f.id}','${f.user_id||''}','${nomeEsc}')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">🔴 Desligar</button>`
+            : `<button onclick="reativarFuncionarioRH('${f.id}')" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">↩ Reativar</button>`
+          }
+        </div>
       </div>
       <div style="font-size:11px;color:var(--text3);">Seg-Sex: ${f.entrada_sf||'—'} às ${f.saida_sf||'—'} · Almoço: ${f.alm_ini_sf||'—'}-${f.alm_fim_sf||'—'}</div>
       <div style="font-size:11px;color:var(--text3);">Sábado: ${f.entrada_sab||'—'} às ${f.saida_sab||'—'} · Almoço: ${f.alm_ini_sab||'—'}-${f.alm_fim_sab||'—'}</div>
-    </div>`).join('') + '</div>';
+    </div>`;
+  };
+
+  let html = '<div class="team-grid">' + ativos.map(renderCard).join('') + '</div>';
+  if(inativos.length){
+    html += `<div style="margin-top:20px;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📁 Funcionários desligados (${inativos.length}) — documentos retidos</div>`;
+    html += '<div class="team-grid">' + inativos.map(renderCard).join('') + '</div>';
+  }
+  cont.innerHTML = html;
 }
 
-async function excluirFuncionarioRH(id, userId) {
-  if(!confirm('Excluir este funcionário? Esta ação não pode ser desfeita.')) return;
-  await fetch(`${SUPABASE_URL}/functions/v1/admin-excluir-usuario`, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json', 'Authorization':`Bearer ${SUPABASE_ANON}`},
-    body: JSON.stringify({user_id: userId})
-  });
-  await db.from('rh_funcionarios').delete().eq('id', id);
-  notify('Funcionário excluído.');
+async function reativarFuncionarioRH(id){
+  if(!confirm('Reativar este funcionário?')) return;
+  await db.from('rh_funcionarios').update({ativo:true, data_desligamento:null, data_retencao_docs:null}).eq('id',id);
+  notify('✅ Funcionário reativado!');
+  loadFuncionariosRH();
+}
+
+async function excluirFuncionarioRH(id, userId, nome) {
+  const confirmMsg = `Deseja desligar o funcionário "${nome}"?\n\n` +
+    `✅ O funcionário será marcado como inativo e não aparecerá mais nas listas.\n` +
+    `📁 Todos os documentos da pasta do funcionário serão preservados por 5 anos conforme a legislação trabalhista.\n\n` +
+    `Esta ação pode ser revertida pelo administrador.`;
+  if(!confirm(confirmMsg)) return;
+
+  const dataDesligamento = new Date().toISOString();
+  const dataRetencao = new Date();
+  dataRetencao.setFullYear(dataRetencao.getFullYear() + 5);
+
+  // Soft delete — não exclui, apenas marca como inativo
+  await db.from('rh_funcionarios').update({
+    ativo: false,
+    data_desligamento: dataDesligamento,
+    data_retencao_docs: dataRetencao.toISOString()
+  }).eq('id', id);
+
+  // Desabilitar login do usuário via Edge Function (sem deletar)
+  if(userId){
+    await fetch(`${SUPABASE_URL}/functions/v1/admin-excluir-usuario`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':`Bearer ${SUPABASE_ANON}`},
+      body: JSON.stringify({user_id: userId, apenas_desativar: true})
+    }).catch(()=>{});
+  }
+
+  notify(`✅ Funcionário desligado. Documentos preservados até ${dataRetencao.toLocaleDateString('pt-BR')}.`);
   loadFuncionariosRH();
 }
 
