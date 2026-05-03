@@ -418,28 +418,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
       <!-- RELATÓRIO CONFERÊNCIA -->
       <div id="conf-relatorio" style="display:none;">
-        <div class="card" style="margin-bottom:1rem;">
-          <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Relatório de conferências</div>
-          <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
-            <div>
-              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Conferente</label>
-              <select id="conf-rel-conferente" style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;min-width:200px;">
-                <option value="">Todos</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Período</label>
-              <select id="conf-rel-periodo" style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
-                <option value="30">Últimos 30 dias</option>
-                <option value="60">Últimos 60 dias</option>
-                <option value="90">Últimos 90 dias</option>
-                <option value="365">Último ano</option>
-              </select>
-            </div>
-            <button onclick="gerarRelatorioConf()" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">▶ Gerar</button>
-          </div>
-        </div>
-        <div id="conf-rel-content"><div class="empty-state"><p>Selecione os filtros e clique em Gerar.</p></div></div>
+        <div class="info-box" style="margin-bottom:1rem;">A produtividade é recalculada mensalmente com base nas conferências concluídas.</div>
+        <div id="conf-rel-content"><div class="loader">Carregando...</div></div>
       </div>
     </div>
 
@@ -2132,8 +2112,8 @@ function renderProjeto(p){
           <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.553 4.116 1.523 5.848L0 24l6.302-1.5A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.5-5.2-1.373l-.374-.221-3.742.891.945-3.647-.243-.386A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
           Fale com Montagem e Assistência Técnica
         </a>
-        <button onclick="abrirReclamacao('${p.id}')" style="display:flex;align-items:center;gap:10px;background:#dc2626;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;">
-          ⚠️ Registrar reclamação
+        <button onclick="abrirReclamacao('${p.id}')" style="display:flex;align-items:center;gap:10px;background:#1a56db;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;">
+          💬 Elogios, Sugestões e Reclamações
         </button>
       </div>`;
     })()}`;
@@ -5390,84 +5370,56 @@ function showSubConf(id, btn){
   document.querySelectorAll('#conferencia .nav-item').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   if(id==='conf-conferentes') loadConferentes();
-  if(id==='conf-relatorio') carregarConferentesSelect();
-}
-
-async function carregarConferentesSelect(){
-  const sel=document.getElementById('conf-rel-conferente');
-  if(!sel) return;
-  const {data}=await db.from('conferentes').select('id,nome').order('nome');
-  sel.innerHTML='<option value="">Todos</option>'+(data||[]).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  if(id==='conf-relatorio') gerarRelatorioConf();
 }
 
 async function gerarRelatorioConf(){
   const cont=document.getElementById('conf-rel-content');
   cont.innerHTML='<div class="loader">Carregando...</div>';
-  const confId=document.getElementById('conf-rel-conferente').value;
-  const dias=parseInt(document.getElementById('conf-rel-periodo').value)||30;
-  const desde=new Date(); desde.setDate(desde.getDate()-dias);
-  const desdeStr=desde.toISOString().slice(0,10);
 
-  // Buscar conferentes
-  let queryConf=db.from('conferentes').select('*').order('nome');
-  if(confId) queryConf=queryConf.eq('id',confId);
-  const {data:conferentes}=await queryConf;
-  if(!conferentes||!conferentes.length){
-    cont.innerHTML='<div class="empty-state"><p>Nenhum conferente cadastrado.</p></div>';return;
-  }
+  const {data:confs}=await db.from('conferentes').select('*').order('produtividade_atual',{ascending:false});
+  if(!confs||!confs.length){cont.innerHTML='<div class="empty-state"><p>Nenhum conferente cadastrado.</p></div>';return}
 
-  // Nota informativa
-  let html=`<div class="info-box" style="margin-bottom:16px;">A produtividade é calculada com base nos atendimentos concluídos no período selecionado.</div>`;
+  const mesAtual=new Date().toISOString().slice(0,7);
+  let html='';
 
-  for(const c of conferentes){
-    // Atendimentos deste conferente no período
+  for(const c of confs){
     const {data:ats}=await db.from('atendimentos')
-      .select('*')
-      .eq('conferente_id',c.id)
-      .gte('conf_inicio',desdeStr);
+      .select('*').eq('conferente_id',c.id).gte('conf_inicio',mesAtual+'-01');
     const todos=ats||[];
+    const concluidos=todos.filter(a=>a.conf_fim).length;
+    const emAndamento=todos.filter(a=>!a.conf_fim).length;
 
-    const concluidos=todos.filter(a=>a.conf_fim);
-    const emAndamento=todos.filter(a=>!a.conf_fim);
-
-    // Calcular tempo médio (dias)
-    const tempoMedio=concluidos.length
-      ? Math.round(concluidos.reduce((s,a)=>{
-          if(!a.conf_inicio||!a.conf_fim) return s;
-          return s+Math.round((new Date(a.conf_fim)-new Date(a.conf_inicio))/86400000);
-        },0)/concluidos.length)
-      : 0;
-
-    // Valor total conferido
-    let valorTotal=0;
+    let valorTotal=0,valorConcluido=0;
     todos.forEach(a=>{
       const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
-      ambs.forEach(am=>{ valorTotal+=(am.valor||0); });
+      const val=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0)||0;
+      valorTotal+=val;
+      if(a.conf_fim) valorConcluido+=val;
     });
 
-    const taxa=todos.length?Math.round((concluidos.length/todos.length)*100):0;
+    const taxa=todos.length?Math.round((concluidos/todos.length)*100):0;
     const corTaxa=taxa>=75?'var(--green)':taxa>=50?'#f59e0b':'var(--red)';
 
     html+=`<div class="card">
       <div class="card-header" style="margin-bottom:0.75rem;">
         <div class="card-title">${c.nome}</div>
-        <span class="badge badge-amber">${c.produtividade_base||0} at./mês</span>
+        <span class="badge badge-amber">${fmt(c.produtividade_base||0)}/mês</span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:0.75rem;">
-        <div><div style="font-size:11px;color:var(--text2);">Total conferências</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;">${todos.length}</div></div>
-        <div><div style="font-size:11px;color:var(--text2);">Concluídas</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;color:var(--green);">${concluidos.length}</div></div>
-        <div><div style="font-size:11px;color:var(--text2);">Em andamento</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;color:var(--accent);">${emAndamento.length}</div></div>
-        <div><div style="font-size:11px;color:var(--text2);">Tempo médio</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;">${tempoMedio}d</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Conferências</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;">${todos.length}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Em andamento</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;">${emAndamento}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Concluídas</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;color:var(--green);">${concluidos}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Meta mensal</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;color:var(--accent);">${c.produtividade_base||0}</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-        <div><div style="font-size:11px;color:var(--text2);">Valor total conferido</div><div style="font-size:14px;font-weight:500;">${fmt(valorTotal)}</div></div>
-        <div><div style="font-size:11px;color:var(--text2);">Meta mensal</div><div style="font-size:14px;font-weight:500;color:var(--accent);">${c.produtividade_base||0} conferências</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Valor total em conferência</div><div style="font-size:14px;font-weight:500;">${fmt(valorTotal)}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);">Valor concluído</div><div style="font-size:14px;font-weight:500;color:var(--green);">${fmt(valorConcluido)}</div></div>
         <div><div style="font-size:11px;color:var(--text2);">Taxa de conclusão</div><div style="font-size:14px;font-weight:500;color:${corTaxa};">${taxa}%</div></div>
       </div>
       <div style="height:4px;background:var(--bg);border-radius:2px;margin-top:10px;"><div style="height:4px;border-radius:2px;background:var(--accent);width:${taxa}%"></div></div>
     </div>`;
   }
-
   cont.innerHTML=html;
 }
 
@@ -6237,10 +6189,27 @@ async function salvarAtendimento(){
       // Inserir perfil
       await db.from('perfis').upsert({id:clienteUserId, email, nome, nivel:'cliente'});
       loginInfo = ` · Login criado (e-mail: ${email} / senha: ${senhaCliente})`;
+      // Enviar email de boas-vindas
+      fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+        body:JSON.stringify({nome, email, senha:senhaCliente, numero_atendimento:numeroAt, empresa:atEmpresa})
+      }).catch(e=>console.warn('Email boas-vindas não enviado:',e));
     } else {
+      // Usuário já existe — buscar o ID pelo email em perfis
       const motivo = signUpErr?.message||'erro desconhecido';
-      console.warn('Não foi possível criar login para', email, motivo);
-      loginInfo = ` · ⚠️ Login não criado (${motivo}) — crie manualmente`;
+      if(motivo.includes('already registered') || motivo.includes('already been registered')){
+        const {data:perfilExist}=await db.from('perfis').select('id,email').eq('email',email).maybeSingle();
+        if(perfilExist?.id){
+          clienteUserId = perfilExist.id;
+          loginInfo = ` · Login existente vinculado (${email})`;
+        } else {
+          loginInfo = ` · Login existente (${email}) — já pode acessar com a senha anterior`;
+        }
+      } else {
+        console.warn('Não foi possível criar login para', email, motivo);
+        loginInfo = ` · ⚠️ Login não criado (${motivo}) — crie manualmente`;
+      }
     }
 
     // Criar projeto vinculado ao cliente
