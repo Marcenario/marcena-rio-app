@@ -2052,17 +2052,18 @@ function renderProjeto(p){
           }
         </div>` : '';
 
-      const pdfUrlsProj = parsePdfUrls(pdfAtual);
-      const temPdfProj = pdfUrlsProj.length > 0;
+      // PDF único (merge já foi feito no upload)
+      const temPdfProj = !!pdfAtual;
+      const pdfUrlsProj = pdfAtual ? [pdfAtual] : [];
       const listaPdfsProj = pdfUrlsProj.map((url,i)=>`
         <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
           <span>📎</span>
-          <a href="${url}" target="_blank" style="color:var(--blue);text-decoration:none;flex:1;">Arquivo ${i+1}</a>
+          <a href="${url}" target="_blank" style="color:var(--blue);text-decoration:none;flex:1;">Ver PDF</a>
           ${statusAss==='assinado'
             ?`<span style="font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);padding:2px 8px;border-radius:8px;">✓ Assinado</span>`
             :statusAss==='enviado'
             ?`<span style="font-size:11px;color:#b45309;background:#fff7ed;padding:2px 8px;border-radius:8px;">⏳ Aguardando</span>`
-            :`<button onclick="removerPdfProjetoEtapa('${p.id}','${etAtual.key}','${url}')" style="background:none;border:1px solid var(--red);color:var(--red);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">✕</button>`}
+            :`<span style="font-size:11px;color:var(--text3);">PDF carregado</span>`}
         </div>`).join('');
 
       campoExtra=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
@@ -2585,21 +2586,7 @@ async function salvarArquivoEtapa(projetoId,campo,inputEl){
   } else {loadProjetos();}
 }
 
-async function removerPdfProjetoEtapa(projetoId, campo, urlRemover){
-  if(!confirm('Remover este PDF?')) return;
-  const {data:proj} = await db.from('projetos').select(campo).eq('id',projetoId).single();
-  const urls = parsePdfUrls(proj?.[campo]).filter(u=>u!==urlRemover);
-  const campoStatus=campo==='projeto_venda_url'?'projeto_venda_status':'projeto_exec_status';
-  const updates = {[campo]: urls.length?stringifyPdfUrls(urls):null};
-  if(!urls.length) updates[campoStatus]='pendente';
-  await db.from('projetos').update(updates).eq('id',projetoId);
-  notify('PDF removido.');
-  const _dv2=document.getElementById('proj-detalhe-view');
-  if(_dv2&&_dv2.style.display!=='none'){
-    const {data:_p2}=await db.from('projetos').select('*').eq('id',projetoId).single();
-    if(_p2){_todosProj=_todosProj.map(x=>x.id===_p2.id?_p2:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p2);}
-  } else {loadProjetos();}
-}
+
 
 async function loadAdmin(){
   const {data}=await db.from('projetos').select('*').order('created_at',{ascending:false});
