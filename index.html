@@ -2982,22 +2982,77 @@ async function gerarFichaOcorrenciaAsteca(pedidoId){
   const {data:p}=await db.from('pedidos_montagem').select('*').eq('id',pedidoId).single();
   if(!p){notify('Pedido não encontrado.','error');return;}
 
+  // Buscar dados completos do cliente no atendimento (linkado pelo número de contrato)
+  let at = null;
+  if(p.numero_contrato){
+    const {data:ats} = await db.from('atendimentos')
+      .select('cliente_nome,cliente_tel,cliente_email,endereco_cep,endereco_logradouro,endereco_numero,endereco_complemento,endereco_bairro,endereco_cidade,endereco_uf,vendedor_nome')
+      .eq('numero_contrato', p.numero_contrato)
+      .order('created_at',{ascending:false}).limit(1);
+    if(ats && ats.length) at = ats[0];
+  }
+
   const checklist=p.checklist_asteca?(typeof p.checklist_asteca==='string'?JSON.parse(p.checklist_asteca):p.checklist_asteca):[];
   const dataHoje=new Date().toLocaleDateString('pt-BR');
   const dataChegada=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 
-  // Linhas de ocorrências do checklist
+  // Helpers para corrigir [object Object] e enriquecer descrições
+  const tipoLabel = t => ({
+    falta_volume:'Falta de volume',
+    asteca_fabrica:'Asteca de fábrica',
+    asteca_loja:'Asteca de loja',
+    avaria_transporte:'Avaria de transporte',
+    avaria_montagem:'Avaria de montagem'
+  })[t] || (t ? String(t) : '—');
+
+  const extrairItens = it => {
+    if(!it) return '';
+    let arr = it;
+    if(typeof it === 'string'){ try{ arr = JSON.parse(it); }catch{ return ''; } }
+    if(!Array.isArray(arr)) return '';
+    return arr.map(i => {
+      const nome = i.item || i.desc || '';
+      const qtd = i.qtd || i.quantidade || '';
+      return nome + (qtd ? ` (${qtd}x)` : '');
+    }).filter(Boolean).join(', ');
+  };
+
+  // Linhas de ocorrências do checklist — sem cair no objeto bruto
   const linhasOcorrencias = checklist.length>0
-    ? checklist.map((item,i)=>`
-      <tr style="border:1px solid #333;">
-        <td style="border:1px solid #333;padding:6px 8px;font-size:12px;font-weight:600;background:#eee;">${item.ambiente||item.desc||item||'—'}</td>
-        <td style="border:1px solid #333;padding:6px 8px;font-size:12px;">${item.descricao||item.problema||''}</td>
+    ? checklist.map(item => {
+        const titulo = item.ambiente
+          || (typeof item.desc === 'string' && item.desc) 
+          || (typeof item.descricao === 'string' && item.descricao)
+          || tipoLabel(item.tipo);
+        const itensStr = extrairItens(item.itens);
+        const descricao = (item.problema && String(item.problema))
+          || (item.descricao && item.descricao !== titulo ? String(item.descricao) : '')
+          || itensStr
+          || (item.nped ? `Pedido ${item.nped}${item.nf?' · NF '+item.nf:''}` : '');
+        return `<tr style="border:1px solid #333;">
+        <td style="border:1px solid #333;padding:6px 8px;font-size:12px;font-weight:600;background:#eee;">${titulo}</td>
+        <td style="border:1px solid #333;padding:6px 8px;font-size:12px;">${descricao}</td>
         <td style="border:1px solid #333;padding:6px 8px;font-size:11px;color:#555;">Cadastro ${dataHoje}</td>
         <td style="border:1px solid #333;padding:6px 8px;font-size:12px;">Serviço</td>
-      </tr>`).join('')
+      </tr>`;
+      }).join('')
     : `<tr style="border:1px solid #333;">
         <td colspan="4" style="border:1px solid #333;padding:10px 8px;font-size:12px;text-align:center;color:#555;">ASTECA — Assistência Técnica</td>
       </tr>`;
+
+  // Dados do cliente vindos do atendimento (com fallbacks)
+  const clienteNome = (at && at.cliente_nome) || p.cliente_nome || '—';
+  const clienteTel = (at && at.cliente_tel) ? at.cliente_tel.replace(/^(\d{2})(\d{4,5})(\d{4})$/,'($1) $2-$3') : '—';
+  const clienteEmail = (at && at.cliente_email) || '—';
+  const logr = (at && at.endereco_logradouro) || '';
+  const num = (at && at.endereco_numero) || '';
+  const enderecoFmt = logr ? (num ? `${logr}, ${num}` : logr) : '—';
+  const complemento = (at && at.endereco_complemento) || '—';
+  const bairro = (at && at.endereco_bairro) || '—';
+  const cidade = (at && at.endereco_cidade) || 'RIO DE JANEIRO';
+  const uf = (at && at.endereco_uf) || 'RJ';
+  const cepFmt = (at && at.endereco_cep) ? String(at.endereco_cep).replace(/\D/g,'').replace(/(\d{5})(\d{3})/,'$1-$2') : '—';
+  const responsavel = (at && at.vendedor_nome) || p.equipe_nome || '—';
 
   const html=`<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
@@ -3037,28 +3092,28 @@ async function gerarFichaOcorrenciaAsteca(pedidoId){
 
 <table class="dados">
   <tr>
-    <td style="width:30%"><div class="lbl">Responsável pela Venda</div>${p.equipe_nome||'—'}</td>
-    <td style="width:20%"><div class="lbl">Loja</div>RIO DE JANEIRO</td>
+    <td style="width:30%"><div class="lbl">Responsável pela Venda</div>${responsavel}</td>
+    <td style="width:20%"><div class="lbl">Loja</div>${cidade}</td>
     <td style="width:20%"><div class="lbl">Telefone</div>(21) 97558-4029</td>
     <td style="width:30%"><div class="lbl">Data de Emissão</div>${dataHoje}</td>
   </tr>
   <tr>
-    <td colspan="4"><div class="lbl">Cliente</div>${p.cliente_nome||'—'}</td>
+    <td colspan="4"><div class="lbl">Cliente</div>${clienteNome}</td>
   </tr>
   <tr>
-    <td colspan="3"><div class="lbl">Endereço</div>—</td>
-    <td><div class="lbl">Complemento</div>—</td>
+    <td colspan="3"><div class="lbl">Endereço</div>${enderecoFmt}</td>
+    <td><div class="lbl">Complemento</div>${complemento}</td>
   </tr>
   <tr>
-    <td><div class="lbl">Bairro</div>—</td>
-    <td><div class="lbl">Cidade</div>RIO DE JANEIRO</td>
-    <td><div class="lbl">UF</div>RJ</td>
-    <td><div class="lbl">CEP</div>—</td>
+    <td><div class="lbl">Bairro</div>${bairro}</td>
+    <td><div class="lbl">Cidade</div>${cidade}</td>
+    <td><div class="lbl">UF</div>${uf}</td>
+    <td><div class="lbl">CEP</div>${cepFmt}</td>
   </tr>
   <tr>
     <td><div class="lbl">Referência</div>—</td>
-    <td colspan="2"><div class="lbl">Telefone</div>—</td>
-    <td><div class="lbl">E-mail</div>—</td>
+    <td colspan="2"><div class="lbl">Telefone</div>${clienteTel}</td>
+    <td><div class="lbl">E-mail</div>${clienteEmail}</td>
   </tr>
 </table>
 
