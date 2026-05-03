@@ -477,7 +477,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
                 style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
               <div id="mt-at-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:999;max-height:220px;overflow-y:auto;"></div>
             </div>
-            <div id="mt-at-busca-hint" style="font-size:11px;color:var(--text3);margin-top:4px;">Somente cards na coluna <strong>Concluído</strong> do Funil de Conferência aparecem aqui.</div>
+            <div id="mt-at-busca-hint" style="font-size:11px;color:var(--text3);margin-top:4px;" id="mt-at-busca-hint">Somente cards na coluna <strong>Concluído</strong> do Funil de Conferência (Montagem) ou relatórios de vistoria (ASTECA) aparecem aqui.</div>
           </div>
 
           <!-- Campos preenchidos automaticamente — somente leitura após vínculo -->
@@ -3437,6 +3437,19 @@ function setTipoMt(tipo){
   const wrap=document.getElementById('mt-asteca-wrap');
   const secLabel=document.getElementById('mt-secao-label');
   const btnEnviar=document.getElementById('btn-mt-novo');
+  const hintEl=document.getElementById('mt-at-busca-hint');
+
+  // Sempre resetar vínculo ao trocar de tipo
+  _mtAtendimentoId=null;
+  document.getElementById('mt-contrato').value='';
+  document.getElementById('mt-cliente').value='';
+  document.getElementById('mt-atendimento-id').value='';
+  document.getElementById('mt-at-vinculado').style.display='none';
+  document.getElementById('mt-at-busca-wrap').style.display='block';
+  document.getElementById('mt-at-busca').value='';
+  document.getElementById('mt-at-dropdown').style.display='none';
+  ambsMt=[];renderAmbsMt();
+
   if(tipo==='montagem'){
     btnM.className='tipo-btn active-montagem';
     btnA.className='tipo-btn';
@@ -3445,6 +3458,7 @@ function setTipoMt(tipo){
     btnEnviar.textContent='Registrar e distribuir para equipe';
     btnEnviar.style.background='';
     btnEnviar.disabled=false;btnEnviar.style.opacity='1';
+    if(hintEl) hintEl.innerHTML='Somente cards na coluna <strong>Concluído</strong> do Funil de Conferência aparecem aqui.';
     setAlert('mt-novo-alert','','');
   } else {
     btnM.className='tipo-btn';
@@ -3453,9 +3467,10 @@ function setTipoMt(tipo){
     secLabel.textContent='Ambientes e valores da ASTECA';
     btnEnviar.textContent='🔧 Registrar ASTECA — URGENTE';
     btnEnviar.style.background='#8a1a1a';
-    const contrato=document.getElementById('mt-contrato').value.trim();
-    if(contrato)buscarChecklistAsteca(contrato);
-    else atualizarBotaoAsteca();
+    if(hintEl) hintEl.innerHTML='Busque pelo nome do cliente ou número do contrato do <strong>Relatório de Vistoria</strong>.';
+    mtChecklist=[];mtRelatorioId=null;
+    document.getElementById('mt-checklist-wrap').innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Selecione o relatório de vistoria acima para carregar as ocorrências.</div>';
+    atualizarBotaoAsteca();
   }
 }
 
@@ -3481,7 +3496,76 @@ async function onMtAtBuscaInput(val){
   _mtAtBuscaTimer = setTimeout(async ()=>{
     const q = val.trim();
 
-    // Sempre recarregar funil de conferência para garantir dados frescos
+    const normalizar = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+
+    // ── ASTECA: busca por relatório de vistoria ──
+    if(mtTipo === 'asteca'){
+      console.log('[ASTECA-BUSCA] Buscando:', q);
+      const select = 'id,cliente_nome,cliente_email,numero_contrato,responsavel_nome,created_at';
+
+      // 1) Tenta eq exato pelo contrato (funciona mesmo em colunas numéricas)
+      let {data,error} = await db.from('relatorios_vistoria')
+        .select(select).eq('numero_contrato', q)
+        .order('created_at',{ascending:false}).limit(8);
+      console.log('[ASTECA-BUSCA] eq contrato:', data?.length, error?.message);
+
+      // 2) ilike contrato (texto parcial)
+      if(!data?.length){
+        ({data,error} = await db.from('relatorios_vistoria')
+          .select(select).ilike('numero_contrato', `%${q}%`)
+          .order('created_at',{ascending:false}).limit(8));
+        console.log('[ASTECA-BUSCA] ilike contrato:', data?.length, error?.message);
+      }
+
+      // 3) ilike nome
+      if(!data?.length){
+        ({data,error} = await db.from('relatorios_vistoria')
+          .select(select).ilike('cliente_nome', `%${q}%`)
+          .order('created_at',{ascending:false}).limit(8));
+        console.log('[ASTECA-BUSCA] ilike nome:', data?.length, error?.message);
+      }
+
+      // 4) Diagnóstico — mostra os últimos relatórios existentes
+      if(!data?.length){
+        const {data:recentes} = await db.from('relatorios_vistoria')
+          .select(select).order('created_at',{ascending:false}).limit(5);
+        console.log('[ASTECA-BUSCA] Últimos relatórios no banco:', recentes?.map(r=>r.numero_contrato+' | '+r.cliente_nome));
+        const listaDiag = recentes?.length
+          ? recentes.map(r=>`<div style="padding:3px 0;font-size:11px;color:var(--text2);">• ${r.numero_contrato||'sem contrato'} — ${r.cliente_nome||'—'}</div>`).join('')
+          : '<div style="font-size:11px;color:var(--text3);">Nenhum relatório encontrado no banco.</div>';
+        dropdown.innerHTML=`<div style="padding:10px 12px;">
+          <div style="font-size:12px;color:#c0392b;margin-bottom:6px;">⚠️ Contrato <strong>${q}</strong> não encontrado em Relatórios de Vistoria.</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Últimos relatórios disponíveis:</div>
+          ${listaDiag}
+        </div>`;
+        return;
+      }
+      window._mtAtResultados = data.map(r=>({
+        id: r.id,
+        _tipo: 'vistoria',
+        cliente_nome: r.cliente_nome,
+        numero_contrato: r.numero_contrato,
+        cliente_tel: '',
+        vendedor_nome: r.responsavel,
+        estimativa: null,
+        ambientes: null
+      }));
+      dropdown.innerHTML = window._mtAtResultados.map((a,i)=>{
+        const contrato = a.numero_contrato||'sem contrato';
+        const resp = a.vendedor_nome ? ' · '+a.vendedor_nome : '';
+        return `<div onclick="selecionarAtMt(${i})"
+          style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border2);"
+          onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''"
+        >
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${a.cliente_nome||'—'}</div>
+          <div style="font-size:11px;color:var(--text2);">📋 ${contrato}${resp} · Relatório de vistoria</div>
+        </div>`;
+      }).join('');
+      dropdown.style.display='block';
+      return;
+    }
+
+    // ── MONTAGEM: busca cards Concluído no funil de conferência ──
     const {data:funisMt} = await db.from('funis').select('*').eq('tipo','conferencia').limit(1);
     _funilConferencia = funisMt?.[0]||null;
     if(_funilConferencia){
@@ -3489,17 +3573,11 @@ async function onMtAtBuscaInput(val){
       _etapasConferencia = etapasMt||[];
     }
 
-    console.log('[MT-BUSCA] Funil conferência:', _funilConferencia?.id, '| Etapas:', _etapasConferencia.map(e=>e.nome));
-
-    // Identificar etapa "Concluído" — match flexível (acento, caixa, espaço)
-    const normalizar = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
     const etapaConcluido = _etapasConferencia.find(e=>normalizar(e.nome).includes('conclu'));
-
-    console.log('[MT-BUSCA] Etapa concluído encontrada:', etapaConcluido?.id, etapaConcluido?.nome);
 
     if(!_funilConferencia || !etapaConcluido){
       dropdown.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:#c0392b;">
-        ⚠️ ${!_funilConferencia ? 'Funil de Conferência não encontrado no banco.' : 'Nenhuma etapa com nome "Concluído" encontrada. Etapas disponíveis: '+_etapasConferencia.map(e=>e.nome).join(', ')}
+        ⚠️ ${!_funilConferencia ? 'Funil de Conferência não encontrado.' : 'Etapa "Concluído" não encontrada. Etapas: '+_etapasConferencia.map(e=>e.nome).join(', ')}
       </div>`;
       return;
     }
@@ -3511,8 +3589,6 @@ async function onMtAtBuscaInput(val){
       .or(`cliente_nome.ilike.%${q}%,numero_contrato.ilike.%${q}%`)
       .order('created_at',{ascending:false})
       .limit(8);
-
-    console.log('[MT-BUSCA] Resultados:', data?.length, error);
 
     if(error||!data||!data.length){
       dropdown.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--text3);">Nenhum card encontrado na coluna Concluído do Funil de Conferência.</div>';
@@ -3563,7 +3639,15 @@ function selecionarAtMt(idx){
       }
     }catch(e){}
   }
-  if(mtTipo==='asteca' && contrato) buscarChecklistAsteca(contrato);
+  if(mtTipo==='asteca'){
+    if(a._tipo==='vistoria'){
+      // Selecionado direto pelo relatório — carrega checklist pelo id
+      mtRelatorioId = a.id;
+      buscarChecklistAsteca(contrato, a.id);
+    } else if(contrato){
+      buscarChecklistAsteca(contrato);
+    }
+  }
 }
 
 function desvincularAtMt(){
@@ -3582,12 +3666,19 @@ function desvincularAtMt(){
   }
 }
 
-async function buscarChecklistAsteca(contrato){
+async function buscarChecklistAsteca(contrato, relatorioIdDireto=null){
   const wrap=document.getElementById('mt-checklist-wrap');
   wrap.innerHTML='<div style="font-size:13px;color:var(--text2);padding:8px 0;">🔍 Buscando ocorrências da vistoria...</div>';
-  const {data:relatorios}=await db.from('relatorios_vistoria')
-    .select('id,ocorrencias,cliente_nome').eq('numero_contrato',contrato)
-    .order('created_at',{ascending:false}).limit(1);
+  let relatorios;
+  if(relatorioIdDireto){
+    const {data:r}=await db.from('relatorios_vistoria').select('id,ocorrencias,cliente_nome').eq('id',relatorioIdDireto).limit(1);
+    relatorios=r;
+  } else {
+    const {data:r}=await db.from('relatorios_vistoria')
+      .select('id,ocorrencias,cliente_nome').eq('numero_contrato',contrato)
+      .order('created_at',{ascending:false}).limit(1);
+    relatorios=r;
+  }
   if(!relatorios||!relatorios.length){
     wrap.innerHTML='<div class="alert alert-info">Nenhum relatório de vistoria encontrado para este contrato. A ASTECA será registrada sem checklist.</div>';
     mtChecklist=[];mtRelatorioId=null;atualizarBotaoAsteca();return;
@@ -7938,12 +8029,15 @@ async function concluirConferencia(id, resultado){
   const etapaAlvo = _etapasConferencia.find(e=>(e.nome||'').toLowerCase().trim()===nomeAlvo)
     || _etapasConferencia.find(e=>(e.nome||'').toLowerCase().includes(resultado==='concluido'?'conclu':'andamento'));
 
+  // Sempre manter status='em_andamento' para ficar visível no kanban de conferência
+  // A etapa_funil_id é o que determina a coluna (Concluído ou Em Andamento)
   const updates = {
-    status: resultado==='concluido' ? 'concluido_fechado' : 'em_andamento',
-    etapa_funil_id: etapaAlvo?.id || null
+    status: 'em_andamento',
+    etapa_funil_id: etapaAlvo?.id || null,
+    conf_fim: resultado==='concluido' ? new Date().toISOString() : null
   };
   await db.from('atendimentos').update(updates).eq('id',id);
-  const msg = resultado==='concluido' ? '✅ Conferência concluída!' : '🔄 Marcado como Em andamento.';
+  const msg = resultado==='concluido' ? '✅ Conferência concluída! Card movido para Concluído.' : '🔄 Marcado como Em andamento.';
   notify(msg);
   document.getElementById('modal-at').style.display='none';
   loadConferencia();
