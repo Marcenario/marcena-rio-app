@@ -1539,6 +1539,14 @@ async function onLogin(user){
     const {data:p}=await db.from('perfis').select('nivel').eq('id',user.id).single();
     if(p&&p.nivel&&user.email!==ADMIN_EMAIL)userNivel=p.nivel;
   }catch(e){}
+
+  // Verificar se funcionário está desligado — rebaixar para cliente
+  if(userNivel==='funcionario'){
+    const {data:func}=await db.from('rh_funcionarios').select('ativo').eq('user_id',user.id).maybeSingle();
+    if(func && func.ativo===false){
+      userNivel='cliente'; // Acesso apenas como cliente (solicitar orçamento, meus projetos)
+    }
+  }
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   document.getElementById('topbar-email').textContent=user.email;
