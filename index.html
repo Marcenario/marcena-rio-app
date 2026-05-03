@@ -1115,6 +1115,11 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
       <!-- Lista de ocorrências -->
       <div id="oc-lista">
+        <div style="margin-bottom:12px;">
+          <input type="text" id="oc-busca" placeholder="🔍 Buscar por nome, contrato, pedido ou nota fiscal..."
+            oninput="filtrarOcorrencias(this.value)"
+            style="width:100%;padding:9px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
         <div id="oc-lista-content"><div class="loader">Carregando...</div></div>
       </div>
 
@@ -7618,6 +7623,30 @@ async function loadOcorrencias(){
   cont.innerHTML='<div class="loader">Carregando...</div>';
   const {data}=await db.from('ocorrencias_montagem').select('*,pedidos_montagem(cliente_nome,numero_contrato)').order('created_at',{ascending:false});
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma ocorrência registrada.</p></div>';return}
+  window._todasOcorrencias = data;
+  renderOcorrencias(data);
+}
+
+function filtrarOcorrencias(termo){
+  const t=(termo||'').toLowerCase().trim();
+  if(!window._todasOcorrencias) return;
+  if(!t){ renderOcorrencias(window._todasOcorrencias); return; }
+  const filtrado = window._todasOcorrencias.filter(o=>{
+    const cliente=(o.pedidos_montagem?.cliente_nome||'').toLowerCase();
+    const contrato=(o.pedidos_montagem?.numero_contrato||'').toLowerCase();
+    const itens=o.itens?JSON.parse(o.itens):[];
+    const matchItem=itens.some(i=>
+      (i.nped||'').toLowerCase().includes(t)||
+      (i.nf||'').toLowerCase().includes(t)
+    );
+    return cliente.includes(t)||contrato.includes(t)||matchItem;
+  });
+  renderOcorrencias(filtrado);
+}
+
+function renderOcorrencias(data){
+  const cont=document.getElementById('oc-lista-content');
+  if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhuma ocorrência encontrada.</p></div>';return}
   cont.innerHTML=data.map(o=>{
     const itens=o.itens?JSON.parse(o.itens):[];
     const fotos=o.fotos?JSON.parse(o.fotos):[];
