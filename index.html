@@ -3485,18 +3485,15 @@ async function onMtAtBuscaInput(val){
       dropdown.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--text3);">Nenhum atendimento encontrado com negócio fechado.</div>';
       return;
     }
-    dropdown.innerHTML = data.map(a=>{
+    // Armazena resultados em memória — evita passar JSON via onclick
+    window._mtAtResultados = data;
+    dropdown.innerHTML = data.map((a,i)=>{
       const contrato = a.numero_contrato||'sem contrato';
       const vendedorStr = a.vendedor_nome ? ' · '+a.vendedor_nome : '';
       const valStr = a.estimativa ? ' · R$ '+Number(a.estimativa).toLocaleString('pt-BR') : '';
-      const ambSafe = (a.ambientes||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      const nomeSafe = (a.cliente_nome||'').replace(/'/g,"\\'");
-      const contratoSafe = (contrato||'').replace(/'/g,"\\'");
-      const telSafe = (a.cliente_tel||'').replace(/'/g,"\\'");
-      const vendedorSafe = (a.vendedor_nome||'').replace(/'/g,"\\'");
-      return `<div onclick="selecionarAtMt('${a.id}','${nomeSafe}','${contratoSafe}','${telSafe}','${vendedorSafe}','${ambSafe}')"
+      return `<div onclick="selecionarAtMt(${i})"
         style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border2);"
-        onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''"
+        onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''"
       >
         <div style="font-size:13px;font-weight:600;color:var(--text);">${a.cliente_nome||'—'}</div>
         <div style="font-size:11px;color:var(--text2);">📋 ${contrato}${valStr}${vendedorStr}</div>
@@ -3506,11 +3503,15 @@ async function onMtAtBuscaInput(val){
   }, 350);
 }
 
-function selecionarAtMt(id, nome, contrato, tel, vendedor, ambientesRaw){
-  _mtAtendimentoId = id;
+function selecionarAtMt(idx){
+  const a = (window._mtAtResultados||[])[idx];
+  if(!a){ console.warn('[MT] Resultado não encontrado no índice', idx); return; }
+  _mtAtendimentoId = a.id;
+  const contrato = a.numero_contrato||'';
+  const nome = a.cliente_nome||'';
   document.getElementById('mt-contrato').value = contrato;
   document.getElementById('mt-cliente').value = nome;
-  document.getElementById('mt-atendimento-id').value = id;
+  document.getElementById('mt-atendimento-id').value = a.id;
   document.getElementById('mt-at-nome-display').textContent = nome||'—';
   document.getElementById('mt-at-contrato-display').textContent = contrato ? 'Contrato: '+contrato : 'Sem número de contrato';
   document.getElementById('mt-at-vinculado').style.display='flex';
@@ -3518,11 +3519,13 @@ function selecionarAtMt(id, nome, contrato, tel, vendedor, ambientesRaw){
   document.getElementById('mt-at-busca-hint').style.display='none';
   document.getElementById('mt-at-busca').value='';
   document.getElementById('mt-at-dropdown').style.display='none';
-  if(ambientesRaw && !ambsMt.length){
+  window._mtAtResultados = [];
+  // Pré-carrega ambientes do atendimento se a lista estiver vazia
+  if(a.ambientes && !ambsMt.length){
     try{
-      const ats = JSON.parse(ambientesRaw);
+      const ats = JSON.parse(a.ambientes);
       if(Array.isArray(ats) && ats.length){
-        ambsMt = ats.map(a=>({pedido:'',nf:'',nome:a.nome||a.ambiente||'',valor:a.valor||0}));
+        ambsMt = ats.map(x=>({pedido:'',nf:'',nome:x.nome||x.ambiente||'',valor:x.valor||0}));
         renderAmbsMt(); calcTotalMt();
       }
     }catch(e){}
