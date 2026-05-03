@@ -1779,6 +1779,20 @@ async function enviarOrcamento(){
     console.error('Erro ao criar atendimento automático:', e);
   }
 
+  // Email de boas-vindas com link para o projeto recém-criado
+  fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+    body:JSON.stringify({
+      nome,
+      email: currentUser.email,
+      senha: null,
+      numero_atendimento: null,
+      empresa: 'marcenario',
+      projeto_id: proj?.id||null,
+      usuario_novo: false
+    })
+  }).catch(e=>console.warn('Email boas-vindas portal não enviado:',e));
   await enviarRD(nome,currentUser.email,tel,ambiente,desc,investimento);
   setAlert('orc-alert','Solicitação enviada! Acompanhe em "Meus projetos".','success');
   document.getElementById('orc-nome').value='';document.getElementById('orc-tel').value='';
@@ -6767,12 +6781,7 @@ async function salvarAtendimento(){
       // Inserir perfil
       await db.from('perfis').upsert({id:clienteUserId, email, nome, nivel:'cliente'});
       loginInfo = ` · Login criado (e-mail: ${email} / senha: ${senhaCliente})`;
-      // Enviar email de boas-vindas
-      fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-        body:JSON.stringify({nome, email, senha:senhaCliente, numero_atendimento:numeroAt, empresa:atEmpresa})
-      }).catch(e=>console.warn('Email boas-vindas não enviado:',e));
+      // Email será enviado após criar o projeto (abaixo)
     } else {
       // Usuário já existe — buscar o ID pelo email em perfis
       const motivo = signUpErr?.message||'erro desconhecido';
@@ -6808,6 +6817,21 @@ async function salvarAtendimento(){
       projetoId = proj.id;
       // Vincular projeto ao atendimento
       await db.from('atendimentos').update({projeto_id: projetoId}).eq('numero', numeroAt).eq('mes_ref', new Date().toISOString().slice(0,7));
+    }
+    // Enviar email de boas-vindas com link para o projeto (novo ou existente)
+    if(email){
+      fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+        body:JSON.stringify({
+          nome, email,
+          senha: senhaCliente||null,
+          numero_atendimento: numeroAt,
+          empresa: atEmpresa,
+          projeto_id: projetoId||null,
+          usuario_novo: !!senhaCliente
+        })
+      }).catch(e=>console.warn('Email boas-vindas não enviado:',e));
     }
   }
   setAlert('at-novo-alert',`Atendimento distribuído para ${vendedor.nome}!${loginInfo}`,'success');
