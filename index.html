@@ -1488,6 +1488,13 @@ let currentUser=null,userNivel='cliente',rdKey=localStorage.getItem('mr_rd_key')
 function notify(msg,type='success'){const n=document.getElementById('notif');n.textContent=msg;n.style.background=type==='error'?'#8a1a1a':type==='info'?'#1a4a8a':'#1a1a2e';n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3000)}
 function setAlert(id,msg,type='info'){const el=document.getElementById(id);if(el)el.innerHTML=msg?`<div class="alert alert-${type}">${msg}</div>`:''}
 function fmt(v){return'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+// Retorna data local no fuso do Brasil (America/Sao_Paulo) — evita problema de UTC virando dia seguinte após 21h
+function dataHojeBR(){
+  return new Date().toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}).split('/').reverse().join('-');
+}
+function horaAgoraBR(){
+  return new Date().toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
+}
 function parseMoney(s){return parseFloat(String(s).replace(/[^\d,\.]/g,'').replace(',','.'))||0}
 
 function switchAuthTab(tab){
@@ -3670,7 +3677,7 @@ async function loadPontoHoje() {
   rhFuncAtual = func;
 
   const hoje = new Date();
-  const hojeStr = hoje.toISOString().split('T')[0];
+  const hojeStr = dataHojeBR();
   const diaSemana = hoje.getDay(); // 0=dom, 6=sab
 
   // Verifica domingo
@@ -3791,7 +3798,7 @@ async function confirmarBatida(tipo) {
   if(upErr) { notify('Erro ao enviar foto.', 'error'); if(btn){btn.disabled=false;btn.textContent='📷 Bater ponto';} return; }
   const {data: urlData} = db.storage.from('arquivos').getPublicUrl(path);
 
-  const hojeStr = new Date().toISOString().split('T')[0];
+  const hojeStr = dataHojeBR();
   const {error} = await db.from('rh_pontos').insert({
     funcionario_id: rhFuncAtual.id,
     data: hojeStr,
