@@ -2805,6 +2805,7 @@ function renderCardKanbanMt(p){
   const corBorda=isAsteca?'#8a1a1a':'var(--accent)';
   const dataStr=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
   const prazo=p.data_producao?new Date(p.data_producao+'T12:00:00').toLocaleDateString('pt-BR'):null;
+  const isNaColAsteca=p.status==='asteca_pendente';
   return `<div class="funil-card"
     draggable="true"
     ondragstart="dragStartMt(event,'${p.id}')"
@@ -2819,6 +2820,9 @@ function renderCardKanbanMt(p){
     <div style="font-size:11px;color:var(--text2);">Chegada: ${dataStr}</div>
     ${prazo?`<div style="font-size:11px;color:#1a6b35;font-weight:600;">Prazo: ${prazo}</div>`:''}
     <div style="font-size:12px;font-weight:600;color:var(--accent);margin-top:6px;">${fmt(p.valor_total||0)}</div>
+    ${isAsteca&&isNaColAsteca?`<div style="margin-top:8px;" onclick="event.stopPropagation()">
+      <button onclick="gerarFichaOcorrenciaAsteca('${p.id}')" style="width:100%;background:#8a1a1a;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">📋 Ficha de Ocorrência</button>
+    </div>`:''}
   </div>`;
 }
 
@@ -2952,6 +2956,125 @@ function renderPedidoMt(p){
       ${btnC}${btnE}
     </div>
   </div>`;
+}
+
+async function gerarFichaOcorrenciaAsteca(pedidoId){
+  notify('Gerando ficha de ocorrência...','info');
+  const {data:p}=await db.from('pedidos_montagem').select('*').eq('id',pedidoId).single();
+  if(!p){notify('Pedido não encontrado.','error');return;}
+
+  const checklist=p.checklist_asteca?(typeof p.checklist_asteca==='string'?JSON.parse(p.checklist_asteca):p.checklist_asteca):[];
+  const dataHoje=new Date().toLocaleDateString('pt-BR');
+  const dataChegada=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+
+  // Linhas de ocorrências do checklist
+  const linhasOcorrencias = checklist.length>0
+    ? checklist.map((item,i)=>`
+      <tr style="border:1px solid #333;">
+        <td style="border:1px solid #333;padding:6px 8px;font-size:12px;font-weight:600;background:#eee;">${item.ambiente||item.desc||item||'—'}</td>
+        <td style="border:1px solid #333;padding:6px 8px;font-size:12px;">${item.descricao||item.problema||''}</td>
+        <td style="border:1px solid #333;padding:6px 8px;font-size:11px;color:#555;">Cadastro ${dataHoje}</td>
+        <td style="border:1px solid #333;padding:6px 8px;font-size:12px;">Serviço</td>
+      </tr>`).join('')
+    : `<tr style="border:1px solid #333;">
+        <td colspan="4" style="border:1px solid #333;padding:10px 8px;font-size:12px;text-align:center;color:#555;">ASTECA — Assistência Técnica</td>
+      </tr>`;
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,sans-serif;font-size:12px;color:#000;padding:24px;max-width:800px;margin:0 auto;}
+  .header{display:flex;align-items:center;justify-content:space-between;border:2px solid #003399;margin-bottom:0;}
+  .logo-cell{background:#003399;color:#fff;font-size:22px;font-weight:900;padding:12px 18px;font-style:italic;letter-spacing:1px;min-width:90px;}
+  .titulo-cell{text-align:center;flex:1;font-size:20px;font-weight:700;letter-spacing:2px;padding:12px;}
+  .contrato-cell{border-left:2px solid #003399;padding:12px 16px;text-align:right;min-width:180px;}
+  .contrato-cell .label{font-size:10px;font-weight:700;text-transform:uppercase;}
+  .contrato-cell .num{font-size:16px;font-weight:700;color:#003399;}
+  table.dados{width:100%;border-collapse:collapse;border:1px solid #333;}
+  table.dados td,table.dados th{border:1px solid #333;padding:5px 8px;font-size:11px;}
+  table.dados .lbl{font-weight:700;font-size:10px;text-transform:uppercase;color:#333;}
+  table.ocorr{width:100%;border-collapse:collapse;margin-top:0;}
+  table.ocorr td,table.ocorr th{border:1px solid #333;padding:6px 8px;font-size:11px;}
+  table.ocorr thead{background:#003399;color:#fff;}
+  .decl{border:1px solid #333;padding:14px;margin-top:16px;font-size:11px;color:#333;}
+  .assinaturas{display:grid;grid-template-columns:1fr 1fr 120px;gap:24px;margin-top:32px;}
+  .ass-linha{border-top:1px solid #333;padding-top:6px;text-align:center;font-size:10px;color:#555;}
+  .rodape{text-align:right;font-size:10px;color:#888;margin-top:12px;}
+  @media print{button{display:none!important;}}
+</style>
+</head><body>
+
+<button onclick="window.print()" style="margin-bottom:16px;background:#003399;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;cursor:pointer;font-family:Arial,sans-serif;">🖨️ Imprimir / Salvar PDF</button>
+
+<div class="header">
+  <div class="logo-cell">Italínea</div>
+  <div class="titulo-cell">FICHA OCORRÊNCIAS</div>
+  <div class="contrato-cell">
+    <div class="label">Contrato N.°</div>
+    <div class="num">${p.numero_contrato||'—'}</div>
+  </div>
+</div>
+
+<table class="dados">
+  <tr>
+    <td style="width:30%"><div class="lbl">Responsável pela Venda</div>${p.equipe_nome||'—'}</td>
+    <td style="width:20%"><div class="lbl">Loja</div>RIO DE JANEIRO</td>
+    <td style="width:20%"><div class="lbl">Telefone</div>(21) 97558-4029</td>
+    <td style="width:30%"><div class="lbl">Data de Emissão</div>${dataHoje}</td>
+  </tr>
+  <tr>
+    <td colspan="4"><div class="lbl">Cliente</div>${p.cliente_nome||'—'}</td>
+  </tr>
+  <tr>
+    <td colspan="3"><div class="lbl">Endereço</div>—</td>
+    <td><div class="lbl">Complemento</div>—</td>
+  </tr>
+  <tr>
+    <td><div class="lbl">Bairro</div>—</td>
+    <td><div class="lbl">Cidade</div>RIO DE JANEIRO</td>
+    <td><div class="lbl">UF</div>RJ</td>
+    <td><div class="lbl">CEP</div>—</td>
+  </tr>
+  <tr>
+    <td><div class="lbl">Referência</div>—</td>
+    <td colspan="2"><div class="lbl">Telefone</div>—</td>
+    <td><div class="lbl">E-mail</div>—</td>
+  </tr>
+</table>
+
+<table class="ocorr" style="margin-top:12px;">
+  <thead>
+    <tr>
+      <th style="width:30%;text-align:left;padding:8px;">Ambiente / Item</th>
+      <th style="text-align:left;padding:8px;">Descrição</th>
+      <th style="width:18%;text-align:left;padding:8px;">Cadastro</th>
+      <th style="width:12%;text-align:left;padding:8px;">Tipo</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td colspan="4" style="background:#003399;color:#fff;font-weight:700;font-size:12px;padding:6px 8px;text-align:center;letter-spacing:1px;">OCORRÊNCIAS</td></tr>
+    ${linhasOcorrencias}
+  </tbody>
+</table>
+
+<div class="decl">
+  Declaro que acompanhei a assistência técnica e estou de pleno acordo e satisfeito com os serviços prestados.
+</div>
+
+<div class="assinaturas">
+  <div class="ass-linha">Assinatura do responsável</div>
+  <div class="ass-linha">Assinatura do técnico</div>
+  <div class="ass-linha">Data</div>
+</div>
+
+<div class="rodape">Página 1 / 1</div>
+
+</body></html>`;
+
+  const win=window.open('','_blank','width=900,height=950');
+  if(win){win.document.write(html);win.document.close();}
+  notify('✅ Ficha de ocorrência gerada!');
 }
 
 async function moverParaVistoriaMt(id){
