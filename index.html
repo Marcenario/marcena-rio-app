@@ -2806,6 +2806,27 @@ function renderCardKanbanMt(p){
   const dataStr=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
   const prazo=p.data_producao?new Date(p.data_producao+'T12:00:00').toLocaleDateString('pt-BR'):null;
   const isNaColAsteca=p.status==='asteca_pendente';
+  const isVistoria=p.status==='vistoria';
+  const isConcluido=p.status==='concluido';
+
+  // Botões de ação
+  const btns=[];
+  if(userNivel==='admin'&&!isConcluido){
+    btns.push(`<button onclick="event.stopPropagation();abrirTrocarEquipe('${p.id}')" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">👷 Equipe</button>`);
+  }
+  if(!isVistoria&&!isNaColAsteca&&!isConcluido){
+    btns.push(`<button onclick="event.stopPropagation();moverParaVistoriaMt('${p.id}')" style="background:#1a3a8a;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">🔍 Vistoria</button>`);
+  }
+  if(isVistoria){
+    btns.push(`<button onclick="event.stopPropagation();moverParaAstecaMt('${p.id}')" style="background:#8a1a1a;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">⚡ ASTECA</button>`);
+  }
+  if(!isConcluido){
+    btns.push(`<button onclick="event.stopPropagation();concluirPedidoMt('${p.id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">✓ Concluir</button>`);
+  }
+  if(isNaColAsteca&&isAsteca){
+    btns.push(`<button onclick="event.stopPropagation();gerarFichaOcorrenciaAsteca('${p.id}')" style="background:#8a1a1a;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">📋 Ficha</button>`);
+  }
+
   return `<div class="funil-card"
     draggable="true"
     ondragstart="dragStartMt(event,'${p.id}')"
@@ -2820,9 +2841,7 @@ function renderCardKanbanMt(p){
     <div style="font-size:11px;color:var(--text2);">Chegada: ${dataStr}</div>
     ${prazo?`<div style="font-size:11px;color:#1a6b35;font-weight:600;">Prazo: ${prazo}</div>`:''}
     <div style="font-size:12px;font-weight:600;color:var(--accent);margin-top:6px;">${fmt(p.valor_total||0)}</div>
-    ${isAsteca&&isNaColAsteca?`<div style="margin-top:8px;" onclick="event.stopPropagation()">
-      <button onclick="gerarFichaOcorrenciaAsteca('${p.id}')" style="width:100%;background:#8a1a1a;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">📋 Ficha de Ocorrência</button>
-    </div>`:''}
+    ${btns.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;" onclick="event.stopPropagation()">${btns.join('')}</div>`:''}
   </div>`;
 }
 
