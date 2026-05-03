@@ -632,9 +632,13 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores</div>
           <div id="at-amb-list"></div>
           <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:end;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
               <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nome do ambiente</label><input type="text" id="at-amb-nome" placeholder="Ex: Cozinha" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
               <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Valor (R$)</label><input type="text" id="at-amb-valor" placeholder="Ex: 15000" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:end;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nº do pedido</label><input type="text" id="at-amb-pedido" placeholder="Ex: 6200254" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:4px;">Nota fiscal</label><input type="text" id="at-amb-nf" placeholder="Ex: 56454651" style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
               <button style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 12px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;white-space:nowrap;" onclick="addAmbAt()">+ Add</button>
             </div>
           </div>
@@ -2619,15 +2623,16 @@ function addAmbMt(){
 function renderAmbsMt(){
   const total=ambsMt.reduce((s,a)=>s+a.valor,0);
   document.getElementById('mt-total').textContent=fmt(total);
+  const inlineStyle='width:100%;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;font-size:12px;font-family:\'DM Sans\',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;';
   document.getElementById('mt-amb-list').innerHTML=ambsMt.length?`
     <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.3px;">
-        <span>Nº Pedido</span><span>NF</span><span>Ambiente</span><span>Valor</span><span></span>
+      <div style="display:grid;grid-template-columns:1.2fr 1.2fr 1.5fr 1.2fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.3px;">
+        <span>Nº Pedido</span><span>Nota Fiscal</span><span>Ambiente</span><span>Valor</span><span></span>
       </div>
-      ${ambsMt.map((a,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;padding:10px 12px;border-top:1px solid var(--border);font-size:13px;align-items:center;">
-        <span style="color:var(--text2);">${a.pedido||'—'}</span>
-        <span style="color:var(--text2);">${a.nf||'—'}</span>
-        <span style="font-weight:500;">${a.nome}</span>
+      ${ambsMt.map((a,i)=>`<div style="display:grid;grid-template-columns:1.2fr 1.2fr 1.5fr 1.2fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:13px;align-items:center;gap:6px;">
+        <input value="${a.pedido||''}" placeholder="Nº pedido" oninput="ambsMt[${i}].pedido=this.value" style="${inlineStyle}">
+        <input value="${a.nf||''}" placeholder="Nota fiscal" oninput="ambsMt[${i}].nf=this.value" style="${inlineStyle}">
+        <span style="font-weight:500;padding:0 4px;">${a.nome}</span>
         <span style="font-weight:500;color:var(--accent);">${fmt(a.valor)}</span>
         <button class="btn-red-sm" onclick="removeAmbMt(${i})">✕</button>
       </div>`).join('')}
@@ -5698,9 +5703,14 @@ async function distribuirVendedor(){
 function addAmbAt(){
   const nome=document.getElementById('at-amb-nome').value.trim();
   const valor=parseMoney(document.getElementById('at-amb-valor').value);
+  const pedido=(document.getElementById('at-amb-pedido')?.value||'').trim();
+  const nf=(document.getElementById('at-amb-nf')?.value||'').trim();
   if(!nome){notify('Informe o nome do ambiente.','error');return}
-  atAmbs.push({nome,valor,vendeu:null});
-  document.getElementById('at-amb-nome').value='';document.getElementById('at-amb-valor').value='';
+  atAmbs.push({nome,valor,pedido,nf,vendeu:null});
+  document.getElementById('at-amb-nome').value='';
+  document.getElementById('at-amb-valor').value='';
+  if(document.getElementById('at-amb-pedido'))document.getElementById('at-amb-pedido').value='';
+  if(document.getElementById('at-amb-nf'))document.getElementById('at-amb-nf').value='';
   renderAmbsAt();
 }
 function removeAmbAt(i){atAmbs.splice(i,1);renderAmbsAt();}
@@ -7094,11 +7104,17 @@ async function abrirModalAt(id){
     <!-- Adicionar novo ambiente no modal -->
     <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
       <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;">+ Adicionar ambiente</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:end;">
-        <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Nome</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Nome do ambiente</label>
         <input type="text" id="modal-amb-nome-${id}" placeholder="Ex: Cozinha" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>
         <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Valor (R$)</label>
         <input type="text" id="modal-amb-valor-${id}" placeholder="Ex: 15000" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:end;">
+        <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Nº do pedido</label>
+        <input type="text" id="modal-amb-pedido-${id}" placeholder="Ex: 6200254" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Nota fiscal</label>
+        <input type="text" id="modal-amb-nf-${id}" placeholder="Ex: 56454651" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>
         <button onclick="addAmbModal('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">+ Add</button>
       </div>
     </div>
@@ -7308,10 +7324,12 @@ async function addAmbModal(atId){
   const nome = document.getElementById(`modal-amb-nome-${atId}`)?.value.trim();
   const valorStr = document.getElementById(`modal-amb-valor-${atId}`)?.value;
   const valor = parseMoney(valorStr);
+  const pedido = (document.getElementById(`modal-amb-pedido-${atId}`)?.value||'').trim();
+  const nf = (document.getElementById(`modal-amb-nf-${atId}`)?.value||'').trim();
   if(!nome){notify('Informe o nome do ambiente.','error');return}
   const ref = window._atModalAmbs;
   if(!ref||ref.id!==atId)return;
-  ref.ambs.push({nome, valor:valor||0, vendeu:null});
+  ref.ambs.push({nome, valor:valor||0, pedido, nf, vendeu:null});
   await db.from('atendimentos').update({ambientes:JSON.stringify(ref.ambs)}).eq('id',atId);
   notify('Ambiente adicionado!');
   abrirModalAt(atId);
