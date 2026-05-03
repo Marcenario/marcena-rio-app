@@ -2641,8 +2641,9 @@ function renderKanbanMt(data){
   if(_filtroTipoMt==='montagem') lista=data.filter(p=>p.tipo!=='asteca');
   else if(_filtroTipoMt==='asteca') lista=data.filter(p=>p.tipo==='asteca');
 
-  // Pedidos ativos (não concluídos)
-  const ativos=lista.filter(p=>p.status!=='concluido');
+  const ativos=lista.filter(p=>p.status!=='concluido'&&p.status!=='vistoria'&&p.status!=='asteca_pendente');
+  const vistoria=lista.filter(p=>p.status==='vistoria');
+  const astecaCol=lista.filter(p=>p.status==='asteca_pendente');
   const concluidos=lista.filter(p=>p.status==='concluido');
 
   if(!equipes.length){
@@ -2650,62 +2651,64 @@ function renderKanbanMt(data){
     return;
   }
 
-  // Coluna para pedidos sem equipe
-  const semEquipe=ativos.filter(p=>!p.equipe_id);
+  const _ocultas = new Set(JSON.parse(localStorage.getItem('mt_colunasOcultas')||'[]'));
+
+  const buildColMt = (id, titulo, cor, corTexto, corBadge, cards, extraBtn='') => {
+    const oculta = _ocultas.has(id);
+    if(oculta) return `<div class="funil-col" style="min-width:56px;max-width:56px;flex-shrink:0;">
+      <div class="funil-col-header" style="background:${cor};color:${corTexto};flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 4px;min-height:80px;">
+        <button onclick="toggleColMt('${id}')" style="background:transparent;border:none;cursor:pointer;color:${corTexto};font-size:14px;" title="Mostrar">⊕</button>
+        <span style="font-size:10px;font-weight:600;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);letter-spacing:0.5px;">${titulo.toUpperCase()}</span>
+      </div>
+    </div>`;
+    const totalVal=cards.reduce((s,p)=>s+(p.valor_total||0),0);
+    const cardHtml=cards.length?cards.map(p=>renderCardKanbanMt(p)).join(''):`<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum pedido</div>`;
+    return `<div class="funil-col">
+      <div class="funil-col-header" style="background:${cor};color:${corTexto};">
+        <div class="funil-col-header-info">
+          <span style="font-size:12px;font-weight:600;">${titulo}</span>
+          ${totalVal>0?`<span style="font-size:11px;opacity:0.85;">${fmt(totalVal)}</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="background:${corBadge};color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
+          <button onclick="toggleColMt('${id}')" style="background:rgba(0,0,0,0.15);border:none;cursor:pointer;color:${corTexto};border-radius:50%;width:22px;height:22px;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;" title="Ocultar">⊖</button>
+          ${extraBtn}
+        </div>
+      </div>
+      <div class="funil-col-body"${id.startsWith('eq_')?` ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropMt(event,'${id.replace('eq_','')}','${titulo}')" data-equipe-id="${id.replace('eq_','')}"`:''}>${cardHtml}</div>
+    </div>`;
+  };
 
   let html='<div class="funil-wrap">';
 
-  // Uma coluna por equipe
+  // Colunas por equipe
   equipes.forEach(eq=>{
     const cards=ativos.filter(p=>p.equipe_id===eq.id);
-    const totalVal=cards.reduce((s,p)=>s+p.valor_total,0);
-    const cardHtml=cards.length
-      ? cards.map(p=>renderCardKanbanMt(p)).join('')
-      : `<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px;">Nenhum pedido</div>`;
-    html+=`<div class="funil-col">
-      <div class="funil-col-header" style="background:#f0e6d3;color:#6b4c2a;">
-        <div class="funil-col-header-info">
-          <span style="font-size:12px;font-weight:600;">${eq.nome}</span>
-          ${totalVal>0?`<span style="font-size:11px;opacity:0.85;">${fmt(totalVal)}</span>`:''}
-        </div>
-        <span style="background:#6b4c2a;color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${cards.length}</span>
-      </div>
-      <div class="funil-col-body"
-        ondragover="dragOver(event)"
-        ondragleave="dragLeave(event)"
-        ondrop="dropMt(event,'${eq.id}','${eq.nome}')"
-        data-equipe-id="${eq.id}">
-        ${cardHtml}
-      </div>
-    </div>`;
+    html+=buildColMt('eq_'+eq.id, eq.nome, '#f0e6d3', '#6b4c2a', '#6b4c2a', cards);
   });
 
-  // Coluna sem equipe
-  if(semEquipe.length){
-    const cardHtml=semEquipe.map(p=>renderCardKanbanMt(p)).join('');
-    html+=`<div class="funil-col">
-      <div class="funil-col-header" style="background:#f5f5f5;color:#666;">
-        <div class="funil-col-header-info"><span style="font-size:12px;font-weight:600;">Sem equipe</span></div>
-        <span style="background:#666;color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${semEquipe.length}</span>
-      </div>
-      <div class="funil-col-body">${cardHtml}</div>
-    </div>`;
-  }
+  // Sem equipe
+  const semEquipe=ativos.filter(p=>!p.equipe_id);
+  if(semEquipe.length) html+=buildColMt('sem_equipe','Sem equipe','#f5f5f5','#666','#666',semEquipe);
 
-  // Coluna de concluídos
-  if(concluidos.length){
-    const cardHtml=concluidos.map(p=>renderCardKanbanMt(p)).join('');
-    html+=`<div class="funil-col">
-      <div class="funil-col-header" style="background:var(--green-bg);color:var(--green);">
-        <div class="funil-col-header-info"><span style="font-size:12px;font-weight:600;">✓ Concluídos</span></div>
-        <span style="background:var(--green);color:#fff;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">${concluidos.length}</span>
-      </div>
-      <div class="funil-col-body">${cardHtml}</div>
-    </div>`;
-  }
+  // Vistoria Final
+  html+=buildColMt('vistoria_final','🔍 Vistoria Final','#e8f0ff','#1a3a8a','#1a3a8a',vistoria);
+
+  // ASTECA
+  html+=buildColMt('asteca_col','⚡ ASTECA','#fff0f0','#8a1a1a','#8a1a1a',astecaCol);
+
+  // Concluídos
+  html+=buildColMt('concluidos','✓ Concluídos','var(--green-bg)','var(--green)','var(--green)',concluidos);
 
   html+='</div>';
   cont.innerHTML=html;
+}
+
+function toggleColMt(id){
+  const _ocultas=new Set(JSON.parse(localStorage.getItem('mt_colunasOcultas')||'[]'));
+  if(_ocultas.has(id)) _ocultas.delete(id); else _ocultas.add(id);
+  localStorage.setItem('mt_colunasOcultas',JSON.stringify([..._ocultas]));
+  renderKanbanMt(window._todosPedidosMt||[]);
 }
 
 function renderCardKanbanMt(p){
@@ -2855,9 +2858,20 @@ function renderPedidoMt(p){
     ${checklistHtml}
     <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;">
       ${userNivel==='admin'?`<button onclick="abrirTrocarEquipe('${p.id}')" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;">👷 Trocar equipe</button>`:''}
+      ${p.status!=='vistoria'&&p.status!=='concluido'?`<button onclick="moverParaVistoriaMt('${p.id}')" style="background:#1a3a8a;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;">🔍 Vistoria</button>`:''}
+      ${p.status==='vistoria'?`<button onclick="moverParaAstecaMt('${p.id}')" style="background:#8a1a1a;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;">⚡ ASTECA</button>`:''}
       ${btnC}${btnE}
     </div>
   </div>`;
+}
+
+async function moverParaVistoriaMt(id){
+  await db.from('pedidos_montagem').update({status:'vistoria'}).eq('id',id);
+  notify('Movido para Vistoria Final!'); loadFilaMt();
+}
+async function moverParaAstecaMt(id){
+  await db.from('pedidos_montagem').update({status:'asteca_pendente'}).eq('id',id);
+  notify('Movido para ASTECA!'); loadFilaMt();
 }
 
 async function concluirPedidoMt(id){
