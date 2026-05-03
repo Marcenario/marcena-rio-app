@@ -459,11 +459,34 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <button class="tipo-btn" id="btn-tipo-asteca" onclick="setTipoMt('asteca')">🔧 ASTECA — Assistência Técnica</button>
           </div>
 
+          <!-- Vínculo obrigatório com atendimento em Vendas -->
+          <div class="form-row" style="margin-bottom:8px;">
+            <label>Buscar atendimento <span style="color:#c0392b;font-size:10px;font-weight:600;background:#fdecea;padding:2px 6px;border-radius:4px;margin-left:6px;">obrigatório</span></label>
+            <div id="mt-at-vinculado" style="display:none;align-items:center;gap:10px;background:var(--green-bg,#eafaf1);border:1px solid #a8d5b5;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:6px;">
+              <span style="font-size:18px;">🔗</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;color:var(--text);" id="mt-at-nome-display">—</div>
+                <div style="font-size:11px;color:var(--text2);" id="mt-at-contrato-display">—</div>
+              </div>
+              <button onclick="desvincularAtMt()" title="Desvincular" style="background:none;border:1px solid #c0392b;color:#c0392b;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">✕ Trocar</button>
+            </div>
+            <div id="mt-at-busca-wrap" style="position:relative;">
+              <input type="text" id="mt-at-busca" placeholder="Digite o nome do cliente ou número do contrato..." autocomplete="off"
+                oninput="onMtAtBuscaInput(this.value)"
+                onblur="setTimeout(()=>{const d=document.getElementById('mt-at-dropdown');if(d)d.style.display='none';},200)"
+                style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+              <div id="mt-at-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:999;max-height:220px;overflow-y:auto;"></div>
+            </div>
+            <div id="mt-at-busca-hint" style="font-size:11px;color:var(--text3);margin-top:4px;">Somente atendimentos com negócio fechado (coluna Vendas) aparecem aqui.</div>
+          </div>
+
+          <!-- Campos preenchidos automaticamente — somente leitura após vínculo -->
           <div class="form-grid">
-            <div class="form-row"><label>Número do contrato</label><input type="text" id="mt-contrato" placeholder="Ex: CT-2026-001" oninput="onMtContratoInput(this.value)"></div>
+            <div class="form-row"><label>Número do contrato</label><input type="text" id="mt-contrato" placeholder="Preenchido automaticamente" readonly style="background:var(--bg);color:var(--text2);cursor:default;"></div>
             <div class="form-row"><label>Data de chegada</label><input type="date" id="mt-data"></div>
           </div>
-          <div class="form-row"><label>Nome do cliente</label><input type="text" id="mt-cliente" placeholder="Nome completo"></div>
+          <div class="form-row"><label>Nome do cliente</label><input type="text" id="mt-cliente" placeholder="Preenchido automaticamente" readonly style="background:var(--bg);color:var(--text2);cursor:default;"></div>
+          <input type="hidden" id="mt-atendimento-id">
 
           <!-- CHECKLIST ASTECA — aparece só quando tipo=asteca -->
           <div id="mt-asteca-wrap" style="display:none;">
@@ -2634,7 +2657,9 @@ async function salvarPedidoMt(){
   const contrato=document.getElementById('mt-contrato').value.trim();
   const cliente=document.getElementById('mt-cliente').value.trim();
   const data=document.getElementById('mt-data').value;
-  if(!contrato){setAlert('mt-novo-alert','Preencha o número do contrato.','error');return}
+  const atId = document.getElementById('mt-atendimento-id')?.value||'';
+  if(!atId){setAlert('mt-novo-alert','Vincule um atendimento antes de registrar. Use o campo de busca acima.','error');return}
+  if(!contrato){setAlert('mt-novo-alert','O atendimento selecionado não possui número de contrato. Cadastre o contrato no atendimento e tente novamente.','error');return}
   if(!cliente){setAlert('mt-novo-alert','Preencha o nome do cliente.','error');return}
   if(!ambsMt.length){setAlert('mt-novo-alert','Adicione pelo menos um ambiente.','error');return}
   const valorTotal=ambsMt.reduce((s,a)=>s+a.valor,0);
@@ -2653,7 +2678,7 @@ async function salvarPedidoMt(){
   const equipe=await distribuirEquipe(valorTotal);
   if(!equipe){setAlert('mt-novo-alert','Cadastre pelo menos uma equipe antes.','error');btn.disabled=false;btn.textContent=mtTipo==='asteca'?'🔧 Registrar ASTECA — URGENTE':'Registrar e distribuir para equipe';return}
   const payload={
-    cliente_nome:cliente,numero_contrato:contrato,data_chegada:data,
+    cliente_nome:cliente,numero_contrato:contrato,data_chegada:data,atendimento_id:atId||null,
     valor_total:valorTotal,ambientes:JSON.stringify(ambsMt),
     equipe_id:equipe.id,equipe_nome:equipe.nome,status:'em_montagem',
     tipo:mtTipo
@@ -2670,6 +2695,12 @@ async function salvarPedidoMt(){
   ambsMt=[];renderAmbsMt();mtChecklist=[];mtRelatorioId=null;
   document.getElementById('mt-contrato').value='';
   document.getElementById('mt-cliente').value='';
+  document.getElementById('mt-atendimento-id').value='';
+  _mtAtendimentoId=null;
+  document.getElementById('mt-at-vinculado').style.display='none';
+  document.getElementById('mt-at-busca-wrap').style.display='block';
+  document.getElementById('mt-at-busca-hint').style.display='block';
+  document.getElementById('mt-at-busca').value='';
   document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
   if(mtTipo==='asteca'){
     document.getElementById('mt-checklist-wrap').innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Digite o número do contrato acima para carregar as ocorrências da vistoria.</div>';
@@ -3424,10 +3455,94 @@ function setTipoMt(tipo){
 }
 
 let mtContratoTimeout=null;
+/* ── VÍNCULO ATENDIMENTO → MONTAGEM ── */
+let _mtAtendimentoId = null;
+let _mtAtBuscaTimer = null;
+
 function onMtContratoInput(val){
+  // mantido apenas para retrocompatibilidade com buscarChecklistAsteca via contrato
   clearTimeout(mtContratoTimeout);
   if(mtTipo==='asteca'&&val.trim().length>2){
     mtContratoTimeout=setTimeout(()=>buscarChecklistAsteca(val.trim()),600);
+  }
+}
+
+async function onMtAtBuscaInput(val){
+  clearTimeout(_mtAtBuscaTimer);
+  const dropdown = document.getElementById('mt-at-dropdown');
+  if(!val||val.trim().length<2){ dropdown.style.display='none'; return; }
+  dropdown.style.display='block';
+  dropdown.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--text3);">Buscando...</div>';
+  _mtAtBuscaTimer = setTimeout(async ()=>{
+    const q = val.trim();
+    const {data,error} = await db.from('atendimentos')
+      .select('id,cliente_nome,cliente_tel,numero_contrato,vendedor_nome,estimativa,ambientes')
+      .eq('status','concluido_fechado')
+      .or(`cliente_nome.ilike.%${q}%,numero_contrato.ilike.%${q}%`)
+      .order('created_at',{ascending:false})
+      .limit(8);
+    if(error||!data||!data.length){
+      dropdown.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--text3);">Nenhum atendimento encontrado com negócio fechado.</div>';
+      return;
+    }
+    dropdown.innerHTML = data.map(a=>{
+      const contrato = a.numero_contrato||'sem contrato';
+      const vendedorStr = a.vendedor_nome ? ' · '+a.vendedor_nome : '';
+      const valStr = a.estimativa ? ' · R$ '+Number(a.estimativa).toLocaleString('pt-BR') : '';
+      const ambSafe = (a.ambientes||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const nomeSafe = (a.cliente_nome||'').replace(/'/g,"\\'");
+      const contratoSafe = (contrato||'').replace(/'/g,"\\'");
+      const telSafe = (a.cliente_tel||'').replace(/'/g,"\\'");
+      const vendedorSafe = (a.vendedor_nome||'').replace(/'/g,"\\'");
+      return `<div onclick="selecionarAtMt('${a.id}','${nomeSafe}','${contratoSafe}','${telSafe}','${vendedorSafe}','${ambSafe}')"
+        style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border2);"
+        onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''"
+      >
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${a.cliente_nome||'—'}</div>
+        <div style="font-size:11px;color:var(--text2);">📋 ${contrato}${valStr}${vendedorStr}</div>
+      </div>`;
+    }).join('');
+    dropdown.style.display='block';
+  }, 350);
+}
+
+function selecionarAtMt(id, nome, contrato, tel, vendedor, ambientesRaw){
+  _mtAtendimentoId = id;
+  document.getElementById('mt-contrato').value = contrato;
+  document.getElementById('mt-cliente').value = nome;
+  document.getElementById('mt-atendimento-id').value = id;
+  document.getElementById('mt-at-nome-display').textContent = nome||'—';
+  document.getElementById('mt-at-contrato-display').textContent = contrato ? 'Contrato: '+contrato : 'Sem número de contrato';
+  document.getElementById('mt-at-vinculado').style.display='flex';
+  document.getElementById('mt-at-busca-wrap').style.display='none';
+  document.getElementById('mt-at-busca-hint').style.display='none';
+  document.getElementById('mt-at-busca').value='';
+  document.getElementById('mt-at-dropdown').style.display='none';
+  if(ambientesRaw && !ambsMt.length){
+    try{
+      const ats = JSON.parse(ambientesRaw);
+      if(Array.isArray(ats) && ats.length){
+        ambsMt = ats.map(a=>({pedido:'',nf:'',nome:a.nome||a.ambiente||'',valor:a.valor||0}));
+        renderAmbsMt(); calcTotalMt();
+      }
+    }catch(e){}
+  }
+  if(mtTipo==='asteca' && contrato) buscarChecklistAsteca(contrato);
+}
+
+function desvincularAtMt(){
+  _mtAtendimentoId = null;
+  document.getElementById('mt-contrato').value='';
+  document.getElementById('mt-cliente').value='';
+  document.getElementById('mt-atendimento-id').value='';
+  document.getElementById('mt-at-vinculado').style.display='none';
+  document.getElementById('mt-at-busca-wrap').style.display='block';
+  document.getElementById('mt-at-busca-hint').style.display='block';
+  document.getElementById('mt-at-busca').value='';
+  document.getElementById('mt-at-busca').focus();
+  if(mtTipo==='asteca'){
+    document.getElementById('mt-checklist-wrap').innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Selecione o atendimento acima para carregar as ocorrências.</div>';
+    mtChecklist=[];mtRelatorioId=null;
   }
 }
 
