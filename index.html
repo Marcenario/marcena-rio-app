@@ -6953,7 +6953,12 @@ async function salvarAtendimento(){
   if(email){
     let clienteUserId = null;
     // Senha = número do atendimento (ex: ld-00604) — mínimo 6 caracteres garantido
-    const senhaCliente = numeroAt;
+    // Senha temporária segura: 3 palavras + número (fácil de digitar, difícil de adivinhar)
+    const _adj = ['azul','verde','forte','novo','belo','alto','bom','real','vivo','rico'];
+    const _sub = ['casa','mesa','porta','janela','chave','pedra','campo','rio','lago','mar'];
+    const _verb = ['move','sobe','abre','liga','cria','soma','usa','faz','tem','vai'];
+    const _r = ()=>Math.floor(Math.random()*10);
+    const senhaCliente = _adj[_r()]+_sub[_r()]+_verb[_r()]+Math.floor(Math.random()*900+100);
     const {data:signUpData, error:signUpErr} = await db.auth.signUp({
       email,
       password: senhaCliente,
