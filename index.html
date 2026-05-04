@@ -2265,22 +2265,54 @@ function renderProjeto(p){
       const docId = p[campoDoc]||'';
       const pdfAtual = p[etAtual.key]||'';
 
-      // Questionário de montagem — só na etapa Projeto Executivo
+      // Questionário de montagem — só na etapa Projeto Executivo, com fluxo de assinatura
+      const questStatus = p.questionario_montagem_status||'pendente';
+      const questDocId  = p.questionario_montagem_doc_id||'';
+      const questSignedUrl = p.questionario_montagem_signed_url||'';
+      const questPdfUrl = p.questionario_montagem_url||'';
+
       const questExtraHtml = etAtual.key==='projeto_exec_url' ? `
         <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px;">
-          <div style="font-size:11px;font-weight:600;color:#7a1a8a;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📋 Questionário de montagem <span style="color:var(--red);font-size:10px;">● obrigatório</span></div>
-          ${p.questionario_montagem_url
-            ? `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <a href="${p.questionario_montagem_url}" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none;">📎 Ver questionário</a>
-                <label style="cursor:pointer;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:11px;font-family:'DM Sans',sans-serif;">
-                  🔄 Trocar
-                  <input type="file" id="campo-quest-${p.id}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display:none;" onchange="salvarQuestionarioMontagem('${p.id}',this)">
-                </label>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:600;color:#7a1a8a;text-transform:uppercase;letter-spacing:0.4px;">📋 Questionário de montagem <span style="color:var(--red);font-size:10px;">● obrigatório</span></div>
+            ${questStatus==='assinado'
+              ?'<span style="font-size:10px;font-weight:600;color:#15803d;background:#dcfce7;padding:2px 8px;border-radius:8px;">✓ Assinado</span>'
+              :questStatus==='enviado'
+              ?'<span style="font-size:10px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 8px;border-radius:8px;">⏳ Aguardando assinatura</span>'
+              :'<span style="font-size:10px;color:var(--text3);">Pendente</span>'
+            }
+          </div>
+
+          ${questPdfUrl
+            ?`<div style="margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;">
+                  📎 <a href="${questSignedUrl||questPdfUrl}" target="_blank" style="color:var(--blue);text-decoration:none;">
+                    ${questStatus==='assinado'?'Ver questionário assinado':'Ver questionário'}
+                  </a>
+                </div>
               </div>`
-            : `<div style="display:flex;gap:8px;align-items:center;">
-                <input type="file" id="campo-quest-${p.id}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="font-size:11px;flex:1;">
-                <button onclick="salvarQuestionarioMontagem('${p.id}',document.getElementById('campo-quest-${p.id}'))" style="background:#7a1a8a;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">📤 Enviar</button>
-              </div>`
+            :''
+          }
+
+          ${questStatus!=='assinado'?`
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+              <input type="file" id="campo-quest-${p.id}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="font-size:11px;flex:1;">
+              <button onclick="salvarQuestionarioMontagem('${p.id}',document.getElementById('campo-quest-${p.id}'))"
+                style="background:#7a1a8a;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap;">
+                📤 ${questPdfUrl?'Substituir':'Enviar'}
+              </button>
+            </div>`:''
+          }
+
+          ${questPdfUrl?`
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${questStatus!=='assinado'?`<button onclick="enviarProjetoAssinatura('${p.id}','questionario_montagem','proj')"
+                style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">
+                ✉ Enviar para assinatura</button>`:''}
+              ${questStatus==='enviado'&&questDocId?`<button onclick="sincronizarProjetoProj('${p.id}','questionario_montagem','${questDocId}')"
+                style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">
+                🔄 Sincronizar</button>`:''}
+            </div>`:''
           }
         </div>` : '';
 
