@@ -1785,7 +1785,7 @@ async function onLogin(user){
   document.getElementById('app-screen').style.display='block';
   document.getElementById('topbar-email').textContent=user.email;
   const nivelLabel=userNivel==='admin'?'Admin':userNivel==='funcionario'?'Funcionário':'Cliente';
-  carregarEmpresas();
+  carregarEmpresas(); // fire and forget — não bloqueia o login
   const nivelClass=userNivel==='admin'?'nivel-admin':userNivel==='funcionario'?'nivel-funcionario':'nivel-cliente';
   document.getElementById('topbar-nivel').textContent=nivelLabel;
   document.getElementById('topbar-nivel').className='topbar-nivel '+nivelClass;
@@ -2953,6 +2953,7 @@ async function toggleEmpresaAtivo(id, ativo){
 }
 
 async function loadAdmin(){
+  await carregarEmpresas();
   loadEmpresasAdmin();
   const {data}=await db.from('projetos').select('*').order('created_at',{ascending:false});
   if(!data)return;
