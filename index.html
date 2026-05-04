@@ -2051,6 +2051,30 @@ function renderProjeto(p){
         :`<span style="font-size:10px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 7px;border-radius:8px;">⏳ Aguardando assinatura</span>`;
       extraHtml=`<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><a href="${p[et.key]}" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;">📎 Ver ${labelArq}</a>${badgeAss}</div>`;
     }
+    // Vistoria Final — mostrar PDF assinado para o cliente (assíncrono via placeholder)
+    if(et.key==='data_vistoria'&&(st==='done'||st==='active')&&p.numero_contrato){
+      const _pvId = p.id;
+      const _pvCont = p.numero_contrato||'';
+      extraHtml='<div id="vistoria-cliente-'+_pvId+'" style="margin-top:4px;"><span style="font-size:11px;color:var(--text3);">🔍 Verificando relatório...</span></div>';
+      setTimeout(async ()=>{
+        const divEl=document.getElementById('vistoria-cliente-'+_pvId);
+        if(!divEl) return;
+        const {data:rels}=await db.from('relatorios_vistoria')
+          .select('id,status,signed_pdf_url,pdf_url')
+          .eq('numero_contrato',_pvCont)
+          .order('created_at',{ascending:false}).limit(1);
+        const rv=rels?.[0];
+        if(!rv){ divEl.innerHTML=''; return; }
+        const pdfLink=rv.signed_pdf_url||rv.pdf_url||'';
+        const badge=rv.status==='assinado'
+          ?'<span style="font-size:10px;font-weight:600;color:#15803d;background:#dcfce7;padding:2px 7px;border-radius:8px;">✅ Assinado</span>'
+          :'<span style="font-size:10px;font-weight:600;color:#b45309;background:#fff7ed;padding:2px 7px;border-radius:8px;">⏳ Aguardando assinatura</span>';
+        divEl.innerHTML=pdfLink
+          ?'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;"><a href="'+pdfLink+'" target="_blank" style="font-size:11px;color:var(--blue);text-decoration:none;">📎 Ver relatório de vistoria</a>'+badge+'</div>'
+          :'<div style="margin-top:4px;">'+badge+'</div>';
+      },200);
+    }
+
     // Prazo de conferência — aparece na etapa Elaboração do projeto executivo (idx 8), só para staff
     if(i===8&&isStaff&&p.prazo_conferencia){
       const hoje=new Date(); hoje.setHours(0,0,0,0);
@@ -2122,7 +2146,24 @@ function renderProjeto(p){
         <button onclick="salvarCampoEtapa('${p.id}','data_producao',document.getElementById('campo-data-prod-${p.id}').value,null,null)" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Salvar data</button>
       </div>`;
     }
-    if(etAtual.campo==='data'){
+    if(etAtual.key==='data_vistoria'){
+      // Vistoria Final — data + relatório vinculado
+      const dataVist = p[etAtual.key]||'';
+      const horaVist = etAtual.keyHorario ? (p[etAtual.keyHorario]||'') : '';
+      const contratoVist = p.numero_contrato||'';
+      campoExtra = `<div style="margin-top:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Data</label>
+          <input type="date" id="campo-data-${p.id}" value="${dataVist}" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>
+          <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Horário</label>
+          <input type="time" id="campo-hora-${p.id}" value="${horaVist}" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;"></div>
+        </div>
+        <button onclick="salvarCampoEtapa('${p.id}','${etAtual.key}',document.getElementById('campo-data-${p.id}').value,'${etAtual.keyHorario||''}',document.getElementById('campo-hora-${p.id}')?.value||'')"
+          style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;margin-bottom:12px;">💾 Salvar data</button>
+        <div id="bloco-rel-vist-${p.id}"><div style="font-size:12px;color:var(--text3);">🔍 Carregando relatório...</div></div>
+      </div>`;
+      setTimeout(()=>carregarBlocoRelatorioVistoria('${p.id}','${contratoVist}'),80);
+    } else if(etAtual.campo==='data'){
       const valAtual=etAtual.key&&p[etAtual.key]?p[etAtual.key]:'';
       const temHorario=!!etAtual.keyHorario;
       const valHorario=temHorario&&p[etAtual.keyHorario]?p[etAtual.keyHorario]:'';
@@ -8931,6 +8972,83 @@ async function sincronizarProjetoAt(atId, tipo){
   }
 }
 
+
+
+/* ── RELATÓRIO VISTORIA NA TIMELINE ── */
+async function carregarBlocoRelatorioVistoria(projetoId, contrato){
+  const el = document.getElementById(`bloco-rel-vist-${projetoId}`);
+  if(!el) return;
+
+  if(!contrato){
+    el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0;">Sem número de contrato vinculado. Cadastre o contrato para vincular o relatório.</div>';
+    return;
+  }
+
+  const {data:rels} = await db.from('relatorios_vistoria')
+    .select('id,status,doc_id,pdf_url,signed_pdf_url,data_vistoria,cliente_nome,responsavel_nome')
+    .eq('numero_contrato', contrato)
+    .order('created_at',{ascending:false}).limit(1);
+
+  const r = rels?.[0];
+
+  if(!r){
+    el.innerHTML=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">🔍 Relatório de Vistoria</div>
+      <div style="font-size:12px;color:var(--text3);">Nenhum relatório de vistoria encontrado para o contrato <strong>${contrato}</strong>. Gere um relatório no módulo <strong>Vistoria Final</strong>.</div>
+    </div>`;
+    return;
+  }
+
+  const statusColor = r.status==='assinado' ? 'var(--green)' : r.status==='enviado' ? '#b45309' : 'var(--text3)';
+  const statusBg    = r.status==='assinado' ? 'var(--green-bg)' : r.status==='enviado' ? '#fff8f0' : 'var(--bg)';
+  const statusLabel = r.status==='assinado' ? '✓ Assinado' : r.status==='enviado' ? '📨 Aguardando assinatura' : '⏳ Gerado — não enviado';
+  const dataFmt     = r.data_vistoria ? new Date(r.data_vistoria+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+  const pdfUrl      = r.signed_pdf_url || r.pdf_url || '';
+
+  el.innerHTML=`<div style="background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;">🔍 Relatório de Vistoria</div>
+      <span style="font-size:11px;font-weight:600;color:${statusColor};background:${statusBg};padding:3px 10px;border-radius:10px;">${statusLabel}</span>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+      📅 ${dataFmt} · 👤 ${r.responsavel_nome||'—'}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${pdfUrl ? `<a href="${pdfUrl}" target="_blank" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text);text-decoration:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;">📎 ${r.status==='assinado'?'Ver PDF assinado':'Ver PDF'}</a>` : ''}
+      ${r.status!=='assinado' ? `<button onclick="enviarRelatorioEmail('${r.id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">✉ Enviar para assinatura</button>` : ''}
+      ${r.status==='enviado'&&r.doc_id ? `<button onclick="sincronizarAssinaturaTimeline('${r.id}','${r.doc_id}','${projetoId}','${contrato}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">🔄 Sincronizar</button>` : ''}
+    </div>
+    ${r.status==='assinado'&&r.signed_pdf_url?`
+    <div style="margin-top:10px;padding:10px;background:var(--green-bg);border-radius:6px;border:1px solid #a8d5b5;">
+      <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px;">✓ Relatório assinado disponível para o cliente</div>
+      <div style="font-size:11px;color:var(--text2);">O cliente pode acessar o PDF assinado pelo portal.</div>
+    </div>` : ''}
+  </div>`;
+}
+
+async function sincronizarAssinaturaTimeline(relId, docId, projetoId, contrato){
+  notify('Verificando assinatura...','info');
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/sincronizar-assinatura`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+      body:JSON.stringify({relatorio_id:relId, doc_id:docId})
+    });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.error||'Erro desconhecido');
+    if(json.assinado){
+      notify('✅ Relatório assinado! Disponível para o cliente.');
+    } else {
+      notify(`Aguardando assinatura (${json.assinados||0}/${json.total||2})`,'info');
+    }
+    // Atualizar só o bloco de vistoria sem recarregar tudo
+    carregarBlocoRelatorioVistoria(projetoId, contrato);
+    // Também atualizar no módulo Vistoria Final se estiver aberto
+    loadVistorias?.();
+  }catch(e){
+    notify('Erro: '+e.message,'error');
+  }
+}
 
 /* ── MULTI-PDF COM MERGE (pdf-lib) ── */
 
