@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Marcena Rio</title>
-<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Marcena Rio&quot;,&quot;short_name&quot;:&quot;MarcenaRio&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%23ffffff&quot;,&quot;theme_color&quot;:&quot;%231a1a2e&quot;}">
+<title>Seu Móvel Planejado</title>
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Seu M&oacute;vel Planejado&quot;,&quot;short_name&quot;:&quot;SeuMovel&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%23ffffff&quot;,&quot;theme_color&quot;:&quot;%231a1a2e&quot;}">
 <meta name="theme-color" content="#1a1a2e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="MarcenaRio">
+<meta name="apple-mobile-web-app-title" content="SeuMovelPlanejado">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -289,7 +289,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
   <div class="auth-box">
     <div class="auth-logo">
       <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" alt="Marcena Rio" style="width:180px;margin-bottom:12px;" onerror="this.style.display='none';">
-      <h1 id="logo-fallback" style="display:none;font-size:32px;color:var(--brand);">Marcena<span style="color:var(--accent);font-style:italic;">Rio</span></h1>
+      <h1 id="logo-fallback" style="display:none;font-size:32px;color:var(--brand);">Seu Móvel<span style="color:var(--accent);font-style:italic;"> Planejado</span></h1>
       <p>Portal do cliente · Móveis planejados</p>
     </div>
     <div class="auth-tabs">
@@ -315,7 +315,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
 <div id="app-screen">
   <div class="topbar">
-    <div class="topbar-logo">Marcena<span>Rio</span></div>
+    <div class="topbar-logo">Seu Móvel<span> Planejado</span></div>
     <div class="topbar-right">
       <span class="topbar-nivel" id="topbar-nivel"></span>
       <span class="topbar-user" id="topbar-email"></span>
@@ -2815,7 +2815,7 @@ function showRDConnected(){
   const r=b.querySelector('.rd-row');if(r)r.style.display='none';
 }
 async function enviarRD(nome,email,telefone,ambiente,descricao,investimento){
-  try{await fetch('https://api.rd.services/platform/conversions?api_key=4e0542b477a910cc438dcad16032df37',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'CONVERSION',event_family:'CDP',payload:{conversion_identifier:'Solicitação de Orçamento - Marcena Rio',name:nome,email,mobile_phone:telefone,cf_pra_qual_ambiente_deseja_um_orcamento:ambiente,cf_valor_de_investimento_previsto:investimento,cf_descricao_do_projeto:descricao}})})}catch(e){console.warn('RD:',e)}
+  try{await fetch('https://api.rd.services/platform/conversions?api_key=4e0542b477a910cc438dcad16032df37',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'CONVERSION',event_family:'CDP',payload:{conversion_identifier:'Solicitação de Orçamento - Seu Móvel Planejado',name:nome,email,mobile_phone:telefone,cf_pra_qual_ambiente_deseja_um_orcamento:ambiente,cf_valor_de_investimento_previsto:investimento,cf_descricao_do_projeto:descricao}})})}catch(e){console.warn('RD:',e)}
 }
 
 /* MONTAGEM */
@@ -5048,7 +5048,7 @@ async function gerarRelatorioRH() {
   doc.text('Responsável / Admin', 123, y+5, {align:'center'});
   doc.text('Data: ___/___/______', 181, y+5, {align:'center'});
   doc.setFontSize(7); doc.setTextColor(160);
-  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} · Sistema Marcena Rio`, 14, 290);
+  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} · Seu Móvel Planejado`, 14, 290);
 
   // 4. Baixar PDF localmente (sem upload automático)
   doc.save(`cartao_ponto_${func.nome.replace(/ /g,'_')}_${mes}.pdf`);
