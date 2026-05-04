@@ -8075,6 +8075,8 @@ function agendaIrParaMesAno(){
 function renderAgenda(){
   agendaPopularSeletores();
   const eventos = filtrarEventos();
+  console.log('[AGENDA] Total eventos para renderizar:', _agEventos.length, '| filtrados:', eventos.length);
+  if(_agEventos.length>0) console.log('[AGENDA] Primeiro evento:', _agEventos[0].titulo, '| inicio:', _agEventos[0].data_inicio, '| tipo:', typeof _agEventos[0].data_inicio);
   const cont = document.getElementById('ag-calendario');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
