@@ -981,7 +981,16 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:8px;">
           <button onclick="agendaNavMes(-1)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:16px;">‹</button>
-          <span id="ag-titulo-mes" style="font-size:16px;font-weight:600;min-width:160px;text-align:center;"></span>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <select id="ag-sel-mes" onchange="agendaIrParaMesAno()" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;background:var(--bg2);cursor:pointer;">
+              <option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Março</option>
+              <option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option>
+              <option value="6">Julho</option><option value="7">Agosto</option><option value="8">Setembro</option>
+              <option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
+            </select>
+            <select id="ag-sel-ano" onchange="agendaIrParaMesAno()" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;background:var(--bg2);cursor:pointer;"></select>
+          </div>
+          <span id="ag-titulo-mes" style="display:none;"></span>
           <button onclick="agendaNavMes(1)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:16px;">›</button>
           <button onclick="agendaHoje()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Hoje</button>
         </div>
@@ -8030,7 +8039,41 @@ function renderLegenda(){
     </div>`).join('');
 }
 
+function agendaPopularSeletores(){
+  const ano = _agDataRef.getFullYear();
+  const mes = _agDataRef.getMonth();
+  // Popular anos: 5 anos atrás até 3 anos na frente
+  const selAno = document.getElementById('ag-sel-ano');
+  if(selAno && !selAno.dataset.populated){
+    selAno.innerHTML='';
+    for(let y=ano-5; y<=ano+3; y++){
+      selAno.innerHTML+=`<option value="${y}">${y}</option>`;
+    }
+    selAno.dataset.populated='1';
+  }
+  // Expandir range se necessário
+  if(selAno){
+    const anos=[...selAno.options].map(o=>+o.value);
+    if(!anos.includes(ano)){
+      selAno.dataset.populated='';
+      agendaPopularSeletores();
+      return;
+    }
+    selAno.value=ano;
+  }
+  const selMes=document.getElementById('ag-sel-mes');
+  if(selMes) selMes.value=mes;
+}
+
+function agendaIrParaMesAno(){
+  const mes=+document.getElementById('ag-sel-mes').value;
+  const ano=+document.getElementById('ag-sel-ano').value;
+  _agDataRef=new Date(ano,mes,1);
+  renderAgenda();
+}
+
 function renderAgenda(){
+  agendaPopularSeletores();
   const eventos = filtrarEventos();
   const cont = document.getElementById('ag-calendario');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -8038,7 +8081,6 @@ function renderAgenda(){
 
   if(_agView==='mes'){
     const ano = _agDataRef.getFullYear(), mes = _agDataRef.getMonth();
-    document.getElementById('ag-titulo-mes').textContent = `${meses[mes]} ${ano}`;
     const primeiro = new Date(ano,mes,1);
     const ultimo = new Date(ano,mes+1,0);
     const inicioGrid = new Date(primeiro); inicioGrid.setDate(1-primeiro.getDay());
@@ -8048,7 +8090,7 @@ function renderAgenda(){
     dias.forEach(d=>{ html+=`<div class="ag-dia-header">${d}</div>`; });
 
     for(let i=0;i<42;i++){
-      const data = new Date(inicioGrid); data.setDate(data.getDate()+i);
+      const data = new Date(inicioGrid); data.setDate(data.getDate()+i); data.setHours(0,0,0,0);
       const outroMes = data.getMonth()!==mes;
       const eHoje = data.getTime()===hoje.getTime();
       const eFeriado = isFeriado(data);
@@ -8056,8 +8098,8 @@ function renderAgenda(){
 
       const evsDia = eventos.filter(e=>{
         const s=new Date(e.data_inicio); s.setHours(0,0,0,0);
-        const f=new Date(e.data_fim); f.setHours(0,0,0,0);
-        return data>=s && data<=f;
+        const f=new Date(e.data_fim); f.setHours(23,59,59,999);
+        return data.getTime()>=s.getTime() && data.getTime()<=f.getTime();
       });
 
       html+=`<div class="ag-dia-cell${outroMes?' outro-mes':''}${eHoje?' hoje':''}${eFeriado?' feriado':''}" onclick="abrirDiaAgenda('${dStr}')">`;
@@ -8094,8 +8136,8 @@ function renderAgenda(){
         const eHoje = dia.getTime()===hoje.getTime();
         const evs = eventos.filter(e=>{
           const s=new Date(e.data_inicio); s.setHours(0,0,0,0);
-          const f=new Date(e.data_fim); f.setHours(23,59,59,0);
-          return dia>=s && dia<=f;
+          const f=new Date(e.data_fim); f.setHours(23,59,59,999);
+          return dia.getTime()>=s.getTime() && dia.getTime()<=f.getTime();
         });
         html+=`<div class="ag-sem-cell${eHoje?' hoje-col':''}">`;
         if(h===8) evs.forEach(ev=>{ html+=`<div class="ag-evento-pill${ev.reuniao?' reuniao':''}" style="background:${ev.cor};margin-bottom:3px;" title="${ev.titulo}">${ev.titulo.substring(0,20)}</div>`; });
@@ -8111,8 +8153,8 @@ function renderAgenda(){
     document.getElementById('ag-titulo-mes').textContent = ref.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     const evsDia = eventos.filter(e=>{
       const s=new Date(e.data_inicio); s.setHours(0,0,0,0);
-      const f=new Date(e.data_fim); f.setHours(0,0,0,0);
-      return ref>=s && ref<=f;
+      const f=new Date(e.data_fim); f.setHours(23,59,59,999);
+      return ref.getTime()>=s.getTime() && ref.getTime()<=f.getTime();
     });
     let html = evsDia.length ? '' : '<div style="text-align:center;padding:40px;color:var(--text3);font-size:14px;">Nenhum evento neste dia.</div>';
     evsDia.forEach(ev=>{
@@ -8144,8 +8186,8 @@ function abrirDiaAgenda(dStr){
   const ref = new Date(dStr+'T00:00:00');
   const evsDia = eventos.filter(e=>{
     const s=new Date(e.data_inicio); s.setHours(0,0,0,0);
-    const f=new Date(e.data_fim); f.setHours(0,0,0,0);
-    return ref>=s && ref<=f;
+    const f=new Date(e.data_fim); f.setHours(23,59,59,999);
+    return ref.getTime()>=s.getTime() && ref.getTime()<=f.getTime();
   });
   document.getElementById('ag-modal-dia-titulo').textContent = data.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
   let html = evsDia.length ? '' : '<p style="color:var(--text3);font-size:14px;text-align:center;padding:20px 0;">Nenhum evento.</p>';
