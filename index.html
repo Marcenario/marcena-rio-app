@@ -257,7 +257,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 /* ── AGENDA ── */
 .ag-grid-mes{display:grid;grid-template-columns:repeat(7,1fr);}
 .ag-dia-header{padding:8px 4px;font-size:11px;font-weight:600;color:var(--text2);text-align:center;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
-.ag-dia-cell{min-height:90px;padding:4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:top;cursor:pointer;transition:background 0.1s;}
+.ag-dia-cell{min-height:90px;padding:4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:top;cursor:pointer;transition:background 0.1s;overflow:hidden;}
+.ag-grid-mes .ag-dia-cell:nth-child(7n){border-right:none;}
 .ag-dia-cell:hover{background:var(--accent-light,#f5f0ea);}
 .ag-dia-cell.outro-mes{background:var(--bg);opacity:0.5;}
 .ag-dia-cell.hoje .ag-dia-num{background:var(--brand);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
@@ -977,7 +978,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     </div>
 
     <!-- ── AGENDA ── -->
-    <div id="agenda" class="section" style="display:none">
+    <div id="agenda" class="section">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:8px;">
           <button onclick="agendaNavMes(-1)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:16px;">‹</button>
@@ -2366,7 +2367,12 @@ function renderProjeto(p){
   }
 
   const dataStr=new Date(p.created_at).toLocaleDateString('pt-BR');
-  return `<div class="card"><div class="card-header"><div><div class="card-title">${p.titulo||p.ambiente}</div><div class="card-sub">${p.cliente_nome||''} · ${dataStr}</div></div><span class="badge ${badgeClass}">${badgeText}</span></div>
+  const vendedorHtml = isStaff && p.vendedor_nome
+    ? `<div style="display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--text2);margin-top:6px;">
+        <span style="font-size:13px;">👤</span>
+        <span><strong style="color:var(--text);">${p.vendedor_nome}</strong> <span style="opacity:0.6;">· Responsável</span></span>
+      </div>` : '';
+  return `<div class="card"><div class="card-header"><div><div class="card-title">${p.titulo||p.ambiente}</div><div class="card-sub">${p.cliente_nome||''} · ${dataStr}</div>${vendedorHtml}</div><span class="badge ${badgeClass}">${badgeText}</span></div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Etapa: <strong style="color:var(--text)">${ETAPAS[etapaIdx].nome}</strong></div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:1rem">${p.etapa_atual||1} de ${ETAPAS_TOTAL} · ${pct}%</div>
@@ -7820,14 +7826,15 @@ async function loadAgenda(){
   const funilConfId = funilConf?.id || null;
   console.log('[AGENDA] funil conferência:', funilConfId);
 
-  const [eqRes, confRes, pedRes, atRes, reuRes] = await Promise.all([
+  const [eqRes, confRes, pedRes, atRes, reuRes, projRes] = await Promise.all([
     db.from('equipes_montagem').select('*').order('nome'),
     db.from('conferentes').select('*').order('nome'),
     db.from('pedidos_montagem').select('*').neq('status','concluido').order('data_chegada'),
     funilConfId
       ? db.from('atendimentos').select('*').eq('funil_id', funilConfId).order('created_at')
       : Promise.resolve({data:[]}),
-    db.from('agenda_reunioes').select('*').order('data_inicio').then(r=>r).catch(()=>({data:[]}))
+    db.from('agenda_reunioes').select('*').order('data_inicio').then(r=>r).catch(()=>({data:[]})),
+    db.from('projetos').select('*').order('created_at',{ascending:false})
   ]);
 
   const equipes = eqRes.data||[];
@@ -7835,15 +7842,22 @@ async function loadAgenda(){
   const pedidos = pedRes.data||[];
   const conferencias = atRes.data||[];
   const reunioes = reuRes.data||[];
+  const projetos = projRes.data||[];
 
   console.log('[AGENDA] equipes:', equipes.length, '| conferentes:', conferentes.length);
   console.log('[AGENDA] pedidos montagem:', pedidos.length, '| conferências:', conferencias.length);
   console.log('[AGENDA] reuniões:', reunioes.length);
 
   // Montar lista de funcionários com cores
+  // Extrair vendedores únicos dos projetos
+  const vendedoresMap = {};
+  projetos.forEach(p=>{ if(p.vendedor_id&&p.vendedor_nome) vendedoresMap[p.vendedor_id]=p.vendedor_nome; });
+  const vendedores = Object.entries(vendedoresMap).map(([id,nome])=>({id,nome}));
+
   _agFuncionarios = [
     ...equipes.map((e,i)=>({id:e.id,nome:e.nome,tipo:'equipe',cor:e.cor||AG_CORES[i%AG_CORES.length]})),
-    ...conferentes.map((c,i)=>({id:c.id,nome:c.nome,tipo:'conferente',cor:c.cor||AG_CORES[(equipes.length+i)%AG_CORES.length]}))
+    ...conferentes.map((c,i)=>({id:c.id,nome:c.nome,tipo:'conferente',cor:c.cor||AG_CORES[(equipes.length+i)%AG_CORES.length]})),
+    ...vendedores.map((v,i)=>({id:v.id,nome:v.nome,tipo:'vendedor',cor:AG_CORES[(equipes.length+conferentes.length+i)%AG_CORES.length]}))
   ];
 
   // Salvar cores no banco se ainda não tiver
@@ -7866,9 +7880,11 @@ async function loadAgenda(){
   const eventosConf = calcularEventosConferencia(conferencias, _agFuncionarios, conferentes);
   // Eventos de reunião
   const eventosReunioes = expandirReunioes(reunioes, _agFuncionarios);
+  // Eventos da timeline de projetos (vendedores)
+  const eventosProj = calcularEventosProjetos(projetos, _agFuncionarios);
 
   // Garantir que todas as datas são objetos Date
-  _agEventos = [...eventosMontagem, ...eventosConf, ...eventosReunioes].map(e=>({
+  _agEventos = [...eventosMontagem, ...eventosConf, ...eventosReunioes, ...eventosProj].map(e=>({
     ...e,
     data_inicio: e.data_inicio instanceof Date ? e.data_inicio : new Date(e.data_inicio),
     data_fim: e.data_fim instanceof Date ? e.data_fim : new Date(e.data_fim)
@@ -7886,6 +7902,69 @@ async function loadAgenda(){
 
   renderLegenda();
   renderAgenda();
+  // Badge de diagnóstico
+  const badge = document.getElementById('ag-legenda');
+  if(badge && _agEventos.length>0){
+    badge.innerHTML += '<span style="margin-left:12px;font-size:11px;background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:10px;font-weight:600;">' + _agEventos.length + ' eventos calculados</span>';
+  }
+}
+
+function calcularEventosProjetos(projetos, funcionarios){
+  const eventos = [];
+  // Campos de data com suas etiquetas e ícones
+  const campos = [
+    {key:'data_medicao',        hora:'horario_medicao',        label:'📐 Medição/Briefing',          dur:2},
+    {key:'data_envio_planta',   hora:null,                     label:'📋 Envio de Planta',            dur:1},
+    {key:'data_apres_projeto',  hora:'horario_apres_projeto',  label:'🎨 Apresentação do Projeto',    dur:2},
+    {key:'data_conf_medidas',   hora:'horario_conf_medidas',   label:'📏 Conferência de Medidas',     dur:2},
+    {key:'data_apres_exec',     hora:'horario_apres_exec',     label:'📊 Apresentação Exec.',         dur:2},
+    {key:'data_producao',       hora:null,                     label:'🏭 Produção',                  dur:1},
+    {key:'data_saida_fabrica',  hora:null,                     label:'🚚 Saída da Fábrica',           dur:1},
+    {key:'data_chegada_transp', hora:null,                     label:'📦 Chegada Transportadora',    dur:1},
+    {key:'data_entrega',        hora:'horario_entrega',        label:'🚪 Entrega',                   dur:1},
+    {key:'data_montagem',       hora:'horario_montagem',       label:'🔨 Montagem (Proj.)',           dur:1},
+    {key:'data_vistoria',       hora:'horario_vistoria',       label:'🔍 Vistoria Final',             dur:2},
+    {key:'data_saida_fabrica2', hora:null,                     label:'🚚 2ª Saída da Fábrica',        dur:1},
+    {key:'data_chegada_transp2',hora:null,                     label:'📦 2ª Chegada Transportadora', dur:1},
+    {key:'data_entrega2',       hora:'horario_entrega2',       label:'🚪 2ª Entrega',                dur:1},
+    {key:'data_montagem2',      hora:'horario_montagem2',      label:'🔨 2ª Montagem (Proj.)',        dur:1},
+  ];
+
+  projetos.forEach(p=>{
+    const func = p.vendedor_id ? funcionarios.find(f=>f.id===p.vendedor_id) : null;
+    const cor = func?.cor || '#95a5a6';
+    const funcNome = func?.nome || p.vendedor_nome || 'Sem vendedor';
+
+    campos.forEach(c=>{
+      if(!p[c.key]) return;
+      const dataBase = new Date(p[c.key]+'T12:00:00');
+      if(isNaN(dataBase)) return;
+
+      // Ajustar hora se disponível
+      if(c.hora && p[c.hora]){
+        const [h,m] = p[c.hora].split(':');
+        dataBase.setHours(+h||12, +m||0, 0, 0);
+      }
+
+      const dataFim = new Date(dataBase);
+      dataFim.setHours(dataFim.getHours() + (c.dur||1));
+
+      eventos.push({
+        id: p.id+'_'+c.key,
+        tipo: 'projeto',
+        titulo: c.label+' — '+(p.cliente_nome||p.titulo||''),
+        funcionario_id: p.vendedor_id||'sem_vendedor',
+        funcionario_nome: funcNome,
+        cor,
+        data_inicio: dataBase,
+        data_fim: dataFim,
+        concluido: false,
+        projeto_titulo: p.titulo||p.cliente_nome||'',
+        reuniao: false
+      });
+    });
+  });
+  return eventos;
 }
 
 function calcularEventosMontagem(pedidos, funcionarios, equipes){
