@@ -7806,13 +7806,19 @@ async function loadAgenda(){
   cont.innerHTML = '<div class="loader">Carregando agenda...</div>';
   if(userNivel==='admin') document.getElementById('ag-btn-reuniao').style.display='block';
 
-  // Buscar equipes, conferentes, pedidos, conferências e reuniões em paralelo
+  // Buscar funil de conferência primeiro
+  const {data:funilConf} = await db.from('funis').select('id').eq('tipo','conferencia').limit(1).single();
+  const funilConfId = funilConf?.id || null;
+  console.log('[AGENDA] funil conferência:', funilConfId);
+
   const [eqRes, confRes, pedRes, atRes, reuRes] = await Promise.all([
     db.from('equipes_montagem').select('*').order('nome'),
     db.from('conferentes').select('*').order('nome'),
     db.from('pedidos_montagem').select('*').neq('status','concluido').order('data_chegada'),
-    db.from('atendimentos').select('*').eq('funil_id',(await db.from('funis').select('id').eq('tipo','conferencia').limit(1).single()).data?.id).order('conf_inicio'),
-    db.from('agenda_reunioes').select('*').order('data_inicio')
+    funilConfId
+      ? db.from('atendimentos').select('*').eq('funil_id', funilConfId).order('created_at')
+      : Promise.resolve({data:[]}),
+    db.from('agenda_reunioes').select('*').order('data_inicio').then(r=>r).catch(()=>({data:[]}))
   ]);
 
   const equipes = eqRes.data||[];
@@ -7820,6 +7826,10 @@ async function loadAgenda(){
   const pedidos = pedRes.data||[];
   const conferencias = atRes.data||[];
   const reunioes = reuRes.data||[];
+
+  console.log('[AGENDA] equipes:', equipes.length, '| conferentes:', conferentes.length);
+  console.log('[AGENDA] pedidos montagem:', pedidos.length, '| conferências:', conferencias.length);
+  console.log('[AGENDA] reuniões:', reunioes.length);
 
   // Montar lista de funcionários com cores
   _agFuncionarios = [
@@ -7842,7 +7852,7 @@ async function loadAgenda(){
   }
 
   // Calcular eventos de montagem
-  const eventosMontagem = calcularEventosMontagem(pedidos, _agFuncionarios);
+  const eventosMontagem = calcularEventosMontagem(pedidos, _agFuncionarios, equipes);
   // Calcular eventos de conferência
   const eventosConf = calcularEventosConferencia(conferencias, _agFuncionarios, conferentes);
   // Eventos de reunião
@@ -7864,7 +7874,7 @@ async function loadAgenda(){
   renderAgenda();
 }
 
-function calcularEventosMontagem(pedidos, funcionarios){
+function calcularEventosMontagem(pedidos, funcionarios, equipes){
   const eventos = [];
   // Agrupar por equipe
   const porEquipe = {};
@@ -7872,17 +7882,20 @@ function calcularEventosMontagem(pedidos, funcionarios){
 
   for(const [equipeId, lista] of Object.entries(porEquipe)){
     const func = funcionarios.find(f=>f.id===equipeId);
+    const eqRaw = equipes.find(e=>e.id===equipeId);
     if(!func) continue;
     let cursor = null;
 
     lista.sort((a,b)=>new Date(a.data_chegada)-new Date(b.data_chegada));
+    console.log('[AGENDA] Equipe', func.nome, '| prod:', eqRaw?.produtividade_atual, '| pedidos:', lista.length);
     lista.forEach(p=>{
       const isAsteca = p.tipo==='asteca';
-      const prod = (func && func.produtividade) || 3000;
+      const prod = eqRaw?.produtividade_atual || eqRaw?.produtividade_base || 3000;
       const diasPrev = isAsteca ? 1 : Math.max(1, Math.ceil((p.valor_total||0) / (prod||3000)));
       const inicio = cursor ? proximoDiaUtil(new Date(cursor)) : proximoDiaUtil(new Date(p.data_chegada||new Date()));
       const fim = addDiasUteis(inicio, diasPrev);
       cursor = fim;
+      console.log('[AGENDA] →', p.cliente_nome, '| dias:', diasPrev, '| inicio:', inicio.toLocaleDateString('pt-BR'), '| fim:', fim.toLocaleDateString('pt-BR'));
       eventos.push({
         id: p.id,
         tipo: isAsteca ? 'asteca' : 'montagem',
