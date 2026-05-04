@@ -622,8 +622,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div class="info-box">O sistema distribui automaticamente para o vendedor mais disponível.</div>
 
           <div style="font-size:13px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;">Empresa</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem;">
-<div id="at-empresa-btns" style="display:contents;">            <button class="at-tipo-btn active" id="at-emp-mr" onclick="setEmpresaAt('marcenario',this)" style="padding:12px 8px;text-align:center;">
+          <div id="at-empresa-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem;">
+            <button class="at-tipo-btn active" id="at-emp-mr" onclick="setEmpresaAt('marcenario',this)" style="padding:12px 8px;text-align:center;">
               <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
               <span style="display:none;font-size:12px;font-weight:600;letter-spacing:0.5px;color:inherit;">MARCENA RIO</span>
             </button>
@@ -721,7 +721,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="font-size:12px;color:var(--text2);">Financeiro:</span>
-          <div id="dash-empresa-btns" style="display:contents;"><button id="dash-emp-mr" onclick="setDashEmpresa('marcenario',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--brand);background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
+          <div id="dash-empresa-btns" style="display:flex;gap:6px;flex-wrap:wrap;"><button id="dash-emp-mr" onclick="setDashEmpresa('marcenario',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--brand);background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
           <button id="dash-emp-ct" onclick="setDashEmpresa('conceptus',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus</button></div>
           <button onclick="loadDashboard()" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">↻ Atualizar</button>
         </div>
@@ -1062,7 +1062,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <!-- Seletor de empresa -->
       <div style="display:flex;align-items:center;gap:10px;padding:10px 0 0 0;margin-bottom:0;">
         <span style="font-size:12px;font-weight:500;color:var(--text2);">Empresa:</span>
-        <div style="display:flex;gap:6px;">
+        <div id="fin-empresa-btns" style="display:flex;gap:6px;">
           <button id="fin-emp-mr" onclick="setEmpresaFin('marcenario',this)" style="padding:6px 16px;border-radius:20px;border:1.5px solid var(--brand);background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
           <button id="fin-emp-ct" onclick="setEmpresaFin('conceptus',this)" style="padding:6px 16px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus Italínea</button>
         </div>
@@ -1637,6 +1637,9 @@ const ETAPAS=[
 ];
 const ETAPAS_TOTAL=ETAPAS.length;
 const {createClient}=supabase;
+const db=createClient(SUPABASE_URL,SUPABASE_ANON);
+let currentUser=null,userNivel='cliente',rdKey=localStorage.getItem('mr_rd_key')||'',ambsMt=[];
+
 // EMPRESAS — carregado dinamicamente do banco
 let EMPRESAS={
   marcenario:{nome:'Marcena Rio',subtitulo:'Marcenaria de Alto Padrão',cor:'#6b4c2a',corClara:'#f5efe8',
@@ -1682,8 +1685,6 @@ function atualizarSeletoresEmpresa(){
 
 function nomeEmpresa(slug){ return EMPRESAS[slug]?.nome || slug || '—'; }
 function corEmpresa(slug){ return EMPRESAS[slug]?.cor || '#1a1a2e'; }
-const db=createClient(SUPABASE_URL,SUPABASE_ANON);
-let currentUser=null,userNivel='cliente',rdKey=localStorage.getItem('mr_rd_key')||'',ambsMt=[];
 
 function notify(msg,type='success'){const n=document.getElementById('notif');n.textContent=msg;n.style.background=type==='error'?'#8a1a1a':type==='info'?'#1a4a8a':'#1a1a2e';n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3000)}
 function setAlert(id,msg,type='info'){const el=document.getElementById(id);if(el)el.innerHTML=msg?`<div class="alert alert-${type}">${msg}</div>`:''}
