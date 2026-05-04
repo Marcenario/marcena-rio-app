@@ -3285,6 +3285,11 @@ function renderCardKanbanMt(p){
   if(userNivel==='admin'&&!isConcluido){
     btns.push(`<button onclick="event.stopPropagation();abrirTrocarEquipe('${p.id}')" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">👷 Equipe</button>`);
   }
+  if(userNivel==='admin'&&(p.status==='vistoria'||p.status==='asteca_pendente'||p.status==='concluido')){
+    const statusAnterior=p.status==='vistoria'?'em_montagem':p.status==='asteca_pendente'?'vistoria':'asteca_pendente';
+    const labelAnterior=p.status==='vistoria'?'Em montagem':p.status==='asteca_pendente'?'Vistoria':'ASTECA';
+    btns.push(`<button onclick="event.stopPropagation();voltarEtapaMt('${p.id}','${statusAnterior}','${labelAnterior}')" style="background:#7a5c2a;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">↩ Voltar</button>`);
+  }
   if(!isVistoria&&!isNaColAsteca&&!isConcluido){
     btns.push(`<button onclick="event.stopPropagation();moverParaVistoriaMt('${p.id}')" style="background:#1a3a8a;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">🔍 Vistoria</button>`);
   }
@@ -3651,6 +3656,21 @@ ${avisoHtml}
   const win=window.open('','_blank','width=900,height=950');
   if(win){win.document.write(html);win.document.close();}
   notify('✅ Ficha de ocorrência gerada!');
+}
+
+async function voltarEtapaMt(id, statusAnterior, labelAnterior){
+  if(!confirm(`Voltar este pedido para "${labelAnterior}"? Esta ação só pode ser feita pelo administrador.`)) return;
+  const update = {status: statusAnterior};
+  // Se voltando de concluído, limpar data de conclusão
+  if(statusAnterior === 'asteca_pendente' || statusAnterior === 'vistoria'){
+    update.data_conclusao = null;
+    update.dias_montagem = null;
+    update.prod_dia_real = null;
+  }
+  const {error} = await db.from('pedidos_montagem').update(update).eq('id', id);
+  if(error){ notify('Erro ao voltar etapa: '+error.message,'error'); return; }
+  notify(`↩ Pedido voltou para ${labelAnterior}`);
+  loadFilaMt();
 }
 
 async function moverParaVistoriaMt(id){
