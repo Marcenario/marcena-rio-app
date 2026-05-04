@@ -2061,7 +2061,12 @@ function abrirDetalheProjeto(id){
   if(!p)return;
   document.getElementById('proj-lista-view').style.display='none';
   document.getElementById('proj-detalhe-view').style.display='block';
-  document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(p);
+  document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(p)+
+    '<div style="margin-top:24px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;">'+
+    '<div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">📎 Histórico de anexos</div>'+
+    '<div id="proj-historico-anexos-'+id+'"><div style="font-size:12px;color:var(--text3);">Carregando...</div></div>'+
+    '</div>';
+  setTimeout(()=>carregarHistoricoAnexos('projeto', id, 'proj-historico-anexos-'+id), 100);
   window.scrollTo(0,0);
 }
 
@@ -2663,6 +2668,7 @@ async function anexarManualProjeto(projetoId){
   const {data:urlData}=db.storage.from('arquivos').getPublicUrl(path);
   const {error}=await db.from('projetos').update({manual_url:urlData.publicUrl}).eq('id',projetoId);
   if(error){notify('Erro ao salvar.','error');return;}
+  await registrarAnexo('projeto', projetoId, file.name, urlData.publicUrl, 'Manual');
   notify('✅ Manual anexado! O cliente já pode visualizar.');
   const {data:_p}=await db.from('projetos').select('*').eq('id',projetoId).single();
   if(_p){_todosProj=_todosProj.map(x=>x.id===_p.id?_p:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p);}
@@ -2779,6 +2785,7 @@ async function salvarQuestionarioMontagem(projetoId, inputEl){
   if(upErr){notify('Erro ao enviar: '+upErr.message,'error');return}
   const {data:urlData}=db.storage.from('projetos').getPublicUrl(path);
   await db.from('projetos').update({questionario_montagem_url:urlData.publicUrl}).eq('id',projetoId);
+  await registrarAnexo('projeto', projetoId, file.name, urlData.publicUrl, 'questionario_montagem');
   notify('✅ Questionário enviado!');
   const {data:_p}=await db.from('projetos').select('*').eq('id',projetoId).single();
   if(_p){_todosProj=_todosProj.map(x=>x.id===_p.id?_p:x);document.getElementById('proj-detalhe-content').innerHTML=renderProjeto(_p);}
@@ -2807,6 +2814,7 @@ async function salvarArquivoEtapa(projetoId,campo,inputEl){
     const {data:urlData}=db.storage.from('projetos').getPublicUrl(path);
     const campoStatus=campo==='projeto_venda_url'?'projeto_venda_status':'projeto_exec_status';
     await db.from('projetos').update({[campo]:urlData.publicUrl,[campoStatus]:'carregado'}).eq('id',projetoId);
+    await registrarAnexo('projeto', projetoId, files.map(f=>f.name).join(', '), urlData.publicUrl, campo);
     notify(files.length>1?`✅ ${files.length} PDFs unificados e enviados!`:'✅ PDF enviado!');
   } else {
     const file=inputEl.files[0];
@@ -2819,6 +2827,7 @@ async function salvarArquivoEtapa(projetoId,campo,inputEl){
     const {data:urlData}=db.storage.from('projetos').getPublicUrl(path);
     const {error}=await db.from('projetos').update({[campo]:urlData.publicUrl}).eq('id',projetoId);
     if(error){notify('Erro ao salvar URL.','error');return}
+    await registrarAnexo('projeto', projetoId, file.name, urlData.publicUrl, campo);
     notify('Arquivo enviado com sucesso!');
   }
   const _dv2=document.getElementById('proj-detalhe-view');
@@ -5304,6 +5313,7 @@ async function sincronizarRelPonto(relId, envelopeId){
           await db.from('rh_documentos_funcionario').update({arquivo_url:pdfFinal}).eq('id',jaArq[0].id);
         } else {
           await db.from('rh_documentos_funcionario').insert({funcionario_id:rel.funcionario_id,tipo:'cartao_ponto',titulo:`Cartão de Ponto — ${mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1)} ✓ Assinado`,arquivo_url:pdfFinal,criado_por:currentUser.id,criado_em:new Date().toISOString()});
+          await registrarAnexo('rh', rel.funcionario_id, `Cartão de Ponto — ${mesLabel}`, pdfFinal, 'cartao_ponto');
         }
       }
       notify('✅ Cartão de ponto assinado e arquivado na pasta do funcionário!');
@@ -5417,7 +5427,7 @@ async function salvarDocFuncionario(){
 
   const {error}=await db.from('rh_documentos_funcionario').insert({
     funcionario_id:funcId, tipo, titulo, observacoes:obs,
-    arquivo_url, arquivo_nome, criado_por:currentUser.id,
+    arquivo_url, arquivo_nome, criado_por:currentUser.id, criado_em:new Date().toISOString(),
     criado_em:new Date().toISOString()
   });
   if(error){alertEl.innerHTML=`<div class="alert alert-error">Erro ao salvar: ${error.message}</div>`;return}
@@ -7893,11 +7903,16 @@ async function abrirModalAt(id){
 
     </div>
     <div id="at-anexo-alert-${id}" style="margin-top:6px;"></div>
+
+    <!-- Histórico de Anexos -->
+    <div class="divider"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📎 Histórico de anexos</div>
+    <div id="at-historico-anexos-${id}"><div style="font-size:12px;color:var(--text3);">Carregando...</div></div>
   `;
   // Guarda referência dos ambientes para toggleVendeuModal
   window._atModalAmbs={id,ambs};
-  // Carregar feed de anotações e tarefas
-  setTimeout(()=>{ carregarFeedAnotacoes(id); carregarTarefasAt(id); }, 50);
+  // Carregar feed de anotações, tarefas e histórico de anexos
+  setTimeout(()=>{ carregarFeedAnotacoes(id); carregarTarefasAt(id); carregarHistoricoAnexos('atendimento', id, 'at-historico-anexos-'+id); }, 50);
 }
 
 async function addAmbModal(atId){
@@ -8751,6 +8766,60 @@ async function salvarEnderecoAt(id){
 }
 
 
+
+/* ── HISTÓRICO DE ANEXOS ── */
+async function carregarHistoricoAnexos(tipo, referenciaId, elId){
+  const el = document.getElementById(elId);
+  if(!el) return;
+
+  const {data, error} = await db.from('anexos')
+    .select('*')
+    .eq('referencia_tipo', tipo)
+    .eq('referencia_id', referenciaId)
+    .order('created_at', {ascending: false});
+
+  if(error || !data?.length){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0;">Nenhum anexo registrado ainda.</div>';
+    return;
+  }
+
+  el.innerHTML = data.map(a=>{
+    const dt = new Date(a.created_at);
+    const dataFmt = dt.toLocaleDateString('pt-BR');
+    const horaFmt = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const nome = a.nome || 'arquivo';
+    const etapa = a.etapa ? `<span style="font-size:10px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;color:var(--text2);margin-left:6px;">${a.etapa}</span>` : '';
+    const autor = a.enviado_por_nome || '—';
+    const ext = nome.split('.').pop().toLowerCase();
+    const icone = ['pdf'].includes(ext)?'📄':['jpg','jpeg','png','gif','webp'].includes(ext)?'🖼️':['doc','docx'].includes(ext)?'📝':'📎';
+
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:18px;flex-shrink:0;">${icone}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+          <a href="${a.url}" target="_blank" style="font-size:13px;font-weight:500;color:var(--brand);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;" title="${nome}">${nome}</a>
+          ${etapa}
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">👤 ${autor} · 📅 ${dataFmt} às ${horaFmt}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── REGISTRO DE ANEXOS ── */
+async function registrarAnexo(tipo, referenciaId, nome, url, etapa=''){
+  if(!url||!referenciaId) return;
+  await db.from('anexos').insert({
+    referencia_tipo: tipo,
+    referencia_id: referenciaId,
+    nome: nome||'arquivo',
+    url,
+    etapa: etapa||'',
+    enviado_por_id: currentUser?.id||null,
+    enviado_por_nome: currentUser?.nome||currentUser?.email||'Usuário'
+  });
+}
+
 /* ── TAREFAS DO ATENDIMENTO ── */
 async function carregarTarefasAt(atId){
   const feed = document.getElementById(`at-feed-tarefas-${atId}`);
@@ -8942,6 +9011,7 @@ async function uploadAnexoAt(atId, tipo){
         ? {anexo_revisado_url: urlData.publicUrl, anexo_revisado_nome: file.name}
         : {anexo_eletros_url: urlData.publicUrl, anexo_eletros_nome: file.name};
   await db.from('atendimentos').update(campos).eq('id',atId);
+  await registrarAnexo('atendimento', atId, file.name, urlData.publicUrl, tipo);
   notify('✅ Arquivo enviado!');
   abrirModalAt(atId);
 }
@@ -9933,6 +10003,8 @@ async function salvarOcorrencia(){
   document.getElementById('oc-foto-etiqueta').value='';document.getElementById('oc-foto-problema').value='';
   document.getElementById('oc-fotos-extras').value='';
   setAlert('oc-oc-alert','Ocorrência registrada com sucesso!','success');
+  // Registrar fotos como anexos
+  if(fotos?.length) fotos.forEach(f=>registrarAnexo('ocorrencia', pedidoId||'', f.nome||'foto', f.url, tipo||'ocorrencia'));
   notify('Ocorrência registrada!');
 }
 
