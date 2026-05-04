@@ -7364,6 +7364,13 @@ function renderFunilCard(a, cor){
     ${totalVal?`<div class="funil-card-val">${fmt(totalVal)}</div>`:''}
     ${conferenteHtml}
     ${timerHtml}
+    ${(a.link_gravacao_apresentacao||a.link_gravacao_2apresentacao||a.link_gravacao_exec)?`
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;">
+      ${a.link_gravacao_apresentacao?`<a href="${a.link_gravacao_apresentacao}" target="_blank" onclick="event.stopPropagation()" style="font-size:10px;background:#e8f0fc;color:#1a3a6e;padding:2px 7px;border-radius:6px;text-decoration:none;font-weight:500;">🎬 Apres.</a>`:''}
+      ${a.link_gravacao_2apresentacao?`<a href="${a.link_gravacao_2apresentacao}" target="_blank" onclick="event.stopPropagation()" style="font-size:10px;background:#e8f0fc;color:#1a3a6e;padding:2px 7px;border-radius:6px;text-decoration:none;font-weight:500;">🎬 2ª Apres.</a>`:''}
+      ${a.link_gravacao_exec?`<a href="${a.link_gravacao_exec}" target="_blank" onclick="event.stopPropagation()" style="font-size:10px;background:#f0e8fc;color:#5a1a8a;padding:2px 7px;border-radius:6px;text-decoration:none;font-weight:500;">🎬 Exec.</a>`:''}
+    </div>`:''
+    }
     ${ambs.length?`<div style="display:flex;gap:4px;margin-top:6px;">
       ${vendidos>0?`<span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:6px;">✓ ${vendidos} vendido${vendidos>1?'s':''}</span>`:''}
       ${naoVendidos>0?`<span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:2px 6px;border-radius:6px;">✗ ${naoVendidos} não</span>`:''}
@@ -7440,11 +7447,40 @@ async function drop(event, etapaId){
   const at = window._todosAtendimentos?.find(a=>a.id===atId);
   if(at?.etapa_funil_id === etapaId) return;
 
+  // ── Validações antes de mover ──
+  const {data:atFull} = await db.from('atendimentos').select('*').eq('id',atId).single();
+  if(atFull){
+    const {data:etapaAtual} = await db.from('funis_etapas').select('nome').eq('id',atFull.etapa_funil_id).single();
+    const {data:etapaDestino} = await db.from('funis_etapas').select('nome').eq('id',etapaId).single();
+    const nomeAtual = (etapaAtual?.nome||'').toLowerCase();
+    const nomeDest  = (etapaDestino?.nome||'').toLowerCase();
+
+    // Bloquear saída de etapa de apresentação sem link de gravação
+    const isApres1 = nomeAtual.includes('apresenta') && !nomeAtual.includes('nova') && !nomeAtual.includes('2') && !nomeAtual.includes('segunda') && !nomeAtual.includes('executivo');
+    const isApres2 = nomeAtual.includes('nova apresenta') || nomeAtual.includes('segunda apresenta') || (nomeAtual.includes('apresenta') && (nomeAtual.includes('2') || nomeAtual.includes('nova')));
+    const isApresExec = nomeAtual.includes('executivo') || nomeAtual.includes('exec');
+
+    if(isApres1 && !atFull.link_gravacao_apresentacao){
+      notify('⚠️ Insira o link da gravação da apresentação antes de avançar.','error');
+      _dragAtId=null; return;
+    }
+    if(isApres2 && !atFull.link_gravacao_2apresentacao){
+      notify('⚠️ Insira o link da gravação da 2ª apresentação antes de avançar.','error');
+      _dragAtId=null; return;
+    }
+    if(isApresExec && !atFull.link_gravacao_exec){
+      notify('⚠️ Insira o link da gravação executiva antes de avançar.','error');
+      _dragAtId=null; return;
+    }
+
+    // Atualizar objeto local com dados completos
+    Object.assign(at, atFull);
+  }
+
   // Atualizar no banco
   const {error} = await db.from('atendimentos').update({etapa_funil_id: etapaId}).eq('id', atId);
   if(error){ notify('Erro ao mover card.','error'); return; }
 
-  // Atualizar localmente e re-renderizar sem recarregar do banco
   if(at) at.etapa_funil_id = etapaId;
   const cont = document.getElementById('at-funil-content');
   renderFunilDinamico(window._todosAtendimentos||[], cont);
@@ -8018,6 +8054,25 @@ async function avancarEtapaAt(id){
       }
       await db.from('atendimentos').update({[campo]:linkVal}).eq('id',id);
     }
+  }
+
+  // Auto-salvar todos os campos editáveis antes de avançar
+  const autoSave = {};
+
+  // Contrato
+  const contratoVal = (document.getElementById(`at-contrato-${id}`)?.value||'').trim();
+  if(contratoVal) autoSave.numero_contrato = contratoVal;
+
+  // Link gravação (campos extras além do já tratado acima)
+  const linkGrav1 = (document.getElementById(`at-link-gravacao-${id}`)?.value||'').trim();
+  if(linkGrav1 && linkGrav1.startsWith('http')) autoSave.link_gravacao_apresentacao = linkGrav1;
+
+  // Anotações
+  const anotVal = document.getElementById(`at-anotacoes-${id}`)?.value;
+  if(anotVal !== undefined) autoSave.anotacoes = anotVal;
+
+  if(Object.keys(autoSave).length){
+    await db.from('atendimentos').update(autoSave).eq('id',id);
   }
 
   await db.from('atendimentos').update({etapa_funil_id: etapaFunilId}).eq('id',id);
