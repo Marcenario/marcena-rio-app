@@ -7913,15 +7913,16 @@ async function loadAgenda(){
   const funilConfId = funilConf?.id || null;
   console.log('[AGENDA] funil conferência:', funilConfId);
 
-  const [eqRes, confRes, pedRes, atRes, reuRes, projRes] = await Promise.all([
+  const [eqRes, confRes, pedRes, atRes, reuRes, projRes, perfilRes] = await Promise.all([
     db.from('equipes_montagem').select('*').order('nome'),
     db.from('conferentes').select('*').order('nome'),
     db.from('pedidos_montagem').select('*').neq('status','concluido').order('data_chegada'),
     funilConfId
       ? db.from('atendimentos').select('*').eq('funil_id', funilConfId).order('created_at')
       : Promise.resolve({data:[]}),
-    db.from('agenda_reunioes').select('*').order('data_inicio').then(r=>r).catch(()=>({data:[]})),
-    db.from('projetos').select('*').order('created_at',{ascending:false})
+    db.from('agenda_reunioes').select('*').order('data_inicio').then(r=>{ console.log('[AGENDA] agenda_reunioes raw:', r?.data?.length, r?.error?.message); return r; }).catch(e=>{ console.warn('[AGENDA] agenda_reunioes error:', e); return {data:[]}; }),
+    db.from('projetos').select('*').order('created_at',{ascending:false}),
+    db.from('perfis').select('id,nome,email,nivel').in('nivel',['admin','staff','vendedor']).order('nome')
   ]);
 
   const equipes = eqRes.data||[];
@@ -7930,6 +7931,7 @@ async function loadAgenda(){
   const conferencias = atRes.data||[];
   const reunioes = reuRes.data||[];
   const projetos = projRes.data||[];
+  const perfisStaff = perfilRes.data||[];
 
   console.log('[AGENDA] equipes:', equipes.length, '| conferentes:', conferentes.length);
   console.log('[AGENDA] pedidos montagem:', pedidos.length, '| conferências:', conferencias.length);
@@ -7941,10 +7943,23 @@ async function loadAgenda(){
   projetos.forEach(p=>{ if(p.vendedor_id&&p.vendedor_nome) vendedoresMap[p.vendedor_id]=p.vendedor_nome; });
   const vendedores = Object.entries(vendedoresMap).map(([id,nome])=>({id,nome}));
 
+  // IDs já incluídos (evitar duplicatas)
+  const idsJaIncluidos = new Set([
+    ...equipes.map(e=>e.id),
+    ...conferentes.map(c=>c.id),
+    ...vendedores.map(v=>v.id)
+  ]);
+
+  // Usuários staff/admin que ainda não estão na lista (admin master, vendedores do perfil, etc.)
+  const usuariosExtras = perfisStaff.filter(p=>!idsJaIncluidos.has(p.id));
+
+  const baseOffset = equipes.length + conferentes.length + vendedores.length;
+
   _agFuncionarios = [
     ...equipes.map((e,i)=>({id:e.id,nome:e.nome,tipo:'equipe',cor:e.cor||AG_CORES[i%AG_CORES.length]})),
-    ...conferentes.map((c,i)=>({id:c.id,nome:c.nome,tipo:'conferente',cor:c.cor||AG_CORES[(equipes.length+i)%AG_CORES.length]})),
-    ...vendedores.map((v,i)=>({id:v.id,nome:v.nome,tipo:'vendedor',cor:AG_CORES[(equipes.length+conferentes.length+i)%AG_CORES.length]}))
+    ...conferentes.map((c2,i)=>({id:c2.id,nome:c2.nome,tipo:'conferente',cor:c2.cor||AG_CORES[(equipes.length+i)%AG_CORES.length]})),
+    ...vendedores.map((v,i)=>({id:v.id,nome:v.nome,tipo:'vendedor',cor:AG_CORES[(equipes.length+conferentes.length+i)%AG_CORES.length]})),
+    ...usuariosExtras.map((u,i)=>({id:u.id,nome:u.nome||(u.email?.split('@')[0])||'Usuário',tipo:u.nivel==='admin'?'admin':'staff',cor:AG_CORES[(baseOffset+i)%AG_CORES.length]}))
   ];
 
   // Salvar cores no banco se ainda não tiver
@@ -7983,8 +7998,17 @@ async function loadAgenda(){
   sel.innerHTML = '<option value="">Todos os funcionários</option>';
   selR.innerHTML = '<option value="">Selecione...</option>';
   _agFuncionarios.forEach(f=>{
-    sel.innerHTML += `<option value="${f.id}">${f.nome} (${f.tipo==='equipe'?'Equipe':'Conferente'})</option>`;
+    const tipoLabel = f.tipo==='equipe'?'Equipe':f.tipo==='conferente'?'Conferente':'Vendedor';
+    sel.innerHTML += `<option value="${f.id}">${f.nome} (${tipoLabel})</option>`;
     selR.innerHTML += `<option value="${f.id}|${f.tipo}|${encodeURIComponent(f.nome)}">${f.nome}</option>`;
+  });
+  // Adicionar criadores de reuniões/tarefas que ainda não estão na lista (fallback)
+  reunioes.forEach(r=>{
+    if(r.funcionario_id && !_agFuncionarios.find(f=>f.id===r.funcionario_id)){
+      const cor = AG_CORES[_agFuncionarios.length%AG_CORES.length];
+      _agFuncionarios.push({id:r.funcionario_id, nome:r.funcionario_nome||'Usuário', tipo:'usuario', cor});
+      sel.innerHTML += `<option value="${r.funcionario_id}">${r.funcionario_nome||'Usuário'}</option>`;
+    }
   });
 
   renderLegenda();
@@ -8145,7 +8169,8 @@ function expandirReunioes(reunioes, funcionarios){
   const eventos = [];
   reunioes.forEach(r=>{
     const func = funcionarios.find(f=>f.id===r.funcionario_id);
-    const cor = func?.cor || '#7f8c8d';
+    // Para tarefas/reuniões criadas por usuários não na lista de equipes, usa cor do perfil ou padrão
+    const cor = func?.cor || r.cor_override || '#7f8c8d';
     const base = {
       id: r.id,
       tipo: 'reuniao',
