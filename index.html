@@ -3022,7 +3022,7 @@ function addAmbMt(){
   const nf=document.getElementById('mt-amb-nf').value.trim();
   const nome=document.getElementById('mt-amb-nome').value.trim();
   const valor=parseMoney(document.getElementById('mt-amb-valor').value);
-  if(!nome||!valor){notify('Preencha pelo menos o nome e o valor do ambiente.','error');return}
+  if(!nome){notify('Preencha pelo menos o nome do ambiente.','error');return}
   ambsMt.push({pedido,nf,nome,valor});
   document.getElementById('mt-amb-pedido').value='';
   document.getElementById('mt-amb-nf').value='';
@@ -3040,10 +3040,10 @@ function renderAmbsMt(){
         <span>Nº Pedido</span><span>Nota Fiscal</span><span>Ambiente</span><span>Valor</span><span></span>
       </div>
       ${ambsMt.map((a,i)=>`<div style="display:grid;grid-template-columns:1.2fr 1.2fr 1.5fr 1.2fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:13px;align-items:center;gap:6px;">
-        <input value="${a.pedido||''}" placeholder="Nº pedido" oninput="ambsMt[${i}].pedido=this.value" style="${inlineStyle}">
-        <input value="${a.nf||''}" placeholder="Nota fiscal" oninput="ambsMt[${i}].nf=this.value" style="${inlineStyle}">
+        <input id="mt-amb-ped-${i}" value="${a.pedido||''}" placeholder="Nº pedido" oninput="ambsMt[${i}].pedido=this.value" onchange="ambsMt[${i}].pedido=this.value" style="${inlineStyle}">
+        <input id="mt-amb-nf-${i}" value="${a.nf||''}" placeholder="Nota fiscal" oninput="ambsMt[${i}].nf=this.value" onchange="ambsMt[${i}].nf=this.value" style="${inlineStyle}">
         <span style="font-weight:500;padding:0 4px;">${a.nome}</span>
-        <span style="font-weight:500;color:var(--accent);">${fmt(a.valor)}</span>
+        <input id="mt-amb-val-${i}" value="${a.valor||0}" placeholder="0" oninput="ambsMt[${i}].valor=parseMoney(this.value)" onchange="ambsMt[${i}].valor=parseMoney(this.value);renderAmbsMt()" style="${inlineStyle};color:var(--accent);font-weight:500;">
         <button class="btn-red-sm" onclick="removeAmbMt(${i})">✕</button>
       </div>`).join('')}
     </div>`:''
@@ -3069,6 +3069,15 @@ async function distribuirEquipe(valorTotal){
 }
 
 async function salvarPedidoMt(){
+  // Sincronizar todos os campos inline editados
+  ambsMt.forEach((a,i)=>{
+    const pedEl = document.getElementById('mt-amb-ped-'+i);
+    const nfEl  = document.getElementById('mt-amb-nf-'+i);
+    const valEl = document.getElementById('mt-amb-val-'+i);
+    if(pedEl) a.pedido = pedEl.value.trim();
+    if(nfEl)  a.nf     = nfEl.value.trim();
+    if(valEl) a.valor  = parseMoney(valEl.value);
+  });
   const contrato=document.getElementById('mt-contrato').value.trim();
   const cliente=document.getElementById('mt-cliente').value.trim();
   const data=document.getElementById('mt-data').value;
