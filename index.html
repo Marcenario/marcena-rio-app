@@ -8112,7 +8112,8 @@ function calcularEventosProjetos(projetos, funcionarios){
         data_fim: dataFim,
         concluido: false,
         projeto_titulo: p.titulo||p.cliente_nome||'',
-        reuniao: false
+        reuniao: false,
+        tem_horario: (c.hora&&p[c.hora]) ? true : false
       });
     });
   });
@@ -8382,7 +8383,10 @@ function renderAgenda(){
       html+=`<div class="ag-dia-num">${data.getDate()}</div>`;
       const maxPills = 3;
       evsDia.slice(0,maxPills).forEach(ev=>{
-        html+=`<div class="ag-evento-pill${ev.reuniao?' reuniao':''}" style="background:${ev.cor};" title="${ev.titulo}">${ev.titulo.substring(0,28)}</div>`;
+        const si2=new Date(ev.data_inicio);
+        const temHora2=si2.getHours()!==0&&si2.getHours()!==12;
+        const horaLabel=temHora2?si2.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' ':''
+        html+=`<div class="ag-evento-pill${ev.reuniao?' reuniao':''}" style="background:${ev.cor};" title="${ev.titulo}">${horaLabel}${ev.titulo.substring(0,22)}</div>`;
       });
       if(evsDia.length>maxPills) html+=`<div style="font-size:9px;color:var(--text3);padding:1px 4px;">+${evsDia.length-maxPills} mais</div>`;
       html+='</div>';
@@ -8440,8 +8444,23 @@ function renderAgenda(){
           <div style="font-size:12px;opacity:0.85;">${ev.funcionario_nome}</div>
           ${ev.descricao?`<div style="font-size:12px;margin-top:4px;opacity:0.8;">${ev.descricao}</div>`:''}
           <div style="font-size:11px;margin-top:4px;opacity:0.75;">
-            ${ev.tipo!=='reuniao'?`${new Date(ev.data_inicio).toLocaleDateString('pt-BR')} → ${new Date(ev.data_fim).toLocaleDateString('pt-BR')} · ${ev.dias_prev||1} dia(s)`
-            :`${new Date(ev.data_inicio).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} – ${new Date(ev.data_fim).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`}
+            ${(()=>{
+              const si = new Date(ev.data_inicio);
+              const sf = new Date(ev.data_fim);
+              const horaI = si.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+              const horaF = sf.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+              const dataI = si.toLocaleDateString('pt-BR');
+              const dataF = sf.toLocaleDateString('pt-BR');
+              // Tem horário específico (não é meia-noite nem meio-dia padrão)
+              const temHorario = si.getHours()!==0 && si.getHours()!==12;
+              if(ev.tipo==='reuniao'||ev.tipo==='projeto'){
+                return horaI+' – '+horaF;
+              } else if(temHorario){
+                return horaI+' – '+horaF+' · '+dataI+(dataI!==dataF?' → '+dataF:'');
+              } else {
+                return dataI+(dataI!==dataF?' → '+dataF:'')+' · '+(ev.dias_prev||1)+' dia(s)';
+              }
+            })()}
           </div>
         </div>
         <div style="font-size:20px;">${ev.tipo==='montagem'?'🔨':ev.tipo==='asteca'?'🔧':ev.tipo==='conferencia'?'📐':'📅'}</div>
