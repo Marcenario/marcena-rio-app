@@ -3023,7 +3023,7 @@ function addAmbMt(){
   const nome=document.getElementById('mt-amb-nome').value.trim();
   const valor=parseMoney(document.getElementById('mt-amb-valor').value);
   if(!nome){notify('Preencha pelo menos o nome do ambiente.','error');return}
-  ambsMt.push({pedido,nf,nome,valor});
+  ambsMt.push({pedido,nf,nome,valor,confirmado:false});
   document.getElementById('mt-amb-pedido').value='';
   document.getElementById('mt-amb-nf').value='';
   document.getElementById('mt-amb-nome').value='';
@@ -3044,10 +3044,27 @@ function renderAmbsMt(){
         <input id="mt-amb-nf-${i}" value="${a.nf||''}" placeholder="Nota fiscal" oninput="ambsMt[${i}].nf=this.value" onchange="ambsMt[${i}].nf=this.value" style="${inlineStyle}">
         <span style="font-weight:500;padding:0 4px;">${a.nome}</span>
         <input id="mt-amb-val-${i}" value="${a.valor||0}" placeholder="0" oninput="ambsMt[${i}].valor=parseMoney(this.value)" onchange="ambsMt[${i}].valor=parseMoney(this.value);renderAmbsMt()" style="${inlineStyle};color:var(--accent);font-weight:500;">
-        <button class="btn-red-sm" onclick="removeAmbMt(${i})">✕</button>
+        <div style="display:flex;gap:4px;">
+          <button onclick="confirmarAmbMt(${i})" id="mt-amb-confirm-${i}"
+            style="background:${a.confirmado?'var(--green)':'var(--bg2)'};color:${a.confirmado?'#fff':'var(--text2)'};border:1px solid ${a.confirmado?'var(--green)':'var(--border2)'};border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;">
+            ${a.confirmado?'✓ Ok':'✓'}
+          </button>
+          <button class="btn-red-sm" onclick="removeAmbMt(${i})">✕</button>
+        </div>
       </div>`).join('')}
     </div>`:''
 ;}
+function confirmarAmbMt(i){
+  // Lê os valores atuais dos inputs antes de confirmar
+  const pedEl = document.getElementById('mt-amb-ped-'+i);
+  const nfEl  = document.getElementById('mt-amb-nf-'+i);
+  const valEl = document.getElementById('mt-amb-val-'+i);
+  if(pedEl) ambsMt[i].pedido = pedEl.value.trim();
+  if(nfEl)  ambsMt[i].nf     = nfEl.value.trim();
+  if(valEl) ambsMt[i].valor  = parseMoney(valEl.value);
+  ambsMt[i].confirmado = true;
+  renderAmbsMt();
+}
 function removeAmbMt(i){ambsMt.splice(i,1);renderAmbsMt()}
 
 async function distribuirEquipe(valorTotal){
