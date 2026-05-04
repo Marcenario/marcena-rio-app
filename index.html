@@ -7563,6 +7563,13 @@ async function drop(event, etapaId){
       _dragAtId=null; return;
     }
 
+    // Bloquear arrastar para etapa de venda sem data de nascimento
+    const isVendaDest = nomeDest.includes('venda')||nomeDest.includes('fechamento')||nomeDest.includes('ganho')||nomeDest.includes('fechado');
+    if(isVendaDest && !atFull.data_nascimento){
+      notify('🎂 Informe a data de nascimento do cliente antes de marcar como venda. Abra o card para preencher.','error');
+      _dragAtId=null; return;
+    }
+
     // Atualizar objeto local com dados completos
     Object.assign(at, atFull);
   }
@@ -7714,6 +7721,22 @@ async function abrirModalAt(id){
     <div class="form-grid" style="margin-bottom:0.75rem;">
       <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">E-mail</label><div style="font-size:13px;">${a.cliente_email||'—'}</div></div>
       <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Ambiente desejado</label><div style="font-size:13px;">${a.ambiente_desejado||'—'}</div></div>
+    </div>
+
+    <!-- Data de Nascimento -->
+    <div style="background:${a.data_nascimento?'#fffbea':'#fff8f0'};border:1.5px solid ${a.data_nascimento?'#d4af37':'var(--accent)'};border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:600;color:${a.data_nascimento?'#b8860b':'var(--accent)'};text-transform:uppercase;letter-spacing:0.4px;">🎂 Data de nascimento ${!a.data_nascimento?'<span style="color:var(--red);font-size:10px;font-weight:500;text-transform:none;margin-left:4px;">● Obrigatório após a venda</span>':''}</div>
+        ${a.cupom_aniversario?`<span style="font-size:11px;font-weight:600;color:#b8860b;background:#fff9e3;border:1px solid #d4af37;padding:2px 8px;border-radius:8px;">🎟 Cupom: ${a.cupom_aniversario}</span>`:''}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="date" id="at-nascimento-${id}"
+          value="${a.data_nascimento||''}"
+          style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;outline:none;">
+        <button onclick="salvarNascimentoAt('${id}')" style="background:#d4af37;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:600;">💾 Salvar</button>
+        ${a.data_nascimento?`<span style="font-size:12px;color:#b8860b;font-weight:500;">🎂 ${new Date(a.data_nascimento+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long'})}</span>`:''}
+      </div>
+      <div id="at-nasc-alert-${id}" style="margin-top:6px;"></div>
     </div>
 
     <!-- Endereço -->
@@ -8146,6 +8169,30 @@ async function avancarEtapaAt(id){
     }
   }
 
+  // Bloquear avanço para etapa de venda sem data de nascimento preenchida
+  {
+    const {data:etapaDestino}=await db.from('funis_etapas').select('nome').eq('id',etapaFunilId).single();
+    const nomeDest=(etapaDestino?.nome||'').toLowerCase();
+    const isVenda=nomeDest.includes('venda')||nomeDest.includes('fechamento')||nomeDest.includes('ganho')||nomeDest.includes('fechado');
+    if(isVenda&&!atAtual?.data_nascimento){
+      const nascInput=document.getElementById(`at-nascimento-${id}`);
+      const nascVal=(nascInput?.value||'').trim();
+      if(!nascVal){
+        notify('🎂 Informe a data de nascimento do cliente antes de marcar como venda.','error');
+        // Destacar campo
+        if(nascInput){ nascInput.style.border='2px solid #d4af37'; nascInput.focus(); }
+        return;
+      }
+      // Salvar automaticamente se foi digitado mas não salvo
+      const rand=Math.random().toString(36).substring(2,6).toUpperCase();
+      const ano=new Date().getFullYear().toString().slice(-2);
+      const cupom=`ANIV-${rand}-${ano}`;
+      await db.from('atendimentos').update({data_nascimento:nascVal,cupom_aniversario:cupom}).eq('id',id);
+      const atLocal=window._todosAtendimentos?.find(a=>a.id===id);
+      if(atLocal){atLocal.data_nascimento=nascVal;atLocal.cupom_aniversario=cupom;}
+    }
+  }
+
   // Auto-salvar todos os campos editáveis antes de avançar
   const autoSave = {};
 
@@ -8268,7 +8315,7 @@ async function loadAgenda(){
   const {data:funilConf} = await db.from('funis').select('id').eq('tipo','conferencia').limit(1).single();
   const funilConfId = funilConf?.id || null;
 
-  const [eqRes, confRes, pedRes, atRes, reuRes, projRes, perfilRes] = await Promise.all([
+  const [eqRes, confRes, pedRes, atRes, reuRes, projRes, perfilRes, anivRes] = await Promise.all([
     db.from('equipes_montagem').select('*').order('nome'),
     db.from('conferentes').select('*').order('nome'),
     db.from('pedidos_montagem').select('*').neq('status','concluido').order('data_chegada'),
@@ -8277,7 +8324,8 @@ async function loadAgenda(){
       : Promise.resolve({data:[]}),
     db.from('agenda_reunioes').select('*').order('data_inicio'),
     db.from('projetos').select('*').order('created_at',{ascending:false}),
-    db.from('perfis').select('id,nome,email,nivel').in('nivel',['admin','staff','vendedor']).order('nome')
+    db.from('perfis').select('id,nome,email,nivel').in('nivel',['admin','staff','vendedor']).order('nome'),
+    db.from('atendimentos').select('id,cliente_nome,data_nascimento,cupom_aniversario,vendedor_id,vendedor_nome').not('data_nascimento','is',null)
   ]);
 
   const equipes = eqRes.data||[];
@@ -8287,6 +8335,7 @@ async function loadAgenda(){
   const reunioes = reuRes.data||[];
   const projetos = projRes.data||[];
   const perfisStaff = perfilRes.data||[];
+  const aniversariantes = anivRes.data||[];
 
 
   // Montar lista de funcionários com cores
@@ -8336,9 +8385,12 @@ async function loadAgenda(){
   const eventosReunioes = expandirReunioes(reunioes, _agFuncionarios);
   // Eventos da timeline de projetos (vendedores)
   const eventosProj = calcularEventosProjetos(projetos, _agFuncionarios);
+  // Eventos de aniversário dos clientes (dourado, visível só para vendedor responsável e admin)
+  const anoAtual = _agDataRef.getFullYear();
+  const eventosAniv = calcularEventosAniversarios(aniversariantes, _agFuncionarios, anoAtual);
 
   // Garantir que todas as datas são objetos Date
-  _agEventos = [...eventosMontagem, ...eventosConf, ...eventosReunioes, ...eventosProj].map(e=>({
+  _agEventos = [...eventosMontagem, ...eventosConf, ...eventosReunioes, ...eventosProj, ...eventosAniv].map(e=>({
     ...e,
     data_inicio: e.data_inicio instanceof Date ? e.data_inicio : new Date(e.data_inicio),
     data_fim: e.data_fim instanceof Date ? e.data_fim : new Date(e.data_fim)
@@ -8425,6 +8477,47 @@ function calcularEventosProjetos(projetos, funcionarios){
         projeto_titulo: p.titulo||p.cliente_nome||'',
         reuniao: false,
         tem_horario: (c.hora&&p[c.hora]) ? true : false
+      });
+    });
+  });
+  return eventos;
+}
+
+function calcularEventosAniversarios(atendimentos, funcionarios, anoRef){
+  const eventos = [];
+  const hoje = new Date();
+  // Mostrar aniversários para o ano de referência e o seguinte (cobertura de 2 anos)
+  const anos = [anoRef, anoRef+1];
+
+  atendimentos.forEach(a=>{
+    if(!a.data_nascimento) return;
+    const nasc = new Date(a.data_nascimento+'T12:00:00');
+    if(isNaN(nasc)) return;
+
+    const func = a.vendedor_id ? funcionarios.find(f=>f.id===a.vendedor_id) : null;
+    const funcId = a.vendedor_id || 'sem_vendedor';
+    const funcNome = func?.nome || a.vendedor_nome || 'Sem vendedor';
+
+    anos.forEach(ano=>{
+      const dataAniv = new Date(ano, nasc.getMonth(), nasc.getDate(), 12, 0, 0, 0);
+      if(isNaN(dataAniv)) return;
+      const dataFim = new Date(dataAniv);
+      dataFim.setHours(13);
+
+      eventos.push({
+        id: a.id+'_aniv_'+ano,
+        tipo: 'aniversario',
+        titulo: `🎂 Aniversário — ${a.cliente_nome||'Cliente'}`,
+        funcionario_id: funcId,
+        funcionario_nome: funcNome,
+        cor: '#d4af37',
+        data_inicio: new Date(dataAniv),
+        data_fim: new Date(dataFim),
+        concluido: false,
+        reuniao: false,
+        cupom: a.cupom_aniversario||'',
+        cliente_nome: a.cliente_nome||'',
+        tem_horario: false
       });
     });
   });
@@ -8575,7 +8668,19 @@ function agendaHoje(){ _agDataRef=new Date(); renderAgenda(); }
 
 function filtrarEventos(){
   const filtroId = document.getElementById('ag-filtro-func').value;
-  return filtroId ? _agEventos.filter(e=>e.funcionario_id===filtroId) : _agEventos;
+  const isAdmin = userNivel==='admin';
+
+  // Aniversários: visível apenas para o vendedor responsável e admin
+  const eventos = _agEventos.filter(e=>{
+    if(e.tipo==='aniversario'){
+      if(isAdmin) return true;
+      // Funcionário/vendedor: só vê os próprios
+      return e.funcionario_id === currentUser?.id;
+    }
+    return true;
+  });
+
+  return filtroId ? eventos.filter(e=>e.funcionario_id===filtroId) : eventos;
 }
 
 function renderLegenda(){
@@ -8695,7 +8800,7 @@ function renderAgenda(){
         const si2=new Date(ev.data_inicio);
         const temHora2=si2.getHours()!==0&&si2.getHours()!==12;
         const horaLabel=temHora2?si2.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' ':''
-        html+=`<div class="ag-evento-pill${ev.reuniao?' reuniao':''}" style="background:${ev.cor};" title="${ev.titulo}">${horaLabel}${ev.titulo.substring(0,22)}</div>`;
+        html+=`<div class="ag-evento-pill${ev.reuniao?' reuniao':''}${ev.tipo==='aniversario'?' aniversario':''}" style="background:${ev.cor};${ev.tipo==='aniversario'?'border:1px solid #b8860b;font-weight:600;':''}" title="${ev.titulo}${ev.tipo==='aniversario'&&ev.cupom?' · Cupom: '+ev.cupom:''}">${horaLabel}${ev.titulo.substring(0,22)}</div>`;
       });
       if(evsDia.length>maxPills) html+=`<div style="font-size:9px;color:var(--text3);padding:1px 4px;">+${evsDia.length-maxPills} mais</div>`;
       html+='</div>';
@@ -8747,11 +8852,13 @@ function renderAgenda(){
     });
     let html = evsDia.length ? '' : '<div style="text-align:center;padding:40px;color:var(--text3);font-size:14px;">Nenhum evento neste dia.</div>';
     evsDia.forEach(ev=>{
-      html+=`<div class="ag-dia-view-evento${ev.reuniao?' reuniao':''}" style="background:${ev.cor};${ev.reuniao?'outline:3px solid #c0392b;outline-offset:2px;':''}">
+      const isAniv = ev.tipo==='aniversario';
+      html+=`<div class="ag-dia-view-evento${ev.reuniao?' reuniao':''}" style="background:${ev.cor};${ev.reuniao?'outline:3px solid #c0392b;outline-offset:2px;':''}${isAniv?'border:2px solid #b8860b;':''}">\
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:600;">${ev.titulo}</div>
           <div style="font-size:12px;opacity:0.85;">${ev.funcionario_nome}</div>
           ${ev.descricao?`<div style="font-size:12px;margin-top:4px;opacity:0.8;">${ev.descricao}</div>`:''}
+          ${isAniv&&ev.cupom?`<div style="font-size:11px;margin-top:4px;font-weight:600;color:#7a5c00;background:#fff9e3;display:inline-block;padding:2px 8px;border-radius:6px;border:1px solid #d4af37;">🎟 Cupom 10%: ${ev.cupom}</div>`:''}
           <div style="font-size:11px;margin-top:4px;opacity:0.75;">
             ${(()=>{
               const si = new Date(ev.data_inicio);
@@ -8760,8 +8867,8 @@ function renderAgenda(){
               const horaF = sf.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
               const dataI = si.toLocaleDateString('pt-BR');
               const dataF = sf.toLocaleDateString('pt-BR');
-              // Tem horário específico (não é meia-noite nem meio-dia padrão)
               const temHorario = si.getHours()!==0 && si.getHours()!==12;
+              if(isAniv){ return dataI; }
               if(ev.tipo==='reuniao'||ev.tipo==='projeto'){
                 return horaI+' – '+horaF;
               } else if(temHorario){
@@ -8772,8 +8879,8 @@ function renderAgenda(){
             })()}
           </div>
         </div>
-        <div style="font-size:20px;">${ev.tipo==='montagem'?'🔨':ev.tipo==='asteca'?'🔧':ev.tipo==='conferencia'?'📐':'📅'}</div>
-      </div>`;
+        <div style="font-size:20px;">${ev.tipo==='montagem'?'🔨':ev.tipo==='asteca'?'🔧':ev.tipo==='conferencia'?'📐':ev.tipo==='aniversario'?'🎂':'📅'}</div>
+      </div>`;\
     });
     cont.innerHTML = `<div style="padding:16px;">${html}</div>`;
   }
@@ -8884,6 +8991,41 @@ async function buscarCepAt(id){
     document.getElementById(`at-numero-end-${id}`).focus();
     notify('Endereço preenchido! Complete o número.','success');
   }catch(e){notify('Erro ao buscar CEP.','error');}
+}
+
+async function salvarNascimentoAt(id){
+  const val = (document.getElementById(`at-nascimento-${id}`)?.value||'').trim();
+  const alertEl = document.getElementById(`at-nasc-alert-${id}`);
+  if(!val){ if(alertEl) alertEl.innerHTML='<div class="alert alert-error">Informe a data de nascimento.</div>'; return; }
+
+  // Gerar cupom único se ainda não existir
+  const {data:atAtual} = await db.from('atendimentos').select('cupom_aniversario,empresa,vendedor_id,cliente_nome,cliente_email').eq('id',id).single();
+  let cupom = atAtual?.cupom_aniversario;
+  if(!cupom){
+    const rand = Math.random().toString(36).substring(2,6).toUpperCase();
+    const ano = new Date().getFullYear().toString().slice(-2);
+    cupom = `ANIV-${rand}-${ano}`;
+  }
+
+  const {error} = await db.from('atendimentos').update({
+    data_nascimento: val,
+    cupom_aniversario: cupom
+  }).eq('id',id);
+
+  if(error){
+    if(alertEl) alertEl.innerHTML='<div class="alert alert-error">Erro ao salvar. Verifique as colunas no banco.</div>';
+    return;
+  }
+
+  if(alertEl) alertEl.innerHTML='<div class="alert alert-success">✓ Data de nascimento salva!</div>';
+  setTimeout(()=>{ if(alertEl) alertEl.innerHTML=''; },3000);
+
+  // Atualizar objeto local
+  const atLocal = window._todosAtendimentos?.find(a=>a.id===id);
+  if(atLocal){ atLocal.data_nascimento=val; atLocal.cupom_aniversario=cupom; }
+
+  // Re-render modal com dados atualizados
+  abrirModalAt(id);
 }
 
 async function salvarEnderecoAt(id){
