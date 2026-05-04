@@ -8114,7 +8114,7 @@ async function loadAgenda(){
     funilConfId
       ? db.from('atendimentos').select('*').eq('funil_id', funilConfId).order('created_at')
       : Promise.resolve({data:[]}),
-    db.from('agenda_reunioes').select('*').order('data_inicio').catch(()=>({data:[]})),
+    db.from('agenda_reunioes').select('*').order('data_inicio'),
     db.from('projetos').select('*').order('created_at',{ascending:false}),
     db.from('perfis').select('id,nome,email,nivel').in('nivel',['admin','staff','vendedor']).order('nome')
   ]);
