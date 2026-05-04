@@ -7585,6 +7585,34 @@ async function abrirModalAt(id){
       </div>
     </div>
 
+    <!-- TAREFAS -->
+    <div class="divider"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">✅ Tarefas</div>
+
+    <!-- Lista de tarefas -->
+    <div id="at-feed-tarefas-${id}" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
+
+    <!-- Formulário nova tarefa -->
+    <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;">
+      <div class="form-row" style="margin-bottom:8px;">
+        <input type="text" id="at-tarefa-titulo-${id}" placeholder="Nome da tarefa..." 
+          style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Data</label>
+          <input type="date" id="at-tarefa-data-${id}"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Horário</label>
+          <input type="time" id="at-tarefa-hora-${id}"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+      </div>
+      <button onclick="salvarTarefaAt('${id}')" style="width:100%;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">+ Criar tarefa</button>
+    </div>
+
     <!-- ARQUIVOS DA TIMELINE -->
     ${timelArquivos.length ? `
     <div class="divider"></div>
@@ -7672,8 +7700,8 @@ async function abrirModalAt(id){
   `;
   // Guarda referência dos ambientes para toggleVendeuModal
   window._atModalAmbs={id,ambs};
-  // Carregar feed de anotações
-  setTimeout(()=>carregarFeedAnotacoes(id), 50);
+  // Carregar feed de anotações e tarefas
+  setTimeout(()=>{ carregarFeedAnotacoes(id); carregarTarefasAt(id); }, 50);
 }
 
 async function addAmbModal(atId){
@@ -8486,6 +8514,113 @@ async function salvarEnderecoAt(id){
   if(error){alertEl.innerHTML=`<div class="alert alert-error">Erro ao salvar. Verifique as colunas no banco.</div>`;return}
   alertEl.innerHTML=`<div class="alert alert-success">✓ Endereço salvo!</div>`;
   setTimeout(()=>{if(alertEl)alertEl.innerHTML='';},3000);
+}
+
+
+/* ── TAREFAS DO ATENDIMENTO ── */
+async function carregarTarefasAt(atId){
+  const feed = document.getElementById(`at-feed-tarefas-${atId}`);
+  if(!feed) return;
+  const {data} = await db.from('at_tarefas')
+    .select('*').eq('atendimento_id', atId)
+    .order('data_tarefa').order('horario');
+  if(!data||!data.length){
+    feed.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0;">Nenhuma tarefa cadastrada.</div>';
+    return;
+  }
+  const hoje = new Date().toISOString().slice(0,10);
+  feed.innerHTML = data.map(t=>{
+    const vencida = !t.concluida && t.data_tarefa < hoje;
+    const hoje_ = t.data_tarefa === hoje;
+    const cor = t.concluida ? '#27ae60' : vencida ? '#e74c3c' : hoje_ ? '#e67e22' : 'var(--brand)';
+    const bg = t.concluida ? '#eafaf1' : vencida ? '#fdecea' : hoje_ ? '#fff8f0' : 'var(--bg)';
+    const dataFmt = new Date(t.data_tarefa+'T12:00:00').toLocaleDateString('pt-BR');
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${bg};border:1px solid var(--border2);border-radius:8px;border-left:3px solid ${cor};">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);${t.concluida?'text-decoration:line-through;opacity:0.6;':''}">${t.titulo}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">📅 ${dataFmt} às ${t.horario} · ${t.responsavel_nome||'—'}</div>
+      </div>
+      ${!t.concluida
+        ? `<button onclick="concluirTarefaAt('${t.id}','${atId}')"
+            style="background:${cor};color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;font-weight:500;">
+            ✓ Concluir
+          </button>`
+        : `<span style="font-size:11px;color:var(--green);font-weight:600;">✓ Feito</span>`
+      }
+    </div>`;
+  }).join('');
+}
+
+async function salvarTarefaAt(atId){
+  const titulo = document.getElementById(`at-tarefa-titulo-${atId}`)?.value.trim();
+  const data = document.getElementById(`at-tarefa-data-${atId}`)?.value;
+  const hora = document.getElementById(`at-tarefa-hora-${atId}`)?.value;
+  if(!titulo){ notify('Informe o nome da tarefa.','error'); return; }
+  if(!data){ notify('Informe a data.','error'); return; }
+  if(!hora){ notify('Informe o horário.','error'); return; }
+
+  const autor = currentUser?.nome || currentUser?.email || 'Usuário';
+
+  // Salvar tarefa
+  const {data:tarefa, error} = await db.from('at_tarefas').insert({
+    atendimento_id: atId,
+    titulo,
+    data_tarefa: data,
+    horario: hora,
+    responsavel_id: currentUser?.id||null,
+    responsavel_nome: autor
+  }).select().single();
+  if(error){ notify('Erro ao salvar tarefa: '+error.message,'error'); return; }
+
+  // Registrar como anotação automática
+  const dataFmt = new Date(data+'T12:00:00').toLocaleDateString('pt-BR');
+  await db.from('at_anotacoes').insert({
+    atendimento_id: atId,
+    texto: `📌 Tarefa criada: "${titulo}"
+📅 ${dataFmt} às ${hora}`,
+    autor_id: currentUser?.id||null,
+    autor_nome: autor
+  });
+
+  // Adicionar na agenda (agenda_reunioes)
+  const dataInicio = new Date(`${data}T${hora}:00`);
+  const dataFim = new Date(dataInicio.getTime() + 60*60*1000); // +1h
+  await db.from('agenda_reunioes').insert({
+    titulo: `✅ ${titulo}`,
+    descricao: `Tarefa do atendimento`,
+    funcionario_id: currentUser?.id||null,
+    funcionario_nome: autor,
+    funcionario_tipo: 'vendedor',
+    data_inicio: dataInicio.toISOString(),
+    data_fim: dataFim.toISOString(),
+    recorrencia_tipo: null,
+    criado_por: currentUser?.id||null
+  });
+
+  // Limpar campos
+  document.getElementById(`at-tarefa-titulo-${atId}`).value='';
+  document.getElementById(`at-tarefa-data-${atId}`).value='';
+  document.getElementById(`at-tarefa-hora-${atId}`).value='';
+
+  notify('✅ Tarefa criada e adicionada à agenda!');
+  carregarTarefasAt(atId);
+  carregarFeedAnotacoes(atId);
+}
+
+async function concluirTarefaAt(tarefaId, atId){
+  const {error} = await db.from('at_tarefas').update({concluida:true}).eq('id',tarefaId);
+  if(error){ notify('Erro ao concluir tarefa.','error'); return; }
+  // Registrar conclusão como anotação
+  const {data:t} = await db.from('at_tarefas').select('titulo').eq('id',tarefaId).single();
+  await db.from('at_anotacoes').insert({
+    atendimento_id: atId,
+    texto: `✅ Tarefa concluída: "${t?.titulo||''}"`,
+    autor_id: currentUser?.id||null,
+    autor_nome: currentUser?.nome || currentUser?.email || 'Usuário'
+  });
+  notify('Tarefa concluída!');
+  carregarTarefasAt(atId);
+  carregarFeedAnotacoes(atId);
 }
 
 /* ── ANOTAÇÕES / FEED ── */
