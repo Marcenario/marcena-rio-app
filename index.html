@@ -5949,6 +5949,14 @@ async function alterarVendedorAt(atId){
     vendedor_nome:novoNome||null
   }).eq('id',atId);
   if(error){notify('Erro ao alterar vendedor.','error');return;}
+  // Sincronizar vendedor no projeto vinculado
+  const {data:at}=await db.from('atendimentos').select('projeto_id').eq('id',atId).single();
+  if(at?.projeto_id){
+    await db.from('projetos').update({
+      vendedor_id: novoId||null,
+      vendedor_nome: novoNome||null
+    }).eq('id',at.projeto_id);
+  }
   notify('Vendedor atualizado!');
   abrirModalAt(atId);
   loadFunil();
@@ -6953,7 +6961,9 @@ async function salvarAtendimento(){
       cliente_nome: nome,
       cliente_tel: tel,
       user_id: clienteUserId,
-      empresa: atEmpresa
+      empresa: atEmpresa,
+      vendedor_id: vendedor?.id||null,
+      vendedor_nome: vendedor?.nome||null
     }).select().single();
 
     if(!projErr && proj?.id){
