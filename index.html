@@ -7567,15 +7567,22 @@ async function abrirModalAt(id){
     </div>`}
     <div id="modal-at-alert" style="margin-top:8px;"></div>
 
-    <!-- ANOTAÇÕES GERAIS -->
+    <!-- ANOTAÇÕES / FEED DE ATIVIDADES -->
     <div class="divider"></div>
-    <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📝 Anotações gerais</div>
-    <textarea id="at-anotacoes-${id}" placeholder="Escreva observações, anotações internas, histórico de conversas..."
-      style="width:100%;min-height:120px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;resize:vertical;box-sizing:border-box;line-height:1.5;"
-      oninput="autoSaveAnotacoes('${id}',this)">${a.anotacoes||''}</textarea>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-      <span style="font-size:11px;color:var(--text3);" id="at-anotacoes-status-${id}"></span>
-      <button onclick="salvarAnotacoesAt('${id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">💾 Salvar</button>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📝 Anotações</div>
+
+    <!-- Feed de anotações existentes -->
+    <div id="at-feed-anotacoes-${id}" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:280px;overflow-y:auto;"></div>
+
+    <!-- Input nova anotação -->
+    <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;">
+      <textarea id="at-anotacoes-${id}" placeholder="Escreva uma observação, registro de conversa, próximo passo..."
+        style="width:100%;min-height:80px;padding:10px 12px;border:none;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;resize:none;box-sizing:border-box;line-height:1.5;"
+        onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();salvarAnotacaoFeed('${id}');}"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg);border-top:1px solid var(--border2);">
+        <span style="font-size:11px;color:var(--text3);">Ctrl+Enter para salvar</span>
+        <button onclick="salvarAnotacaoFeed('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:600;">💾 Registrar</button>
+      </div>
     </div>
 
     <!-- ARQUIVOS DA TIMELINE -->
@@ -7665,6 +7672,8 @@ async function abrirModalAt(id){
   `;
   // Guarda referência dos ambientes para toggleVendeuModal
   window._atModalAmbs={id,ambs};
+  // Carregar feed de anotações
+  setTimeout(()=>carregarFeedAnotacoes(id), 50);
 }
 
 async function addAmbModal(atId){
@@ -8180,12 +8189,21 @@ function renderLegenda(){
 }
 
 function abrirColorPickerFunc(id, tipo, corAtual){
-  const nova = prompt('Cole o código hex da nova cor (ex: #e74c3c):', corAtual);
-  if(!nova||!/^#[0-9a-fA-F]{6}$/.test(nova.trim())){
-    if(nova!==null) notify('Cor inválida. Use formato #RRGGBB.','error');
-    return;
+  // Cria um input type=color invisível e dispara o clique
+  let picker = document.getElementById('ag-color-picker-hidden');
+  if(!picker){
+    picker = document.createElement('input');
+    picker.type = 'color';
+    picker.id = 'ag-color-picker-hidden';
+    picker.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0;';
+    document.body.appendChild(picker);
   }
-  salvarCorFunc(id, tipo, nova.trim());
+  picker.value = corAtual || '#e74c3c';
+  // Remover listener anterior
+  picker.onchange = null;
+  picker.oninput = null;
+  picker.onchange = (e) => salvarCorFunc(id, tipo, e.target.value);
+  picker.click();
 }
 
 async function salvarCorFunc(id, tipo, cor){
@@ -8470,8 +8488,57 @@ async function salvarEnderecoAt(id){
   setTimeout(()=>{if(alertEl)alertEl.innerHTML='';},3000);
 }
 
-/* ── ANOTAÇÕES ── */
+/* ── ANOTAÇÕES / FEED ── */
 let _anotacoesTimer = {};
+
+async function carregarFeedAnotacoes(atId){
+  const feed = document.getElementById(`at-feed-anotacoes-${atId}`);
+  if(!feed) return;
+  const {data,error} = await db.from('at_anotacoes')
+    .select('*').eq('atendimento_id',atId)
+    .order('created_at',{ascending:true});
+  if(error){ console.warn('Erro ao carregar anotações:', error.message); return; }
+  if(!data||!data.length){
+    feed.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center;">Nenhuma anotação ainda.</div>';
+    return;
+  }
+  feed.innerHTML = data.map(n=>{
+    const dt = new Date(n.created_at);
+    const dataFmt = dt.toLocaleDateString('pt-BR');
+    const horaFmt = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const autor = n.autor_nome || 'Sistema';
+    const iniciais = autor.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    return `<div style="display:flex;gap:10px;align-items:flex-start;">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${iniciais}</div>
+      <div style="flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <span style="font-size:12px;font-weight:600;color:var(--text);">${autor}</span>
+          <span style="font-size:11px;color:var(--text3);">${dataFmt} às ${horaFmt}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;">${n.texto.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      </div>
+    </div>`;
+  }).join('');
+  // Scroll para o final (última anotação)
+  feed.scrollTop = feed.scrollHeight;
+}
+
+async function salvarAnotacaoFeed(atId){
+  const ta = document.getElementById(`at-anotacoes-${atId}`);
+  if(!ta) return;
+  const texto = ta.value.trim();
+  if(!texto){ notify('Digite algo antes de registrar.','error'); return; }
+  const {error} = await db.from('at_anotacoes').insert({
+    atendimento_id: atId,
+    texto,
+    autor_id: currentUser?.id||null,
+    autor_nome: currentUser?.nome || currentUser?.email || 'Usuário'
+  });
+  if(error){ notify('Erro ao salvar anotação: '+error.message,'error'); return; }
+  ta.value = '';
+  notify('Anotação registrada!');
+  carregarFeedAnotacoes(atId);
+}
 function autoSaveAnotacoes(id, el){
   const statusEl = document.getElementById(`at-anotacoes-status-${id}`);
   if(statusEl) statusEl.textContent = 'Digitando...';
