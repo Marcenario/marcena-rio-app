@@ -7796,9 +7796,24 @@ let _agDataRef = new Date(); // data de referência para navegação
 let _agEventos = [];         // todos os eventos calculados
 let _agFuncionarios = [];    // lista de funcionários com cores
 
-const AG_CORES = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6',
-                  '#1abc9c','#e67e22','#16a085','#8e44ad','#d35400',
-                  '#27ae60','#2980b9','#c0392b','#7f8c8d'];
+const AG_CORES = [
+  '#e74c3c', // vermelho
+  '#2980b9', // azul
+  '#27ae60', // verde
+  '#e67e22', // laranja
+  '#8e44ad', // roxo
+  '#16a085', // verde água
+  '#c0392b', // vermelho escuro
+  '#1a5276', // azul marinho
+  '#f39c12', // amarelo ouro
+  '#117a65', // verde musgo
+  '#6c3483', // violeta
+  '#d68910', // ocre
+  '#0e6655', // verde escuro
+  '#1f618d', // azul petróleo
+  '#884ea0', // lilás
+  '#b7950b', // dourado escuro
+];
 
 /* ── Feriados brasileiros ── */
 function calcularPascoa(ano){
@@ -8152,11 +8167,40 @@ function filtrarEventos(){
 
 function renderLegenda(){
   const el = document.getElementById('ag-legenda');
+  const isAdm = userNivel==='admin';
   el.innerHTML = _agFuncionarios.map(f=>`
-    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer;" onclick="document.getElementById('ag-filtro-func').value='${f.id}';renderAgenda()">
-      <span style="width:12px;height:12px;border-radius:3px;background:${f.cor};display:inline-block;flex-shrink:0;"></span>
-      <span>${f.nome}</span>
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);">
+      <span onclick="document.getElementById('ag-filtro-func').value='${f.id}';renderAgenda()"
+        style="width:14px;height:14px;border-radius:3px;background:${f.cor};display:inline-block;flex-shrink:0;cursor:pointer;border:2px solid transparent;" title="Filtrar por ${f.nome}"></span>
+      ${isAdm
+        ? `<span style="cursor:pointer;" onclick="abrirColorPickerFunc('${f.id}','${f.tipo}','${f.cor}')" title="Clique para trocar a cor">${f.nome} <span style="opacity:0.5;font-size:10px;">🎨</span></span>`
+        : `<span style="cursor:pointer;" onclick="document.getElementById('ag-filtro-func').value='${f.id}';renderAgenda()">${f.nome}</span>`
+      }
     </div>`).join('');
+}
+
+function abrirColorPickerFunc(id, tipo, corAtual){
+  const nova = prompt('Cole o código hex da nova cor (ex: #e74c3c):', corAtual);
+  if(!nova||!/^#[0-9a-fA-F]{6}$/.test(nova.trim())){
+    if(nova!==null) notify('Cor inválida. Use formato #RRGGBB.','error');
+    return;
+  }
+  salvarCorFunc(id, tipo, nova.trim());
+}
+
+async function salvarCorFunc(id, tipo, cor){
+  const tabela = tipo==='equipe' ? 'equipes_montagem' : tipo==='conferente' ? 'conferentes' : null;
+  if(tabela){
+    await db.from(tabela).update({cor}).eq('id',id);
+  }
+  // Atualizar na lista em memória
+  const f = _agFuncionarios.find(x=>x.id===id);
+  if(f){ f.cor=cor; }
+  // Atualizar eventos com nova cor
+  _agEventos.forEach(e=>{ if(e.funcionario_id===id) e.cor=cor; });
+  renderLegenda();
+  renderAgenda();
+  notify('Cor atualizada!');
 }
 
 function agendaPopularSeletores(){
