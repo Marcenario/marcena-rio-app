@@ -4177,7 +4177,7 @@ function tipoLabel(t){
 
 db.auth.onAuthStateChange((event,session)=>{if(session&&session.user)onLogin(session.user)});
 db.auth.getSession().then(({data})=>{if(data.session)onLogin(data.session.user)});
-if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js');
+// Service Worker removido — arquivo não existe no servidor
 
 
 
