@@ -8853,7 +8853,7 @@ function renderAgenda(){
     let html = evsDia.length ? '' : '<div style="text-align:center;padding:40px;color:var(--text3);font-size:14px;">Nenhum evento neste dia.</div>';
     evsDia.forEach(ev=>{
       const isAniv = ev.tipo==='aniversario';
-      html+=`<div class="ag-dia-view-evento${ev.reuniao?' reuniao':''}" style="background:${ev.cor};${ev.reuniao?'outline:3px solid #c0392b;outline-offset:2px;':''}${isAniv?'border:2px solid #b8860b;':''}">\
+      html+=`<div class="ag-dia-view-evento${ev.reuniao?' reuniao':''}" style="background:${ev.cor};${ev.reuniao?'outline:3px solid #c0392b;outline-offset:2px;':''}${isAniv?'border:2px solid #b8860b;':''}">
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:600;">${ev.titulo}</div>
           <div style="font-size:12px;opacity:0.85;">${ev.funcionario_nome}</div>
@@ -8880,7 +8880,7 @@ function renderAgenda(){
           </div>
         </div>
         <div style="font-size:20px;">${ev.tipo==='montagem'?'🔨':ev.tipo==='asteca'?'🔧':ev.tipo==='conferencia'?'📐':ev.tipo==='aniversario'?'🎂':'📅'}</div>
-      </div>`;\
+      </div>`;
     });
     cont.innerHTML = `<div style="padding:16px;">${html}</div>`;
   }
@@ -9023,6 +9023,20 @@ async function salvarNascimentoAt(id){
   // Atualizar objeto local
   const atLocal = window._todosAtendimentos?.find(a=>a.id===id);
   if(atLocal){ atLocal.data_nascimento=val; atLocal.cupom_aniversario=cupom; }
+
+  // Se o aniversário é HOJE, disparar o email imediatamente (o cron diário já passou ou ainda não rodou)
+  const hoje = new Date();
+  const nascHoje = new Date(val+'T12:00:00');
+  if(nascHoje.getMonth()===hoje.getMonth() && nascHoje.getDate()===hoje.getDate()){
+    try{
+      await fetch(`${SUPABASE_URL}/functions/v1/email-aniversario`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+        body:JSON.stringify({})
+      });
+      notify('🎂 Aniversário hoje! Email de parabéns enviado.','success');
+    }catch(e){ console.warn('Email aniversário não enviado:',e); }
+  }
 
   // Re-render modal com dados atualizados
   abrirModalAt(id);
