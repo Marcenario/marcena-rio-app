@@ -3115,33 +3115,10 @@ async function salvarPedidoMt(){
   if(!contrato){setAlert('mt-novo-alert','O atendimento selecionado não possui número de contrato. Cadastre o contrato no atendimento e tente novamente.','error');return}
   if(!cliente){setAlert('mt-novo-alert','Preencha o nome do cliente.','error');return}
 
-  // Verificar conflito de data: não permite duas montagens no mesmo dia para a mesma equipe
-  if(equipe && data){
-    const {data:conflitos} = await db.from('pedidos_montagem')
-      .select('id,cliente_nome,tipo,data_chegada')
-      .eq('equipe_id', equipe.id)
-      .eq('data_chegada', data)
-      .neq('status','concluido');
-    const conflMontagem = (conflitos||[]).filter(c=>c.tipo!=='asteca');
-    const conflAsteca = (conflitos||[]).filter(c=>c.tipo==='asteca');
-    if(conflMontagem.length>0 && mtTipo!=='asteca'){
-      setAlert('mt-novo-alert',`⚠️ A equipe ${equipe.nome} já tem uma montagem agendada para este dia (${conflMontagem[0].cliente_nome}). Escolha outra data ou outra equipe.`,'error');
-      btn.disabled=false; btn.textContent='Registrar e distribuir para equipe'; return;
-    }
-    if(mtTipo==='asteca' && userNivel!=='admin' && (conflMontagem.length>0||conflAsteca.length>0)){
-      setAlert('mt-novo-alert','⚠️ Já existe agendamento para este dia. Apenas o administrador pode autorizar ASTECA em dias com outros serviços.','error');
-      btn.disabled=false; btn.textContent='🔧 Registrar ASTECA — URGENTE'; return;
-    }
-    if(mtTipo==='asteca' && userNivel==='admin' && (conflMontagem.length>0||conflAsteca.length>0)){
-      const ok = confirm(`⚠️ A equipe ${equipe.nome} já tem serviço agendado neste dia.
 
-Deseja autorizar esta ASTECA mesmo assim?`);
-      if(!ok){ btn.disabled=false; btn.textContent='🔧 Registrar ASTECA — URGENTE'; return; }
-    }
-  }
   if(!ambsMt.length){setAlert('mt-novo-alert','Adicione pelo menos um ambiente.','error');return}
   const valorTotal=ambsMt.reduce((s,a)=>s+a.valor,0);
-  if(!valorTotal){setAlert('mt-novo-alert','O valor total não pode ser zero.','error');return}
+  // valor pode ser 0 para complementos sem valor comercial
   // Valida checklist ASTECA
   if(mtTipo==='asteca'&&mtChecklist.length>0){
     const marcados=mtChecklist.filter(i=>i.confirmado).length;
@@ -3155,6 +3132,29 @@ Deseja autorizar esta ASTECA mesmo assim?`);
   const btn=document.getElementById('btn-registrar-mt')||document.getElementById('btn-mt-novo');btn.disabled=true;btn.textContent='Salvando...';
   const equipe=await distribuirEquipe(valorTotal);
   if(!equipe){setAlert('mt-novo-alert','Cadastre pelo menos uma equipe antes.','error');btn.disabled=false;btn.textContent=mtTipo==='asteca'?'🔧 Registrar ASTECA — URGENTE':'Registrar e distribuir para equipe';return}
+
+  // Verificar conflito de data agora que temos a equipe
+  if(data){
+    const {data:conflitos} = await db.from('pedidos_montagem')
+      .select('id,cliente_nome,tipo,data_chegada')
+      .eq('equipe_id', equipe.id)
+      .eq('data_chegada', data)
+      .neq('status','concluido');
+    const conflMontagem = (conflitos||[]).filter(x=>x.tipo!=='asteca');
+    const conflAsteca = (conflitos||[]).filter(x=>x.tipo==='asteca');
+    if(conflMontagem.length>0 && mtTipo!=='asteca'){
+      setAlert('mt-novo-alert',`⚠️ A equipe ${equipe.nome} já tem uma montagem agendada para este dia (${conflMontagem[0].cliente_nome}). Escolha outra data ou outra equipe.`,'error');
+      btn.disabled=false; btn.textContent='Registrar e distribuir para equipe'; return;
+    }
+    if(mtTipo==='asteca' && userNivel!=='admin' && (conflMontagem.length>0||conflAsteca.length>0)){
+      setAlert('mt-novo-alert','⚠️ Já existe agendamento para este dia. Apenas o administrador pode autorizar ASTECA em dias com outros serviços.','error');
+      btn.disabled=false; btn.textContent='🔧 Registrar ASTECA — URGENTE'; return;
+    }
+    if(mtTipo==='asteca' && userNivel==='admin' && (conflMontagem.length>0||conflAsteca.length>0)){
+      const ok = confirm(`⚠️ A equipe ${equipe.nome} já tem serviço agendado neste dia.\n\nDeseja autorizar esta ASTECA mesmo assim?`);
+      if(!ok){ btn.disabled=false; btn.textContent='🔧 Registrar ASTECA — URGENTE'; return; }
+    }
+  }
   const payload={
     cliente_nome:cliente,numero_contrato:contrato,data_chegada:data,
     valor_total:valorTotal,ambientes:JSON.stringify(ambsMt),
