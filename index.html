@@ -623,7 +623,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
           <div style="font-size:13px;font-weight:500;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;">Empresa</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem;">
-            <button class="at-tipo-btn active" id="at-emp-mr" onclick="setEmpresaAt('marcenario',this)" style="padding:12px 8px;text-align:center;">
+<div id="at-empresa-btns" style="display:contents;">            <button class="at-tipo-btn active" id="at-emp-mr" onclick="setEmpresaAt('marcenario',this)" style="padding:12px 8px;text-align:center;">
               <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
               <span style="display:none;font-size:12px;font-weight:600;letter-spacing:0.5px;color:inherit;">MARCENA RIO</span>
             </button>
@@ -721,8 +721,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="font-size:12px;color:var(--text2);">Financeiro:</span>
-          <button id="dash-emp-mr" onclick="setDashEmpresa('marcenario',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--brand);background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
-          <button id="dash-emp-ct" onclick="setDashEmpresa('conceptus',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus</button>
+          <div id="dash-empresa-btns" style="display:contents;"><button id="dash-emp-mr" onclick="setDashEmpresa('marcenario',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--brand);background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Marcena Rio</button>
+          <button id="dash-emp-ct" onclick="setDashEmpresa('conceptus',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Conceptus</button></div>
           <button onclick="loadDashboard()" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">↻ Atualizar</button>
         </div>
       </div>
@@ -1220,6 +1220,37 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <div class="stat-card"><div class="stat-num" id="stat-pendentes">—</div><div class="stat-label">Aguardando ação</div></div>
         <div class="stat-card"><div class="stat-num" id="stat-concluidos">—</div><div class="stat-label">Concluídos</div></div>
       </div>
+      <!-- Gerenciamento de Empresas — só admin master -->
+      <div class="card" id="admin-empresas-card" style="display:none;">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="card-title">🏢 Empresas da plataforma</div>
+          <button onclick="abrirModalNovaEmpresa()" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">+ Nova empresa</button>
+        </div>
+        <div id="admin-empresas-list"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- Modal nova/editar empresa -->
+      <div id="modal-empresa" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:24px;max-width:480px;width:90%;max-height:90vh;overflow-y:auto;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 id="modal-empresa-titulo" style="margin:0;font-size:16px;font-weight:600;">Nova empresa</h3>
+            <button onclick="document.getElementById('modal-empresa').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);">✕</button>
+          </div>
+          <input type="hidden" id="emp-edit-id">
+          <div class="form-row"><label>Slug (identificador único, sem espaços)</label><input type="text" id="emp-slug" placeholder="ex: minhaloja"></div>
+          <div class="form-row"><label>Nome da empresa</label><input type="text" id="emp-nome" placeholder="ex: Minha Loja de Móveis"></div>
+          <div class="form-row"><label>Subtítulo</label><input type="text" id="emp-subtitulo" placeholder="ex: Móveis Planejados"></div>
+          <div class="form-grid">
+            <div class="form-row"><label>Cor principal</label><input type="color" id="emp-cor" value="#1a1a2e" style="width:100%;height:38px;border:1px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;"></div>
+            <div class="form-row"><label>Cor clara</label><input type="color" id="emp-cor-clara" value="#f0f0f0" style="width:100%;height:38px;border:1px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;"></div>
+          </div>
+          <div class="form-row"><label>URL da logo</label><input type="text" id="emp-logo" placeholder="https://..."></div>
+          <div class="form-row"><label>E-mail</label><input type="text" id="emp-email" placeholder="contato@empresa.com.br"></div>
+          <div id="modal-empresa-alert" style="margin-bottom:8px;"></div>
+          <button onclick="salvarEmpresa()" style="width:100%;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:11px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">💾 Salvar empresa</button>
+        </div>
+      </div>
+
       <div class="card" id="sol-empresa-card" style="display:none;">
         <div class="card-header">
           <div class="card-title">🔄 Solicitações de mudança de empresa</div>
@@ -1606,24 +1637,78 @@ const ETAPAS=[
 ];
 const ETAPAS_TOTAL=ETAPAS.length;
 const {createClient}=supabase;
-const EMPRESAS={
-  marcenario:{
-    nome:'Marcena Rio',
-    subtitulo:'Marcenaria de Alto Padrão',
-    cor:'#6b4c2a',
-    corClara:'#f5efe8',
+// EMPRESAS — carregado dinamicamente do banco
+let EMPRESAS={
+  marcenario:{nome:'Marcena Rio',subtitulo:'Marcenaria de Alto Padrão',cor:'#6b4c2a',corClara:'#f5efe8',
     logo:'https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png',
-    email:'contato@marcenario.com.br'
-  },
-  conceptus:{
-    nome:'Italínea Conceptus',
-    subtitulo:'Ambientes Planejados',
-    cor:'#1a3a6e',
-    corClara:'#e8f0fc',
+    email:'contato@marcenario.com.br'},
+  conceptus:{nome:'Italínea Conceptus',subtitulo:'Ambientes Planejados',cor:'#1a3a6e',corClara:'#e8f0fc',
     logo:'https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png',
-    email:'contato@conceptusitalinea.com.br'
-  }
+    email:'contato@conceptusitalinea.com.br'}
 };
+
+async function carregarEmpresas(){
+  const {data,error} = await db.from('empresas').select('*').eq('ativo',true).order('nome');
+  if(error||!data) return;
+  // Rebuilds EMPRESAS from DB, keeps fallback for any missing
+  const novo = {};
+  data.forEach(e=>{
+    novo[e.slug] = {
+      id: e.id,
+      nome: e.nome,
+      subtitulo: e.subtitulo||'',
+      cor: e.cor||'#1a1a2e',
+      corClara: e.cor_clara||'#f0f0f0',
+      logo: e.logo_url||'',
+      email: e.email||''
+    };
+  });
+  if(Object.keys(novo).length) EMPRESAS = novo;
+  // Atualizar seletores de empresa em todos os módulos
+  atualizarSeletoresEmpresa();
+}
+
+function atualizarSeletoresEmpresa(){
+  const slugs = Object.keys(EMPRESAS);
+  // Atendimento
+  const atWrap = document.getElementById('at-empresa-btns');
+  if(atWrap){
+    atWrap.innerHTML = slugs.map(s=>`
+      <button class="at-tipo-btn ${s===atEmpresa?'active':''}" id="at-emp-${s}"
+        onclick="setEmpresaAt('${s}',this)"
+        style="padding:12px 8px;text-align:center;">
+        ${EMPRESAS[s].logo?`<img src="${EMPRESAS[s].logo}" style="height:32px;object-fit:contain;display:block;margin:0 auto 4px;">`:''}
+        <span style="font-size:11px;font-weight:600;">${EMPRESAS[s].nome}</span>
+      </button>`).join('');
+  }
+  // Dashboard
+  const dashWrap = document.getElementById('dash-empresa-btns');
+  if(dashWrap){
+    dashWrap.innerHTML = slugs.map(s=>`
+      <button id="dash-emp-${s}" onclick="setDashEmpresa('${s}',this)"
+        style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--brand);
+               background:${s===dashEmpresa?'var(--brand)':'transparent'};
+               color:${s===dashEmpresa?'#fff':'var(--text2)'};
+               font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">
+        ${EMPRESAS[s].nome}
+      </button>`).join('');
+  }
+  // Financeiro
+  const finWrap = document.getElementById('fin-empresa-btns');
+  if(finWrap){
+    finWrap.innerHTML = slugs.map(s=>`
+      <button id="fin-emp-${s}" onclick="setEmpresaFin('${s}',this)"
+        style="padding:6px 16px;border-radius:20px;border:1.5px solid var(--brand);
+               background:${s===finEmpresa?'var(--brand)':'transparent'};
+               color:${s===finEmpresa?'#fff':'var(--text2)'};
+               font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">
+        ${EMPRESAS[s].nome}
+      </button>`).join('');
+  }
+}
+
+function nomeEmpresa(slug){ return EMPRESAS[slug]?.nome || slug || '—'; }
+function corEmpresa(slug){ return EMPRESAS[slug]?.cor || '#1a1a2e'; }
 const db=createClient(SUPABASE_URL,SUPABASE_ANON);
 let currentUser=null,userNivel='cliente',rdKey=localStorage.getItem('mr_rd_key')||'',ambsMt=[];
 
@@ -1700,6 +1785,7 @@ async function onLogin(user){
   document.getElementById('app-screen').style.display='block';
   document.getElementById('topbar-email').textContent=user.email;
   const nivelLabel=userNivel==='admin'?'Admin':userNivel==='funcionario'?'Funcionário':'Cliente';
+  carregarEmpresas();
   const nivelClass=userNivel==='admin'?'nivel-admin':userNivel==='funcionario'?'nivel-funcionario':'nivel-cliente';
   document.getElementById('topbar-nivel').textContent=nivelLabel;
   document.getElementById('topbar-nivel').className='topbar-nivel '+nivelClass;
@@ -2269,7 +2355,7 @@ function renderProjeto(p){
 
   // Seletor de empresa para staff
   const empAtual=p.empresa||'';
-  const empNome=empAtual==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  const empNome=nomeEmpresa(empAtual);
   let seletorEmpresa='';
   if(isStaff){
     if(!empAtual){
@@ -2289,7 +2375,7 @@ function renderProjeto(p){
     } else if(userNivel==='admin'){
       // Admin — mostra empresa atual com opção de trocar
       const outra=empAtual==='marcenario'?'conceptus':'marcenario';
-      const outraNome=outra==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+      const outraNome=nomeEmpresa(outra);
       seletorEmpresa=`
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
           <span style="font-size:11px;color:var(--text2);font-weight:500;">Empresa:</span>
@@ -2313,7 +2399,7 @@ function renderProjeto(p){
     ${(()=>{
       const isConceptus=p.empresa==='conceptus';
       const numVendas=isConceptus?'5521978829198':'5521975584029';
-      const labelVendas=isConceptus?'Vendas Italínea':'Vendas Marcena Rio';
+      const labelVendas=isConceptus?'Vendas Italínea':'Vendas '+nomeEmpresa('marcenario');
       const numMontagem=isConceptus?'5521970770185':'5521991028235';
       const msgVendas=encodeURIComponent(`Olá! Sou ${p.cliente_nome||'cliente'} e gostaria de falar sobre meu projeto.`);
       const msgMontagem=encodeURIComponent(`Olá! Sou ${p.cliente_nome||'cliente'} e gostaria de falar sobre montagem ou assistência técnica do meu projeto.`);
@@ -2475,7 +2561,7 @@ async function sincronizarProjetoProj(projetoId, tipo, docId){
 
 async function solicitarMudancaEmpresa(projetoId, empresaAtual){
   const outra = empresaAtual==='marcenario'?'conceptus':'marcenario';
-  const outraNome = outra==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  const outraNome = nomeEmpresa(outra);
   const motivo = prompt(`Para solicitar mudança para ${outraNome}, informe o motivo:`);
   if(!motivo) return;
   const {error} = await db.from('solicitacoes_empresa').insert({
@@ -2563,8 +2649,8 @@ async function loadSolicitacoesEmpresa(){
   const {data} = await db.from('solicitacoes_empresa').select('*').eq('status','pendente').order('created_at',{ascending:false});
   if(!data||!data.length){ cont.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">Nenhuma solicitação pendente.</div>'; return; }
   cont.innerHTML=data.map(s=>{
-    const empNova=s.empresa_solicitada==='conceptus'?'Conceptus Italínea':'Marcena Rio';
-    const empAtual=s.empresa_atual==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+    const empNova=nomeEmpresa(s.empresa_solicitada);
+    const empAtual=nomeEmpresa(s.empresa_atual);
     const dataStr=new Date(s.created_at).toLocaleDateString('pt-BR');
     return `<div class="card" style="margin-bottom:8px;">
       <div style="font-size:13px;font-weight:500;margin-bottom:4px;">Mudança de empresa solicitada</div>
@@ -2583,7 +2669,7 @@ async function definirEmpresaProjeto(id, empresa){
   await db.from('projetos').update({empresa}).eq('id',id);
   // Sincronizar com atendimento vinculado
   await db.from('atendimentos').update({empresa}).eq('projeto_id',id);
-  notify(`Empresa definida: ${empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio'}`);
+  notify(`Empresa definida: ${nomeEmpresa(empresa)}`);
   const _dv3=document.getElementById('proj-detalhe-view');
   if(_dv3&&_dv3.style.display!=='none'){
     const {data:_p3}=await db.from('projetos').select('*').eq('id',id).single();
@@ -2770,7 +2856,104 @@ async function salvarArquivoEtapa(projetoId,campo,inputEl){
 
 
 
+/* ── ADMIN EMPRESAS ── */
+async function loadEmpresasAdmin(){
+  const isMaster = currentUser?.email === ADMIN_EMAIL;
+  const card = document.getElementById('admin-empresas-card');
+  if(card) card.style.display = isMaster ? 'block' : 'none';
+  if(!isMaster) return;
+
+  const el = document.getElementById('admin-empresas-list');
+  if(!el) return;
+  const {data,error} = await db.from('empresas').select('*').order('nome');
+  if(error){ el.innerHTML='<p style="color:red;font-size:13px;">Erro ao carregar empresas.</p>'; return; }
+  if(!data?.length){ el.innerHTML='<p style="font-size:13px;color:var(--text3);">Nenhuma empresa cadastrada.</p>'; return; }
+
+  el.innerHTML = data.map(e=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+      <div style="width:40px;height:40px;border-radius:8px;background:${e.cor||'#1a1a2e'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        ${e.logo_url?`<img src="${e.logo_url}" style="max-width:36px;max-height:36px;object-fit:contain;">`:`<span style="color:#fff;font-size:16px;font-weight:700;">${(e.nome||'?')[0]}</span>`}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${e.nome}</div>
+        <div style="font-size:11px;color:var(--text3);">${e.slug} · ${e.subtitulo||''}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${e.ativo?'#dcfce7':'#fee2e2'};color:${e.ativo?'#15803d':'#dc2626'};">${e.ativo?'Ativa':'Inativa'}</span>
+        <button onclick="editarEmpresa('${e.id}')" style="background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;">✏️ Editar</button>
+        <button onclick="toggleEmpresaAtivo('${e.id}',${e.ativo})" style="background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;">${e.ativo?'Desativar':'Ativar'}</button>
+      </div>
+    </div>`).join('');
+}
+
+function abrirModalNovaEmpresa(){
+  document.getElementById('emp-edit-id').value='';
+  document.getElementById('emp-slug').value='';
+  document.getElementById('emp-nome').value='';
+  document.getElementById('emp-subtitulo').value='';
+  document.getElementById('emp-cor').value='#1a1a2e';
+  document.getElementById('emp-cor-clara').value='#f0f0f0';
+  document.getElementById('emp-logo').value='';
+  document.getElementById('emp-email').value='';
+  document.getElementById('emp-slug').disabled=false;
+  document.getElementById('modal-empresa-titulo').textContent='Nova empresa';
+  document.getElementById('modal-empresa-alert').innerHTML='';
+  document.getElementById('modal-empresa').style.display='flex';
+}
+
+async function editarEmpresa(id){
+  const {data:e} = await db.from('empresas').select('*').eq('id',id).single();
+  if(!e) return;
+  document.getElementById('emp-edit-id').value=e.id;
+  document.getElementById('emp-slug').value=e.slug; document.getElementById('emp-slug').disabled=true;
+  document.getElementById('emp-nome').value=e.nome||'';
+  document.getElementById('emp-subtitulo').value=e.subtitulo||'';
+  document.getElementById('emp-cor').value=e.cor||'#1a1a2e';
+  document.getElementById('emp-cor-clara').value=e.cor_clara||'#f0f0f0';
+  document.getElementById('emp-logo').value=e.logo_url||'';
+  document.getElementById('emp-email').value=e.email||'';
+  document.getElementById('modal-empresa-titulo').textContent='Editar empresa';
+  document.getElementById('modal-empresa-alert').innerHTML='';
+  document.getElementById('modal-empresa').style.display='flex';
+}
+
+async function salvarEmpresa(){
+  const id    = document.getElementById('emp-edit-id').value;
+  const slug  = document.getElementById('emp-slug').value.trim().toLowerCase().replace(/\s+/g,'-');
+  const nome  = document.getElementById('emp-nome').value.trim();
+  const sub   = document.getElementById('emp-subtitulo').value.trim();
+  const cor   = document.getElementById('emp-cor').value;
+  const corC  = document.getElementById('emp-cor-clara').value;
+  const logo  = document.getElementById('emp-logo').value.trim();
+  const email = document.getElementById('emp-email').value.trim();
+
+  if(!slug||!nome){ setAlert('modal-empresa-alert','Slug e nome são obrigatórios.','error'); return; }
+
+  const payload = {slug,nome,subtitulo:sub,cor,cor_clara:corC,logo_url:logo||null,email:email||null};
+  let error;
+  if(id){
+    ({error} = await db.from('empresas').update(payload).eq('id',id));
+  } else {
+    ({error} = await db.from('empresas').insert({...payload,ativo:true}));
+  }
+  if(error){ setAlert('modal-empresa-alert','Erro: '+error.message,'error'); return; }
+
+  notify(id ? 'Empresa atualizada!' : 'Empresa criada!');
+  document.getElementById('modal-empresa').style.display='none';
+  await carregarEmpresas();
+  loadEmpresasAdmin();
+}
+
+async function toggleEmpresaAtivo(id, ativo){
+  const msg = ativo ? 'Desativar esta empresa? Ela não aparecerá mais nos seletores.' : 'Ativar esta empresa?';
+  if(!confirm(msg)) return;
+  await db.from('empresas').update({ativo:!ativo}).eq('id',id);
+  await carregarEmpresas();
+  loadEmpresasAdmin();
+}
+
 async function loadAdmin(){
+  loadEmpresasAdmin();
   const {data}=await db.from('projetos').select('*').order('created_at',{ascending:false});
   if(!data)return;
   document.getElementById('stat-ativos').textContent=data.filter(p=>p.etapa_atual<ETAPAS_TOTAL&&p.etapa_atual>1).length;
@@ -5932,7 +6115,7 @@ async function definirEmpresaAt(atId, empresa){
   if(error){notify('Erro ao definir empresa.','error');return;}
   const {data:at}=await db.from('atendimentos').select('projeto_id').eq('id',atId).single();
   if(at?.projeto_id) await db.from('projetos').update({empresa}).eq('id',at.projeto_id);
-  const empNome=empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  const empNome=nomeEmpresa(empresa);
   notify(`Empresa definida: ${empNome} ✅`);
   abrirModalAt(atId);
   loadFunil();
@@ -5948,7 +6131,7 @@ async function alterarEmpresaAt(atId, empresa){
     await db.from('projetos').update({empresa}).eq('id',at.projeto_id);
   }
 
-  const empNome=empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  const empNome=nomeEmpresa(empresa);
   notify(`Empresa alterada para ${empNome} — projeto sincronizado! ✅`);
   abrirModalAt(atId);
   loadFunil();
@@ -5957,7 +6140,7 @@ async function alterarEmpresaAt(atId, empresa){
 
 async function solicitarMudancaEmpresaAt(atId, empresaAtual){
   const outra=empresaAtual==='marcenario'?'conceptus':'marcenario';
-  const outraNome=outra==='conceptus'?'Conceptus Italínea':'Marcena Rio';
+  const outraNome=nomeEmpresa(outra);
   const motivo=prompt(`Para solicitar mudança para ${outraNome}, informe o motivo:`);
   if(!motivo)return;
   const {error}=await db.from('solicitacoes_empresa').insert({
@@ -7405,7 +7588,7 @@ async function abrirModalAt(id){
         <button onclick="alterarEmpresaAt('${id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${a.empresa==='marcenario'?'#6b4c2a':'var(--border2)'};background:${a.empresa==='marcenario'?'#6b4c2a':'transparent'};color:${a.empresa==='marcenario'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Marcena Rio</button>
         <button onclick="alterarEmpresaAt('${id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${a.empresa==='conceptus'?'#1a3a6e':'var(--border2)'};background:${a.empresa==='conceptus'?'#1a3a6e':'transparent'};color:${a.empresa==='conceptus'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Conceptus Italínea</button>
       `:`
-        <strong style="font-size:13px;">${a.empresa==='conceptus'?'Conceptus Italínea':'Marcena Rio'}</strong>
+        <strong style="font-size:13px;">${a.nomeEmpresa(empresa)}</strong>
         <button onclick="solicitarMudancaEmpresaAt('${id}','${a.empresa||'marcenario'}')" style="padding:4px 12px;border-radius:16px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">🔄 Solicitar mudança</button>
       `}
     </div>`:''}
