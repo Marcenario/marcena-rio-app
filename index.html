@@ -551,7 +551,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <span style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;" id="mt-total">R$ 0,00</span>
           </div>
           <div id="mt-novo-alert"></div>
-          <button class="btn-submit" onclick="salvarPedidoMt()" id="btn-mt-novo">Registrar e distribuir para equipe</button>
+          <button class="btn-submit" onclick="salvarPedidoMt()" id="btn-registrar-mt" style="opacity:0.5;" title="Confirme todos os ambientes antes de registrar">Registrar e distribuir para equipe</button>
         </div>
       </div>
       <div id="mt-equipes" style="display:none">
@@ -3040,22 +3040,27 @@ function renderAmbsMt(){
         <span>Nº Pedido</span><span>Nota Fiscal</span><span>Ambiente</span><span>Valor</span><span></span>
       </div>
       ${ambsMt.map((a,i)=>`<div style="display:grid;grid-template-columns:1.2fr 1.2fr 1.5fr 1.2fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:13px;align-items:center;gap:6px;">
-        <input id="mt-amb-ped-${i}" value="${a.pedido||''}" placeholder="Nº pedido" oninput="ambsMt[${i}].pedido=this.value" onchange="ambsMt[${i}].pedido=this.value" style="${inlineStyle}">
-        <input id="mt-amb-nf-${i}" value="${a.nf||''}" placeholder="Nota fiscal" oninput="ambsMt[${i}].nf=this.value" onchange="ambsMt[${i}].nf=this.value" style="${inlineStyle}">
+        <input id="mt-amb-ped-${i}" value="${a.pedido||''}" placeholder="Nº pedido" oninput="ambsMt[${i}].pedido=this.value" onchange="ambsMt[${i}].pedido=this.value" ${a.confirmado?'disabled':''} style="${inlineStyle};${a.confirmado?'background:var(--bg);color:var(--text2);':''}">
+        <input id="mt-amb-nf-${i}" value="${a.nf||''}" placeholder="Nota fiscal" oninput="ambsMt[${i}].nf=this.value" onchange="ambsMt[${i}].nf=this.value" ${a.confirmado?'disabled':''} style="${inlineStyle};${a.confirmado?'background:var(--bg);color:var(--text2);':''}">
         <span style="font-weight:500;padding:0 4px;">${a.nome}</span>
-        <input id="mt-amb-val-${i}" value="${a.valor||0}" placeholder="0" oninput="ambsMt[${i}].valor=parseMoney(this.value)" onchange="ambsMt[${i}].valor=parseMoney(this.value);renderAmbsMt()" style="${inlineStyle};color:var(--accent);font-weight:500;">
+        <input id="mt-amb-val-${i}" value="${a.valor||0}" placeholder="0" oninput="ambsMt[${i}].valor=parseMoney(this.value)" onchange="ambsMt[${i}].valor=parseMoney(this.value);renderAmbsMt()" ${a.confirmado?'disabled':''} style="${inlineStyle};color:var(--accent);font-weight:500;${a.confirmado?'background:var(--bg);':''}">
         <div style="display:flex;gap:4px;">
-          <button onclick="confirmarAmbMt(${i})" id="mt-amb-confirm-${i}"
-            style="background:${a.confirmado?'var(--green)':'var(--bg2)'};color:${a.confirmado?'#fff':'var(--text2)'};border:1px solid ${a.confirmado?'var(--green)':'var(--border2)'};border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;">
-            ${a.confirmado?'✓ Ok':'✓'}
-          </button>
+          ${a.confirmado
+            ? `<button onclick="editarAmbMt(${i})" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;">✏️</button>`
+            : `<button onclick="confirmarAmbMt(${i})" id="mt-amb-confirm-${i}" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;font-weight:600;">✓ Ok</button>`
+          }
           <button class="btn-red-sm" onclick="removeAmbMt(${i})">✕</button>
         </div>
       </div>`).join('')}
     </div>`:''
 ;}
+function editarAmbMt(i){
+  ambsMt[i].confirmado = false;
+  renderAmbsMt();
+  const btn = document.getElementById('btn-registrar-mt');
+  if(btn){ btn.style.opacity='0.5'; btn.title='Confirme todos os ambientes antes de registrar'; }
+}
 function confirmarAmbMt(i){
-  // Lê os valores atuais dos inputs antes de confirmar
   const pedEl = document.getElementById('mt-amb-ped-'+i);
   const nfEl  = document.getElementById('mt-amb-nf-'+i);
   const valEl = document.getElementById('mt-amb-val-'+i);
@@ -3064,6 +3069,13 @@ function confirmarAmbMt(i){
   if(valEl) ambsMt[i].valor  = parseMoney(valEl.value);
   ambsMt[i].confirmado = true;
   renderAmbsMt();
+  // Verificar se todos estão confirmados e habilitar botão de registrar
+  const btn = document.getElementById('btn-registrar-mt');
+  if(btn){
+    const todoConfirmado = ambsMt.length > 0 && ambsMt.every(a=>a.confirmado);
+    btn.style.opacity = todoConfirmado ? '1' : '0.5';
+    btn.title = todoConfirmado ? '' : 'Confirme todos os ambientes antes de registrar';
+  }
 }
 function removeAmbMt(i){ambsMt.splice(i,1);renderAmbsMt()}
 
@@ -3140,7 +3152,7 @@ Deseja autorizar esta ASTECA mesmo assim?`);
     } else if(marcados<total&&userNivel!=='admin'){
       setAlert('mt-novo-alert','Confirme todos os itens do checklist para continuar.','error');return}
   }
-  const btn=document.getElementById('btn-mt-novo');btn.disabled=true;btn.textContent='Salvando...';
+  const btn=document.getElementById('btn-registrar-mt')||document.getElementById('btn-mt-novo');btn.disabled=true;btn.textContent='Salvando...';
   const equipe=await distribuirEquipe(valorTotal);
   if(!equipe){setAlert('mt-novo-alert','Cadastre pelo menos uma equipe antes.','error');btn.disabled=false;btn.textContent=mtTipo==='asteca'?'🔧 Registrar ASTECA — URGENTE':'Registrar e distribuir para equipe';return}
   const payload={
