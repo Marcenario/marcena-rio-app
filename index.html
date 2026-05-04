@@ -7867,7 +7867,12 @@ async function loadAgenda(){
   // Eventos de reunião
   const eventosReunioes = expandirReunioes(reunioes, _agFuncionarios);
 
-  _agEventos = [...eventosMontagem, ...eventosConf, ...eventosReunioes];
+  // Garantir que todas as datas são objetos Date
+  _agEventos = [...eventosMontagem, ...eventosConf, ...eventosReunioes].map(e=>({
+    ...e,
+    data_inicio: e.data_inicio instanceof Date ? e.data_inicio : new Date(e.data_inicio),
+    data_fim: e.data_fim instanceof Date ? e.data_fim : new Date(e.data_fim)
+  }));
 
   // Popular filtro de funcionários
   const sel = document.getElementById('ag-filtro-func');
@@ -8075,8 +8080,6 @@ function agendaIrParaMesAno(){
 function renderAgenda(){
   agendaPopularSeletores();
   const eventos = filtrarEventos();
-  console.log('[AGENDA] Total eventos para renderizar:', _agEventos.length, '| filtrados:', eventos.length);
-  if(_agEventos.length>0) console.log('[AGENDA] Primeiro evento:', _agEventos[0].titulo, '| inicio:', _agEventos[0].data_inicio, '| tipo:', typeof _agEventos[0].data_inicio);
   const cont = document.getElementById('ag-calendario');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
