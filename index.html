@@ -2838,6 +2838,31 @@ async function salvarPedidoMt(){
   if(!atId){setAlert('mt-novo-alert','Vincule um atendimento antes de registrar. Use o campo de busca acima.','error');return}
   if(!contrato){setAlert('mt-novo-alert','O atendimento selecionado não possui número de contrato. Cadastre o contrato no atendimento e tente novamente.','error');return}
   if(!cliente){setAlert('mt-novo-alert','Preencha o nome do cliente.','error');return}
+
+  // Verificar conflito de data: não permite duas montagens no mesmo dia para a mesma equipe
+  if(equipe && data){
+    const {data:conflitos} = await db.from('pedidos_montagem')
+      .select('id,cliente_nome,tipo,data_chegada')
+      .eq('equipe_id', equipe.id)
+      .eq('data_chegada', data)
+      .neq('status','concluido');
+    const conflMontagem = (conflitos||[]).filter(c=>c.tipo!=='asteca');
+    const conflAsteca = (conflitos||[]).filter(c=>c.tipo==='asteca');
+    if(conflMontagem.length>0 && mtTipo!=='asteca'){
+      setAlert('mt-novo-alert',`⚠️ A equipe ${equipe.nome} já tem uma montagem agendada para este dia (${conflMontagem[0].cliente_nome}). Escolha outra data ou outra equipe.`,'error');
+      btn.disabled=false; btn.textContent='Registrar e distribuir para equipe'; return;
+    }
+    if(mtTipo==='asteca' && userNivel!=='admin' && (conflMontagem.length>0||conflAsteca.length>0)){
+      setAlert('mt-novo-alert','⚠️ Já existe agendamento para este dia. Apenas o administrador pode autorizar ASTECA em dias com outros serviços.','error');
+      btn.disabled=false; btn.textContent='🔧 Registrar ASTECA — URGENTE'; return;
+    }
+    if(mtTipo==='asteca' && userNivel==='admin' && (conflMontagem.length>0||conflAsteca.length>0)){
+      const ok = confirm(`⚠️ A equipe ${equipe.nome} já tem serviço agendado neste dia.
+
+Deseja autorizar esta ASTECA mesmo assim?`);
+      if(!ok){ btn.disabled=false; btn.textContent='🔧 Registrar ASTECA — URGENTE'; return; }
+    }
+  }
   if(!ambsMt.length){setAlert('mt-novo-alert','Adicione pelo menos um ambiente.','error');return}
   const valorTotal=ambsMt.reduce((s,a)=>s+a.valor,0);
   if(!valorTotal){setAlert('mt-novo-alert','O valor total não pode ser zero.','error');return}
@@ -7987,7 +8012,8 @@ function calcularEventosMontagem(pedidos, funcionarios, equipes){
       const diasPrev = isAsteca ? 1 : Math.max(1, Math.ceil((p.valor_total||0) / (prod||3000)));
       const inicio = cursor ? proximoDiaUtil(new Date(cursor)) : proximoDiaUtil(new Date(p.data_chegada||new Date()));
       const fim = addDiasUteis(inicio, diasPrev);
-      cursor = fim;
+      // Próximo trabalho começa no dia útil APÓS o fim (evita sobreposição)
+      cursor = addDiasUteis(fim, 1);
       console.log('[AGENDA] →', p.cliente_nome, '| dias:', diasPrev, '| inicio:', inicio.toLocaleDateString('pt-BR'), '| fim:', fim.toLocaleDateString('pt-BR'));
       eventos.push({
         id: p.id,
@@ -8033,7 +8059,7 @@ function calcularEventosConferencia(conferencias, funcionarios, conferentesRaw){
       const diasPrev = Math.max(1, Math.ceil(valor/prod));
       const inicio = cursor ? proximoDiaUtil(new Date(cursor)) : proximoDiaUtil(new Date(a.conf_inicio||a.created_at));
       const fim = addDiasUteis(inicio, diasPrev);
-      cursor = fim;
+      cursor = addDiasUteis(fim, 1);
       eventos.push({
         id: a.id,
         tipo: 'conferencia',
