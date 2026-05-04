@@ -1904,8 +1904,7 @@ async function enviarOrcamento(){
       })
     });
     const emailJson2 = await emailResp2.json().catch(()=>({}));
-    console.log('[EMAIL] Portal boas-vindas:', emailResp2.status, emailJson2);
-  }catch(e){ console.error('[EMAIL] Portal exceção:', e.message); }
+  }catch(e){ /* email falhou silenciosamente */ }
   await enviarRD(nome,currentUser.email,tel,ambiente,desc,investimento);
   setAlert('orc-alert','Solicitação enviada! Acompanhe em "Meus projetos".','success');
   document.getElementById('orc-nome').value='';document.getElementById('orc-tel').value='';
@@ -3280,9 +3279,6 @@ async function gerarFichaOcorrenciaAsteca(pedidoId){
       }
     }
   }
-  console.log('[FICHA] Debug atendimento:', atDebug);
-  console.log('[FICHA] Atendimento usado:', at);
-  console.log('[FICHA] Pedido montagem:', p);
 
   const checklist=p.checklist_asteca?(typeof p.checklist_asteca==='string'?JSON.parse(p.checklist_asteca):p.checklist_asteca):[];
   const dataHoje=new Date().toLocaleDateString('pt-BR');
@@ -3738,21 +3734,18 @@ async function onMtAtBuscaInput(val){
 
     // ── ASTECA: busca por relatório de vistoria ──
     if(mtTipo === 'asteca'){
-      console.log('[ASTECA-BUSCA] Buscando:', q);
       const select = 'id,cliente_nome,cliente_email,numero_contrato,responsavel_nome,created_at';
 
       // 1) Tenta eq exato pelo contrato (funciona mesmo em colunas numéricas)
       let {data,error} = await db.from('relatorios_vistoria')
         .select(select).eq('numero_contrato', q)
         .order('created_at',{ascending:false}).limit(8);
-      console.log('[ASTECA-BUSCA] eq contrato:', data?.length, error?.message);
 
       // 2) ilike contrato (texto parcial)
       if(!data?.length){
         ({data,error} = await db.from('relatorios_vistoria')
           .select(select).ilike('numero_contrato', `%${q}%`)
           .order('created_at',{ascending:false}).limit(8));
-        console.log('[ASTECA-BUSCA] ilike contrato:', data?.length, error?.message);
       }
 
       // 3) ilike nome
@@ -3760,14 +3753,12 @@ async function onMtAtBuscaInput(val){
         ({data,error} = await db.from('relatorios_vistoria')
           .select(select).ilike('cliente_nome', `%${q}%`)
           .order('created_at',{ascending:false}).limit(8));
-        console.log('[ASTECA-BUSCA] ilike nome:', data?.length, error?.message);
       }
 
       // 4) Diagnóstico — mostra os últimos relatórios existentes
       if(!data?.length){
         const {data:recentes} = await db.from('relatorios_vistoria')
           .select(select).order('created_at',{ascending:false}).limit(5);
-        console.log('[ASTECA-BUSCA] Últimos relatórios no banco:', recentes?.map(r=>r.numero_contrato+' | '+r.cliente_nome));
         const listaDiag = recentes?.length
           ? recentes.map(r=>`<div style="padding:3px 0;font-size:11px;color:var(--text2);">• ${r.numero_contrato||'sem contrato'} — ${r.cliente_nome||'—'}</div>`).join('')
           : '<div style="font-size:11px;color:var(--text3);">Nenhum relatório encontrado no banco.</div>';
@@ -7029,13 +7020,10 @@ async function salvarAtendimento(){
         });
         const emailJson = await emailResp.json().catch(()=>({}));
         if(!emailResp.ok){
-          console.error('[EMAIL] Erro boas-vindas:', emailResp.status, emailJson);
           notify(`⚠️ Email de boas-vindas não enviado (${emailResp.status}). Verifique a edge function.`,'error');
         } else {
-          console.log('[EMAIL] Boas-vindas enviado para', email, emailJson);
         }
       }catch(e){
-        console.error('[EMAIL] Exceção boas-vindas:', e.message);
       }
     }
   }
@@ -7952,7 +7940,6 @@ async function loadAgenda(){
   // Buscar funil de conferência primeiro
   const {data:funilConf} = await db.from('funis').select('id').eq('tipo','conferencia').limit(1).single();
   const funilConfId = funilConf?.id || null;
-  console.log('[AGENDA] funil conferência:', funilConfId);
 
   const [eqRes, confRes, pedRes, atRes, reuRes, projRes, perfilRes] = await Promise.all([
     db.from('equipes_montagem').select('*').order('nome'),
@@ -7961,7 +7948,7 @@ async function loadAgenda(){
     funilConfId
       ? db.from('atendimentos').select('*').eq('funil_id', funilConfId).order('created_at')
       : Promise.resolve({data:[]}),
-    db.from('agenda_reunioes').select('*').order('data_inicio').then(r=>{ console.log('[AGENDA] agenda_reunioes raw:', r?.data?.length, r?.error?.message); return r; }).catch(e=>{ console.warn('[AGENDA] agenda_reunioes error:', e); return {data:[]}; }),
+    db.from('agenda_reunioes').select('*').order('data_inicio').catch(()=>({data:[]})),
     db.from('projetos').select('*').order('created_at',{ascending:false}),
     db.from('perfis').select('id,nome,email,nivel').in('nivel',['admin','staff','vendedor']).order('nome')
   ]);
@@ -7974,9 +7961,6 @@ async function loadAgenda(){
   const projetos = projRes.data||[];
   const perfisStaff = perfilRes.data||[];
 
-  console.log('[AGENDA] equipes:', equipes.length, '| conferentes:', conferentes.length);
-  console.log('[AGENDA] pedidos montagem:', pedidos.length, '| conferências:', conferencias.length);
-  console.log('[AGENDA] reuniões:', reunioes.length);
 
   // Montar lista de funcionários com cores
   // Extrair vendedores únicos dos projetos
@@ -8133,7 +8117,6 @@ function calcularEventosMontagem(pedidos, funcionarios, equipes){
     let cursor = null;
 
     lista.sort((a,b)=>new Date(a.data_chegada)-new Date(b.data_chegada));
-    console.log('[AGENDA] Equipe', func.nome, '| prod:', eqRaw?.produtividade_atual, '| pedidos:', lista.length);
     lista.forEach(p=>{
       const isAsteca = p.tipo==='asteca';
       const prod = eqRaw?.produtividade_atual || eqRaw?.produtividade_base || 3000;
@@ -8142,7 +8125,6 @@ function calcularEventosMontagem(pedidos, funcionarios, equipes){
       const fim = addDiasUteis(inicio, diasPrev);
       // Próximo trabalho começa no dia útil APÓS o fim (evita sobreposição)
       cursor = addDiasUteis(fim, 1);
-      console.log('[AGENDA] →', p.cliente_nome, '| dias:', diasPrev, '| inicio:', inicio.toLocaleDateString('pt-BR'), '| fim:', fim.toLocaleDateString('pt-BR'));
       eventos.push({
         id: p.id,
         tipo: isAsteca ? 'asteca' : 'montagem',
@@ -8882,7 +8864,6 @@ async function iniciarConferencia(atId){
     .select('id,status,etapa_funil_id').eq('numero_contrato',contrato).eq('funil_id',_funilConferencia.id).limit(1);
   if(confExist?.length){
     const ex = confExist[0];
-    console.warn('[CONF] Conferência existente:', ex);
     // Se existe mas está com etapa_funil_id null, corrige e navega
     if(!ex.etapa_funil_id || ex.status !== 'em_andamento'){
       const fix = {};
@@ -8918,7 +8899,6 @@ async function iniciarConferencia(atId){
     if(btn){btn.disabled=false;btn.textContent='🚀 Iniciar Conferência';}
     return;
   }
-  console.log('[CONF] Criando conferência — funil:', _funilConferencia.id, '| etapa:', primeiraEtapaConf.id);
   const {data:novaConf, error} = await db.from('atendimentos').insert({
     ...dadosOrig,
     funil_id: _funilConferencia.id,
@@ -8930,7 +8910,6 @@ async function iniciarConferencia(atId){
     conferente_id: confEscolhido?.id||null,
     conferente_nome: confEscolhido?.nome||null,
   }).select();
-  console.log('[CONF] Insert resultado:', novaConf, error);
 
   if(error){
     notify('Erro ao criar conferência: '+error.message,'error');
