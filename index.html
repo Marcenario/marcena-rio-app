@@ -1669,42 +1669,15 @@ async function carregarEmpresas(){
 }
 
 function atualizarSeletoresEmpresa(){
-  const slugs = Object.keys(EMPRESAS);
-  // Atendimento
-  const atWrap = document.getElementById('at-empresa-btns');
-  if(atWrap){
-    atWrap.innerHTML = slugs.map(s=>`
-      <button class="at-tipo-btn ${s===atEmpresa?'active':''}" id="at-emp-${s}"
-        onclick="setEmpresaAt('${s}',this)"
-        style="padding:12px 8px;text-align:center;">
-        ${EMPRESAS[s].logo?`<img src="${EMPRESAS[s].logo}" style="height:32px;object-fit:contain;display:block;margin:0 auto 4px;">`:''}
-        <span style="font-size:11px;font-weight:600;">${EMPRESAS[s].nome}</span>
-      </button>`).join('');
-  }
-  // Dashboard
-  const dashWrap = document.getElementById('dash-empresa-btns');
-  if(dashWrap){
-    dashWrap.innerHTML = slugs.map(s=>`
-      <button id="dash-emp-${s}" onclick="setDashEmpresa('${s}',this)"
-        style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--brand);
-               background:${s===dashEmpresa?'var(--brand)':'transparent'};
-               color:${s===dashEmpresa?'#fff':'var(--text2)'};
-               font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">
-        ${EMPRESAS[s].nome}
-      </button>`).join('');
-  }
-  // Financeiro
-  const finWrap = document.getElementById('fin-empresa-btns');
-  if(finWrap){
-    finWrap.innerHTML = slugs.map(s=>`
-      <button id="fin-emp-${s}" onclick="setEmpresaFin('${s}',this)"
-        style="padding:6px 16px;border-radius:20px;border:1.5px solid var(--brand);
-               background:${s===finEmpresa?'var(--brand)':'transparent'};
-               color:${s===finEmpresa?'#fff':'var(--text2)'};
-               font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">
-        ${EMPRESAS[s].nome}
-      </button>`).join('');
-  }
+  try{
+    const slugs = Object.keys(EMPRESAS);
+    const atWrap = document.getElementById('at-empresa-btns');
+    if(atWrap) atWrap.innerHTML = slugs.map(s=>`<button class="at-tipo-btn ${s===atEmpresa?'active':''}" id="at-emp-${s}" onclick="setEmpresaAt('${s}',this)" style="padding:12px 8px;text-align:center;"><span style="font-size:11px;font-weight:600;">${EMPRESAS[s].nome}</span></button>`).join('');
+    const dashWrap = document.getElementById('dash-empresa-btns');
+    if(dashWrap) dashWrap.innerHTML = slugs.map(s=>`<button id="dash-emp-${s}" onclick="setDashEmpresa('${s}',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--brand);background:${s===dashEmpresa?'var(--brand)':'transparent'};color:${s===dashEmpresa?'#fff':'var(--text2)'};font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">${EMPRESAS[s].nome}</button>`).join('');
+    const finWrap = document.getElementById('fin-empresa-btns');
+    if(finWrap) finWrap.innerHTML = slugs.map(s=>`<button id="fin-emp-${s}" onclick="setEmpresaFin('${s}',this)" style="padding:6px 16px;border-radius:20px;border:1.5px solid var(--brand);background:${s===finEmpresa?'var(--brand)':'transparent'};color:${s===finEmpresa?'#fff':'var(--text2)'};font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">${EMPRESAS[s].nome}</button>`).join('');
+  }catch(e){}
 }
 
 function nomeEmpresa(slug){ return EMPRESAS[slug]?.nome || slug || '—'; }
@@ -2940,7 +2913,7 @@ async function salvarEmpresa(){
 
   notify(id ? 'Empresa atualizada!' : 'Empresa criada!');
   document.getElementById('modal-empresa').style.display='none';
-  await carregarEmpresas();
+  carregarEmpresas();
   loadEmpresasAdmin();
 }
 
@@ -2948,12 +2921,11 @@ async function toggleEmpresaAtivo(id, ativo){
   const msg = ativo ? 'Desativar esta empresa? Ela não aparecerá mais nos seletores.' : 'Ativar esta empresa?';
   if(!confirm(msg)) return;
   await db.from('empresas').update({ativo:!ativo}).eq('id',id);
-  await carregarEmpresas();
+  carregarEmpresas();
   loadEmpresasAdmin();
 }
 
 async function loadAdmin(){
-  await carregarEmpresas();
   loadEmpresasAdmin();
   const {data}=await db.from('projetos').select('*').order('created_at',{ascending:false});
   if(!data)return;
@@ -4177,7 +4149,12 @@ function tipoLabel(t){
 
 db.auth.onAuthStateChange((event,session)=>{if(session&&session.user)onLogin(session.user)});
 db.auth.getSession().then(({data})=>{if(data.session)onLogin(data.session.user)});
-// Service Worker removido — arquivo não existe no servidor
+// Desregistrar qualquer Service Worker antigo
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
+  });
+}
 
 
 
