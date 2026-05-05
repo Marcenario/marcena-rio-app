@@ -1737,6 +1737,12 @@ const {createClient}=supabase;
 const db=createClient(SUPABASE_URL,SUPABASE_ANON);
 let currentUser=null,userNivel='cliente',rdKey=localStorage.getItem('mr_rd_key')||'',ambsMt=[];
 
+// Helpers de nível de acesso
+const isAdmin  = ()=> userNivel==='admin';
+const isGerente= ()=> userNivel==='gerente';
+const isAdmOuGer = ()=> userNivel==='admin'||userNivel==='gerente';
+const isStaffGeral = ()=> userNivel==='admin'||userNivel==='gerente'||userNivel==='funcionario';
+
 // EMPRESAS — carregado dinamicamente do banco
 let EMPRESAS={
   marcenario:{nome:'Marcena Rio',subtitulo:'Marcenaria de Alto Padrão',cor:'#6b4c2a',corClara:'#f5efe8',
@@ -1855,12 +1861,13 @@ async function onLogin(user){
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   document.getElementById('topbar-email').textContent=user.email;
-  const nivelLabel=userNivel==='admin'?'Admin':userNivel==='funcionario'?'Funcionário':'Cliente';
-  carregarEmpresas(); // fire and forget — não bloqueia o login
-  const nivelClass=userNivel==='admin'?'nivel-admin':userNivel==='funcionario'?'nivel-funcionario':'nivel-cliente';
+  const nivelLabel=userNivel==='admin'?'Admin':userNivel==='gerente'?'Gerente':userNivel==='funcionario'?'Funcionário':'Cliente';
+  carregarEmpresas();
+  const nivelClass=userNivel==='admin'?'nivel-admin':userNivel==='gerente'?'nivel-admin':userNivel==='funcionario'?'nivel-funcionario':'nivel-cliente';
   document.getElementById('topbar-nivel').textContent=nivelLabel;
   document.getElementById('topbar-nivel').className='topbar-nivel '+nivelClass;
-  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  const isStaff=isStaffGeral();
+  const admOuGer=isAdmOuGer();
   document.getElementById('nav-solicitar').style.display=isStaff?'none':'block';
   document.getElementById('nav-projetos').textContent=isStaff?'Projetos':'Meus projetos';
   document.getElementById('nav-atendimento').style.display=isStaff?'block':'none';
@@ -1869,22 +1876,23 @@ async function onLogin(user){
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
-  document.getElementById('nav-dashboard').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('nav-dashboard').style.display=isAdmin()?'block':'none'; // só admin
   document.getElementById('nav-rh').style.display=isStaff?'block':'none';
   document.getElementById('nav-agenda').style.display=isStaff?'block':'none';
-  document.getElementById('nav-financeiro').style.display=userNivel==='admin'?'block':'none';
-  document.getElementById('nav-admin').style.display=userNivel==='admin'?'block':'none';
-  document.getElementById('nav-usuarios').style.display=userNivel==='admin'?'block':'none';
-  document.getElementById('mt-nav-equipes').style.display=userNivel==='admin'?'block':'none';
-  document.getElementById('mt-nav-relatorio').style.display=userNivel==='admin'?'block':'none';
-  document.getElementById('conf-nav-conferentes').style.display=userNivel==='admin'?'block':'none';
-  document.getElementById('conf-nav-relatorio').style.display=userNivel==='admin'?'block':'none';
-  document.getElementById('at-nav-vendedores').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('nav-financeiro').style.display=admOuGer?'block':'none';
+  document.getElementById('nav-admin').style.display=isAdmin()?'block':'none'; // só admin
+  document.getElementById('nav-usuarios').style.display=admOuGer?'block':'none';
+  document.getElementById('mt-nav-equipes').style.display=admOuGer?'block':'none';
+  document.getElementById('mt-nav-relatorio').style.display=admOuGer?'block':'none';
+  document.getElementById('conf-nav-conferentes').style.display=admOuGer?'block':'none';
+  document.getElementById('conf-nav-relatorio').style.display=admOuGer?'block':'none';
+  document.getElementById('at-nav-vendedores').style.display=admOuGer?'block':'none';
   document.getElementById('at-nav-relatorio').style.display=isStaff?'block':'none';
-  document.getElementById('at-nav-motivos').style.display=userNivel==='admin'?'block':'none';
+  document.getElementById('at-nav-motivos').style.display=isAdmin()?'block':'none'; // só admin
   if(rdKey)showRDConnected();
   document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
-  if(userNivel==='admin'){showSection('dashboard',document.getElementById('nav-dashboard'))}
+  if(isAdmin()){showSection('dashboard',document.getElementById('nav-dashboard'))}
+  else if(isGerente()){showSection('atendimento',document.getElementById('nav-atendimento'))}
   else if(isStaff){showSection('rh',document.getElementById('nav-rh'))}
   else{showSection('solicitar',document.getElementById('nav-solicitar'));prefillOrcamento()}
 }
@@ -1910,14 +1918,26 @@ function showSection(id,btn){
   if(id==='dashboard')loadDashboard();
   if(id==='rh'){
     loadPontoHoje();
-    const isAdm=userNivel==='admin';
-    document.getElementById('rh-nav-folha').style.display=isAdm?'block':'none';
-    document.getElementById('rh-nav-funcionarios').style.display=isAdm?'block':'none';
-    document.getElementById('rh-nav-relatorios').style.display=isAdm?'block':'none';
-    document.getElementById('rh-nav-ajuste-ponto').style.display=isAdm?'block':'none';
-    document.getElementById('rh-nav-folgas').style.display=isAdm?'block':'none';
+    const isAdm=isAdmin();
+    const admOuGer=isAdmOuGer();
+    document.getElementById('rh-nav-folha').style.display=admOuGer?'block':'none';
+    document.getElementById('rh-nav-funcionarios').style.display=admOuGer?'block':'none';
+    document.getElementById('rh-nav-relatorios').style.display=admOuGer?'block':'none';
+    document.getElementById('rh-nav-ajuste-ponto').style.display=admOuGer?'block':'none';
+    document.getElementById('rh-nav-folgas').style.display=admOuGer?'block':'none';
   }
-  if(id==='financeiro'){preencherFiltroFinMes('fin-dre-mes');loadDRE();loadAlertasDespesas();document.getElementById('fin-nav-config').style.display=userNivel==='admin'?'block':'none';}
+  if(id==='financeiro'){
+    preencherFiltroFinMes('fin-dre-mes');
+    // Gerente vê Despesas e Receitas, mas NÃO DRE, Ponto de Equilíbrio e Configurações
+    const finNavDre=document.getElementById('fin-nav-dre');
+    const finNavPe=document.getElementById('fin-nav-pe');
+    const finNavConf=document.getElementById('fin-nav-config');
+    if(finNavDre) finNavDre.style.display=isAdmin()?'block':'none';
+    if(finNavPe) finNavPe.style.display=isAdmin()?'block':'none';
+    if(finNavConf) finNavConf.style.display=isAdmin()?'block':'none';
+    if(isAdmin()){ loadDRE(); loadAlertasDespesas(); }
+    else { loadDespesas(); loadAlertasDespesas(); showSubFin('fin-despesas',document.getElementById('fin-nav-despesas')); }
+  }
   if(id==='atendimento'){
     preencherFiltroMes();loadFunis();
     const mc=document.querySelector('.main-content');
@@ -2075,7 +2095,7 @@ let _todosProj=[];
 async function loadProjetos(){
   const cont=document.getElementById('projetos-content');
   cont.innerHTML='<div class="loader">Carregando...</div>';
-  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  const isStaff=isStaffGeral();
   const query=isStaff
     ?db.from('projetos').select('*').order('created_at',{ascending:false})
     :db.from('projetos').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
@@ -2097,7 +2117,7 @@ function renderListaProjetos(lista){
     return;
   }
   // Renderizar como tabela/lista compacta para staff, normal para cliente
-  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  const isStaff=isStaffGeral();
   if(isStaff){
     cont.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
       <div style="display:grid;grid-template-columns:2fr 1.5fr 1.2fr 1fr 80px;gap:0;background:var(--brand);padding:10px 16px;">
@@ -2185,7 +2205,7 @@ function renderProjetoCard(p){
 }
 
 function renderProjeto(p){
-  const isStaff=userNivel==='admin'||userNivel==='funcionario';
+  const isStaff=isStaffGeral();
   const etapaIdx=(p.etapa_atual||1)-1;
   const pct=Math.round(((p.etapa_atual||1)/ETAPAS_TOTAL)*100);
   const concluido=p.etapa_atual>=ETAPAS_TOTAL;
@@ -3227,7 +3247,7 @@ async function salvarPedidoMt(){
   if(mtTipo==='asteca'&&mtChecklist.length>0){
     const marcados=mtChecklist.filter(i=>i.confirmado).length;
     const total=mtChecklist.length;
-    if(marcados<total&&userNivel==='admin'){
+    if(marcados<total&&isAdmOuGer()){
       const just=document.getElementById('mt-asteca-justificativa').value.trim();
       if(!just){setAlert('mt-novo-alert','Preencha a justificativa para o envio parcial.','error');return}
     } else if(marcados<total&&userNivel!=='admin'){
@@ -3254,7 +3274,7 @@ async function salvarPedidoMt(){
       setAlert('mt-novo-alert','⚠️ Já existe agendamento para este dia. Apenas o administrador pode autorizar ASTECA em dias com outros serviços.','error');
       btn.disabled=false; btn.textContent='🔧 Registrar ASTECA — URGENTE'; return;
     }
-    if(mtTipo==='asteca' && userNivel==='admin' && (conflMontagem.length>0||conflAsteca.length>0)){
+    if(mtTipo==='asteca' && isAdmOuGer() && (conflMontagem.length>0||conflAsteca.length>0)){
       const ok = confirm(`⚠️ A equipe ${equipe.nome} já tem serviço agendado neste dia.\n\nDeseja autorizar esta ASTECA mesmo assim?`);
       if(!ok){ btn.disabled=false; btn.textContent='🔧 Registrar ASTECA — URGENTE'; return; }
     }
@@ -3517,10 +3537,10 @@ function renderCardKanbanMt(p){
 
   // Botões de ação
   const btns=[];
-  if(userNivel==='admin'&&!isConcluido){
+  if(isAdmOuGer()&&!isConcluido){
     btns.push(`<button onclick="event.stopPropagation();abrirTrocarEquipe('${p.id}')" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">👷 Equipe</button>`);
   }
-  if(userNivel==='admin'&&(p.status==='vistoria'||p.status==='asteca_pendente'||p.status==='concluido')){
+  if(isAdmOuGer()&&(p.status==='vistoria'||p.status==='asteca_pendente'||p.status==='concluido')){
     const statusAnterior=p.status==='vistoria'?'em_montagem':p.status==='asteca_pendente'?'vistoria':'asteca_pendente';
     const labelAnterior=p.status==='vistoria'?'Em montagem':p.status==='asteca_pendente'?'Vistoria':'ASTECA';
     btns.push(`<button onclick="event.stopPropagation();voltarEtapaMt('${p.id}','${statusAnterior}','${labelAnterior}')" style="background:#7a5c2a;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:10px;cursor:pointer;">↩ Voltar</button>`);
@@ -4087,6 +4107,8 @@ async function atualizarMediaEquipe(equipeId){
 }
 
 async function excluirPedidoMt(id){
+  if(isGerente()){notify('Gerentes não podem excluir registros.','error');return;}
+
   if(!confirm('Excluir este pedido?'))return;
   await db.from('pedidos_montagem').delete().eq('id',id);
   notify('Pedido excluído.');loadFilaMt();
@@ -4201,12 +4223,28 @@ async function loadRelatorio(){
 /* USUÁRIOS */
 async function loadUsuarios(){
   const cont=document.getElementById('usuarios-content');
-  const {data}=await db.from('perfis').select('*').order('created_at',{ascending:false});
+  let query = db.from('perfis').select('*').order('created_at',{ascending:false});
+  const {data} = await query;
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum usuário.</p></div>';return}
-  cont.innerHTML=data.map(u=>{
-    const lbl=u.nivel==='admin'?'Admin':u.nivel==='funcionario'?'Funcionário':'Cliente';
-    const cls=u.nivel==='admin'?'badge-accent':u.nivel==='funcionario'?'badge-blue':'badge-blue';
+
+  // Gerente não vê admins
+  const lista = isGerente() ? data.filter(u=>u.nivel!=='admin') : data;
+
+  const nivelLabels = {admin:'Admin',gerente:'Gerente',funcionario:'Funcionário',cliente:'Cliente'};
+  const nivelClass = n=> n==='admin'?'badge-accent':n==='gerente'?'badge-accent':'badge-blue';
+
+  cont.innerHTML=lista.map(u=>{
+    const lbl=nivelLabels[u.nivel]||u.nivel;
+    const cls=nivelClass(u.nivel);
     const isMe=u.id===currentUser.id;
+    const podeExcluir=isAdmin()&&!isMe; // só admin exclui
+    const podeAlterar=isAdmin()||(isGerente()&&u.nivel!=='admin'); // gerente não altera admin
+
+    // Opções de nível: gerente só pode atribuir até gerente
+    const opcoesNivel = isAdmin()
+      ? `<option value="">Alterar nível...</option><option value="cliente">Cliente</option><option value="funcionario">Funcionário</option><option value="gerente">Gerente</option><option value="admin">Admin</option>`
+      : `<option value="">Alterar nível...</option><option value="cliente">Cliente</option><option value="funcionario">Funcionário</option><option value="gerente">Gerente</option>`;
+
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">
       <div>
         <div style="font-size:14px;font-weight:500;">${u.email}</div>
@@ -4214,14 +4252,9 @@ async function loadUsuarios(){
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="badge ${cls}">${lbl}</span>
-        <select onchange="alterarNivel('${u.id}',this.value)" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
-          <option value="">Alterar nível...</option>
-          <option value="cliente">Cliente</option>
-          <option value="funcionario">Funcionário</option>
-          <option value="admin">Admin</option>
-        </select>
+        ${podeAlterar?`<select onchange="alterarNivel('${u.id}',this.value)" style="padding:5px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">${opcoesNivel}</select>`:''}
         <button onclick="resetarSenha('${u.id}','${u.email}')" style="background:var(--amber-bg);color:var(--amber);border:1px solid #e8c87a;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔑 Resetar senha</button>
-        ${!isMe?`<button onclick="excluirUsuario('${u.id}','${u.email}')" style="background:var(--red-bg);color:var(--red);border:1px solid #f0a8a8;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑 Excluir</button>`:''}
+        ${podeExcluir?`<button onclick="excluirUsuario('${u.id}','${u.email}')" style="background:var(--red-bg);color:var(--red);border:1px solid #f0a8a8;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑 Excluir</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -5616,6 +5649,8 @@ async function reativarFuncionarioRH(id){
 }
 
 async function excluirFuncionarioRH(id, userId, nome) {
+  if(isGerente()){notify('Gerentes não podem excluir registros.','error');return;}
+
   const confirmMsg = `Deseja desligar o funcionário "${nome}"?\n\n` +
     `✅ O funcionário será marcado como inativo e não aparecerá mais nas listas.\n` +
     `📁 Todos os documentos da pasta do funcionário serão preservados por 5 anos conforme a legislação trabalhista.\n\n` +
@@ -6189,6 +6224,8 @@ async function loadPastaFuncionario(){
 }
 
 async function excluirDocFunc(docId){
+  if(isGerente()){notify('Gerentes não podem excluir registros.','error');return;}
+
   if(!confirm('Excluir este documento da pasta?')) return;
   await db.from('rh_documentos_funcionario').delete().eq('id',docId);
   notify('Documento removido.');
@@ -6448,6 +6485,8 @@ async function marcarPago(id){
 }
 
 async function excluirDespesa(id){
+  if(isGerente()){notify('Gerentes não podem excluir registros.','error');return;}
+
   if(!confirm('Excluir esta despesa?'))return;
   await db.from('fin_despesas').delete().eq('id',id);
   notify('Despesa excluída.');loadDespesas();
@@ -6508,6 +6547,8 @@ async function loadReceitas(){
 }
 
 async function excluirReceita(id){
+  if(isGerente()){notify('Gerentes não podem excluir registros.','error');return;}
+
   if(!confirm('Excluir esta receita?'))return;
   await db.from('fin_receitas').delete().eq('id',id);
   notify('Receita excluída.');loadReceitas();
@@ -8488,7 +8529,7 @@ async function abrirModalAt(id){
         +'<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Descreva os itens extras a implantar. <strong style="color:var(--red);">Obrigatório para avançar.</strong></div>'
         +(semExtras
           ? '<div style="font-size:12px;color:var(--green);font-weight:500;margin-bottom:6px;">✓ Sem itens extras</div>'
-            +(userNivel==='admin'?'<button onclick="desmarcarSemExtrasConf(\''+id+'\')" style="font-size:11px;background:transparent;border:1px solid var(--border2);border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--text2);">↩ Desmarcar</button>':'')
+            +(isAdmOuGer()?'<button onclick="desmarcarSemExtrasConf(\''+id+'\')" style="font-size:11px;background:transparent;border:1px solid var(--border2);border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--text2);">↩ Desmarcar</button>':'')
           : '<textarea id="at-itens-extras-'+id+'" placeholder="Ex: Puxador adicional, iluminação embutida, prateleira extra..." style="width:100%;min-height:80px;padding:8px 12px;border:1px solid #b0ccff;border-radius:var(--radius-sm);font-size:13px;font-family:\'DM Sans\',sans-serif;background:#fff;outline:none;resize:vertical;box-sizing:border-box;">'+(a.itens_extras_desc||'')+'</textarea>'
             +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:6px;">'
             +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;">'
@@ -8539,7 +8580,7 @@ async function abrirModalAt(id){
       : ''}
     `:`<div>
       <div class="alert alert-${statusAtual==='concluido_fechado'?'success':'error'}" style="margin-bottom:${userNivel==='admin'?'8':'0'}px;">${statusAtual==='concluido_fechado'?'✓ Atendimento fechado':'✗ Atendimento perdido'+(a.motivo_perda?' — '+a.motivo_perda:'')}</div>
-      ${userNivel==='admin'?`<button onclick="cancelarVendaAdmin('${id}')" style="background:#7a3a1a;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">↩ Cancelar e reabrir atendimento</button>`:''}
+      ${isAdmOuGer()?`<button onclick="cancelarVendaAdmin('${id}')" style="background:#7a3a1a;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">↩ Cancelar e reabrir atendimento</button>`:''}
     </div>`}
     <div id="modal-at-alert" style="margin-top:8px;"></div>
 
@@ -8930,7 +8971,7 @@ function atribuirCor(id, lista){
 async function loadAgenda(){
   const cont = document.getElementById('ag-calendario');
   cont.innerHTML = '<div class="loader">Carregando agenda...</div>';
-  if(userNivel==='admin') document.getElementById('ag-btn-reuniao').style.display='block';
+  if(isAdmOuGer()) document.getElementById('ag-btn-reuniao').style.display='block';
 
   // Buscar funil de conferência primeiro
   const {data:funilConf} = await db.from('funis').select('id').eq('tipo','conferencia').limit(1).single();
@@ -9289,13 +9330,12 @@ function agendaHoje(){ _agDataRef=new Date(); renderAgenda(); }
 
 function filtrarEventos(){
   const filtroId = document.getElementById('ag-filtro-func').value;
-  const isAdmin = userNivel==='admin';
+  const isAdminLocal = isAdmOuGer(); // admin e gerente veem todos os aniversários
 
-  // Aniversários: visível apenas para o vendedor responsável e admin
+  // Aniversários: visível apenas para o vendedor responsável, admin e gerente
   const eventos = _agEventos.filter(e=>{
     if(e.tipo==='aniversario'){
-      if(isAdmin) return true;
-      // Funcionário/vendedor: só vê os próprios
+      if(isAdminLocal) return true;
       return e.funcionario_id === currentUser?.id;
     }
     return true;
@@ -9306,7 +9346,7 @@ function filtrarEventos(){
 
 function renderLegenda(){
   const el = document.getElementById('ag-legenda');
-  const isAdm = userNivel==='admin';
+  const isAdm = isAdmOuGer();
   el.innerHTML = _agFuncionarios.map(f=>`
     <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);">
       <span onclick="document.getElementById('ag-filtro-func').value='${f.id}';renderAgenda()"
