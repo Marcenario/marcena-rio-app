@@ -8324,7 +8324,7 @@ async function loadAgenda(){
       : Promise.resolve({data:[]}),
     db.from('agenda_reunioes').select('*').order('data_inicio'),
     db.from('projetos').select('*').order('created_at',{ascending:false}),
-    db.from('perfis').select('id,nome,email,nivel').in('nivel',['admin','staff','vendedor']).order('nome'),
+    db.from('perfis').select('id,nome,email,nivel').in('nivel',['admin','funcionario']).order('nome'),
     db.from('atendimentos').select('id,cliente_nome,data_nascimento,cupom_aniversario,vendedor_id,vendedor_nome').not('data_nascimento','is',null)
   ]);
 
