@@ -9982,24 +9982,29 @@ async function carregarFeedAnotacoes(atId){
     feed.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center;">Nenhuma anotação ainda.</div>';
     return;
   }
+  const canalIcon={whatsapp:'💬',email:'📧'};
+  const canalCor={whatsapp:'#25d366',email:'#1a4a8a'};
   feed.innerHTML = data.map(n=>{
     const dt = new Date(n.created_at);
     const dataFmt = dt.toLocaleDateString('pt-BR');
     const horaFmt = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     const autor = n.autor_nome || 'Sistema';
     const iniciais = autor.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const canal = n.canal;
+    const avatarBg = canal?canalCor[canal]||'var(--brand)':'var(--brand)';
+    const avatarContent = canal?canalIcon[canal]||iniciais:iniciais;
+    const canalBadge = canal?`<span style="font-size:10px;background:${avatarBg};color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px;">${canal==='whatsapp'?'WhatsApp':'Email'}</span>`:'';
     return `<div style="display:flex;gap:10px;align-items:flex-start;">
-      <div style="width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${iniciais}</div>
-      <div style="flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-          <span style="font-size:12px;font-weight:600;color:var(--text);">${autor}</span>
+      <div style="width:32px;height:32px;border-radius:50%;background:${avatarBg};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${canal?'16':'11'}px;font-weight:700;flex-shrink:0;">${avatarContent}</div>
+      <div style="flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;${canal?'border-left:3px solid '+avatarBg+';':''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;flex-wrap:wrap;gap:4px;">
+          <span style="font-size:12px;font-weight:600;color:var(--text);">${autor}${canalBadge}</span>
           <span style="font-size:11px;color:var(--text3);">${dataFmt} às ${horaFmt}</span>
         </div>
         <div style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;">${n.texto.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
       </div>
     </div>`;
   }).join('');
-  // Scroll para o final (última anotação)
   feed.scrollTop = feed.scrollHeight;
 }
 
