@@ -8720,6 +8720,13 @@ async function abrirModalAt(id){
             style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
         </div>
       </div>
+      ${isAdmin()?`
+      <div style="margin-bottom:8px;">
+        <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">👤 Responsável pela tarefa</label>
+        <select id="at-tarefa-resp-${id}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+          <option value="">Carregando funcionários...</option>
+        </select>
+      </div>`:''}
       <button onclick="salvarTarefaAt('${id}')" style="width:100%;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">+ Criar tarefa</button>
     </div>
 
@@ -8816,7 +8823,21 @@ async function abrirModalAt(id){
   // Guarda referência dos ambientes para toggleVendeuModal
   window._atModalAmbs={id,ambs};
   // Carregar feed de anotações, tarefas e histórico de anexos
-  setTimeout(()=>{ carregarFeedAnotacoes(id); carregarTarefasAt(id); carregarHistoricoAnexos('atendimento', id, 'at-historico-anexos-'+id); }, 50);
+  setTimeout(()=>{
+    carregarFeedAnotacoes(id);
+    carregarTarefasAt(id);
+    carregarHistoricoAnexos('atendimento', id, 'at-historico-anexos-'+id);
+    // Carregar funcionários no select de responsável (só admin)
+    if(isAdmin()){
+      const sel = document.getElementById(`at-tarefa-resp-${id}`);
+      if(sel){
+        db.from('perfis').select('id,nome,email').not('nivel','eq','cliente').order('nome').then(({data})=>{
+          sel.innerHTML = '<option value="">Selecionar responsável...</option>' +
+            (data||[]).map(f=>`<option value="${f.id}" data-nome="${f.nome||f.email}">${f.nome||f.email}</option>`).join('');
+        });
+      }
+    }
+  }, 50);
 }
 
 async function addAmbModal(atId){
@@ -9940,6 +9961,16 @@ async function salvarTarefaAt(atId){
   if(!data){ notify('Informe a data.','error'); return; }
   if(!hora){ notify('Informe o horário.','error'); return; }
 
+  // Responsável — admin pode escolher, outros usam o próprio usuário
+  const respSel = document.getElementById(`at-tarefa-resp-${atId}`);
+  let respId = currentUser?.id||null;
+  let respNome = currentUser?.nome || currentUser?.email || 'Usuário';
+  if(isAdmin() && respSel && respSel.value){
+    respId = respSel.value;
+    const opt = respSel.options[respSel.selectedIndex];
+    respNome = opt?.dataset?.nome || opt?.text || respNome;
+  }
+
   const autor = currentUser?.nome || currentUser?.email || 'Usuário';
 
   // Salvar tarefa
@@ -9948,8 +9979,8 @@ async function salvarTarefaAt(atId){
     titulo,
     data_tarefa: data,
     horario: hora,
-    responsavel_id: currentUser?.id||null,
-    responsavel_nome: autor
+    responsavel_id: respId,
+    responsavel_nome: respNome
   }).select().single();
   if(error){ notify('Erro ao salvar tarefa: '+error.message,'error'); return; }
 
@@ -9958,19 +9989,20 @@ async function salvarTarefaAt(atId){
   await db.from('at_anotacoes').insert({
     atendimento_id: atId,
     texto: `📌 Tarefa criada: "${titulo}"
-📅 ${dataFmt} às ${hora}`,
+📅 ${dataFmt} às ${hora}
+👤 Responsável: ${respNome}`,
     autor_id: currentUser?.id||null,
     autor_nome: autor
   });
 
-  // Adicionar na agenda (agenda_reunioes)
+  // Adicionar na agenda do responsável
   const dataInicio = new Date(`${data}T${hora}:00`);
-  const dataFim = new Date(dataInicio.getTime() + 60*60*1000); // +1h
+  const dataFim = new Date(dataInicio.getTime() + 60*60*1000);
   await db.from('agenda_reunioes').insert({
     titulo: `✅ ${titulo}`,
-    descricao: `Tarefa do atendimento`,
-    funcionario_id: currentUser?.id||null,
-    funcionario_nome: autor,
+    descricao: `Tarefa do atendimento — criada por ${autor}`,
+    funcionario_id: respId,
+    funcionario_nome: respNome,
     funcionario_tipo: 'vendedor',
     data_inicio: dataInicio.toISOString(),
     data_fim: dataFim.toISOString(),
@@ -9982,8 +10014,9 @@ async function salvarTarefaAt(atId){
   document.getElementById(`at-tarefa-titulo-${atId}`).value='';
   document.getElementById(`at-tarefa-data-${atId}`).value='';
   document.getElementById(`at-tarefa-hora-${atId}`).value='';
+  if(respSel) respSel.value='';
 
-  notify('✅ Tarefa criada e adicionada à agenda!');
+  notify(`✅ Tarefa criada na agenda de ${respNome}!`);
   carregarTarefasAt(atId);
   carregarFeedAnotacoes(atId);
 }
