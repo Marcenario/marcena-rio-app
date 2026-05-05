@@ -3306,17 +3306,28 @@ async function loadFilaMt(){
   ]);
   window._equipesMt = equipes||[];
 
-  // Enriquecer com prazo_contratual e etapa_projeto do projeto via numero_contrato
+  // Enriquecer com prazo_contratual e etapa_projeto via atendimentos → projetos
   const pedidosData = pedidos||[];
   const contratos = [...new Set(pedidosData.map(p=>p.numero_contrato).filter(Boolean))];
   if(contratos.length){
-    const {data:projetos} = await db.from('projetos').select('numero_contrato,data_producao,etapa_atual').in('numero_contrato', contratos);
+    // Buscar atendimentos pelo numero_contrato para pegar projeto_id
+    const {data:ats} = await db.from('atendimentos').select('numero,projeto_id').in('numero', contratos);
+    const projetoIds = [...new Set((ats||[]).map(a=>a.projeto_id).filter(Boolean))];
+    const atMap = {}; (ats||[]).forEach(a=>{ if(a.numero) atMap[a.numero]=a.projeto_id; });
+
+    // Buscar projetos pelo id para pegar data_producao e etapa_atual
+    let projMap = {};
+    if(projetoIds.length){
+      const {data:projetos} = await db.from('projetos').select('id,data_producao,etapa_atual').in('id', projetoIds);
+      (projetos||[]).forEach(p=>{ projMap[p.id]=p; });
+    }
+
     const ETAPAS_LABEL = ['Medição / Briefing','Envio de planta','Elaboração do projeto','Apresentação','Orçamento','Negociação e fechamento','Projeto Executivo','Projeto Revisado','Aprovação do projeto','Projetos para Implantar','Programação de entrega','Entrega e montagem','Vistoria final','ASTECA','Finalização','Garantia'];
-    const projMap = {};
-    (projetos||[]).forEach(p=>{ projMap[p.numero_contrato]=p; });
+
     pedidosData.forEach(p=>{
-      if(p.numero_contrato && projMap[p.numero_contrato]){
-        const proj = projMap[p.numero_contrato];
+      const projetoId = atMap[p.numero_contrato];
+      if(projetoId && projMap[projetoId]){
+        const proj = projMap[projetoId];
         if(!p.prazo_contratual && proj.data_producao) p.prazo_contratual = proj.data_producao;
         if(!p.etapa_projeto && proj.etapa_atual) p.etapa_projeto = ETAPAS_LABEL[(proj.etapa_atual||1)-1]||`Etapa ${proj.etapa_atual}`;
       }
@@ -3589,14 +3600,34 @@ async function abrirDetalhesMt(pedidoId){
       ${ambs.map(a=>`<tr><td style="padding:6px;border:1px solid var(--border);">${a.pedido||a.nped||'—'}</td><td style="padding:6px;border:1px solid var(--border);">${a.nf||'—'}</td><td style="padding:6px;border:1px solid var(--border);">${a.nome||a.ambiente||'—'}</td><td style="padding:6px;border:1px solid var(--border);text-align:right;">${fmt(a.valor||0)}</td></tr>`).join('')}
     </table>`:''}
     <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
-      <div style="font-size:12px;font-weight:600;color:var(--brand);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📋 Tarefas / Observações</div>
-      <div id="mt-tarefas-lista-${pedidoId}" style="margin-bottom:10px;">
-        ${tarefas.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;">Nenhum registro ainda.</div>':''}
-        ${tarefas.map((t,i)=>`<div style="background:var(--bg);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;">${t.texto}</div>${userNivel==='admin'?`<button onclick="removerTarefaMt('${pedidoId}',${i})" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 8px;">✕</button>`:''}</div><div style="color:var(--text3);font-size:10px;margin-top:3px;">${t.data||''} · ${t.usuario||''}</div></div>`).join('')}
+      <div style="font-size:12px;font-weight:600;color:var(--brand);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📝 Observações</div>
+      <div id="mt-obs-lista-${pedidoId}" style="margin-bottom:10px;">
+        ${tarefas.filter(t=>!t.tipo||t.tipo==='obs').length===0?'<div style="font-size:12px;color:var(--text3);padding:4px 0;">Nenhuma observação ainda.</div>':''}
+        ${tarefas.filter(t=>!t.tipo||t.tipo==='obs').map((t,i)=>`<div style="background:var(--bg);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;">${t.texto}</div>${userNivel==='admin'?`<button onclick="removerObsMt('${pedidoId}',${tarefas.indexOf(t)})" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 0 0 8px;">✕</button>`:''}</div><div style="color:var(--text3);font-size:10px;margin-top:3px;">${t.data||''} · ${t.usuario||''}</div></div>`).join('')}
       </div>
       <div style="display:flex;gap:6px;">
-        <input type="text" id="mt-tarefa-input-${pedidoId}" placeholder="Adicionar observação ou tarefa..." style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;">
-        <button onclick="adicionarTarefaMt('${pedidoId}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">+ Adicionar</button>
+        <input type="text" id="mt-obs-input-${pedidoId}" placeholder="Adicionar observação..." style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;">
+        <button onclick="adicionarObsMt('${pedidoId}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">+ Obs</button>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:600;color:var(--brand);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📋 Tarefas</div>
+      <div id="mt-tarefas-lista-${pedidoId}" style="margin-bottom:10px;">
+        ${tarefas.filter(t=>t.tipo==='tarefa').length===0?'<div style="font-size:12px;color:var(--text3);padding:4px 0;">Nenhuma tarefa cadastrada.</div>':''}
+        ${tarefas.filter(t=>t.tipo==='tarefa').map(t=>{
+          const vencida=!t.concluida&&t.data_tarefa&&t.data_tarefa<new Date().toISOString().slice(0,10);
+          const cor=t.concluida?'#27ae60':vencida?'#e74c3c':'var(--brand)';
+          const bg=t.concluida?'#eafaf1':vencida?'#fdecea':'var(--bg)';
+          const dataFmt=t.data_tarefa?new Date(t.data_tarefa+'T12:00:00').toLocaleDateString('pt-BR'):'';
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${bg};border:1px solid var(--border2);border-radius:8px;border-left:3px solid ${cor};margin-bottom:6px;"><div style="flex:1;"><div style="font-size:13px;font-weight:600;${t.concluida?'text-decoration:line-through;opacity:0.6;':''}">${t.titulo||t.texto}</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">📅 ${dataFmt} às ${t.horario||'—'} · ${t.usuario||'—'}</div></div>${!t.concluida?`<button onclick="concluirTarefaMt('${pedidoId}','${t.id||''}')" style="background:${cor};color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">✓ Concluir</button>`:'<span style="font-size:11px;color:var(--green);font-weight:600;">✓ Feito</span>'}</div>`;
+        }).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;">
+        <input type="text" id="mt-tarefa-titulo-${pedidoId}" placeholder="Nome da tarefa..." style="padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;">
+        <input type="date" id="mt-tarefa-data-${pedidoId}" style="padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;">
+        <input type="time" id="mt-tarefa-hora-${pedidoId}" style="padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;">
+        <button onclick="salvarTarefaMt('${pedidoId}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">+ Tarefa</button>
       </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -3626,32 +3657,91 @@ async function iniciarMontagem(pedidoId){
   loadMontagemKanban();
 }
 
-async function adicionarTarefaMt(pedidoId){
-  const input = document.getElementById(`mt-tarefa-input-${pedidoId}`);
+async function adicionarObsMt(pedidoId){
+  const input = document.getElementById(`mt-obs-input-${pedidoId}`);
   const texto = input?.value?.trim();
-  if(!texto){ notify('Digite o texto da tarefa.','error'); return; }
+  if(!texto){ notify('Digite a observação.','error'); return; }
   const {data:p} = await db.from('pedidos_montagem').select('tarefas').eq('id',pedidoId).single();
-  const tarefas = typeof p?.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p?.tarefas||[]);
-  tarefas.push({
+  const lista = typeof p?.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p?.tarefas||[]);
+  lista.push({
+    tipo: 'obs',
     texto,
     data: new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
     usuario: currentUser?.email||'—'
   });
-  await db.from('pedidos_montagem').update({tarefas: JSON.stringify(tarefas)}).eq('id',pedidoId);
+  await db.from('pedidos_montagem').update({tarefas: JSON.stringify(lista)}).eq('id',pedidoId);
   input.value = '';
-  notify('Tarefa adicionada!','success');
+  notify('Observação adicionada!','success');
   abrirDetalhesMt(pedidoId);
 }
 
-async function removerTarefaMt(pedidoId, idx){
-  if(!confirm('Remover esta tarefa?')) return;
+async function removerObsMt(pedidoId, idx){
+  if(!confirm('Remover esta observação?')) return;
   const {data:p} = await db.from('pedidos_montagem').select('tarefas').eq('id',pedidoId).single();
-  const tarefas = typeof p?.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p?.tarefas||[]);
-  tarefas.splice(idx, 1);
-  await db.from('pedidos_montagem').update({tarefas: JSON.stringify(tarefas)}).eq('id',pedidoId);
-  notify('Tarefa removida.','success');
+  const lista = typeof p?.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p?.tarefas||[]);
+  lista.splice(idx, 1);
+  await db.from('pedidos_montagem').update({tarefas: JSON.stringify(lista)}).eq('id',pedidoId);
+  notify('Observação removida.','success');
   abrirDetalhesMt(pedidoId);
 }
+
+async function salvarTarefaMt(pedidoId){
+  const titulo = document.getElementById(`mt-tarefa-titulo-${pedidoId}`)?.value.trim();
+  const data = document.getElementById(`mt-tarefa-data-${pedidoId}`)?.value;
+  const hora = document.getElementById(`mt-tarefa-hora-${pedidoId}`)?.value;
+  if(!titulo){ notify('Informe o nome da tarefa.','error'); return; }
+  if(!data){ notify('Informe a data.','error'); return; }
+  if(!hora){ notify('Informe o horário.','error'); return; }
+
+  const autor = currentUser?.nome || currentUser?.email || 'Usuário';
+  const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
+
+  // Salvar na lista de tarefas do pedido
+  const {data:p} = await db.from('pedidos_montagem').select('tarefas').eq('id',pedidoId).single();
+  const lista = typeof p?.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p?.tarefas||[]);
+  lista.push({
+    id, tipo: 'tarefa', titulo,
+    data_tarefa: data, horario: hora,
+    usuario: autor, concluida: false,
+    data: new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+  });
+  await db.from('pedidos_montagem').update({tarefas: JSON.stringify(lista)}).eq('id',pedidoId);
+
+  // Adicionar na agenda (agenda_reunioes)
+  const dataInicio = new Date(`${data}T${hora}:00`);
+  const dataFim = new Date(dataInicio.getTime() + 60*60*1000);
+  await db.from('agenda_reunioes').insert({
+    titulo: `🔧 ${titulo}`,
+    descricao: `Tarefa de montagem — pedido ${pedidoId}`,
+    funcionario_id: currentUser?.id||null,
+    funcionario_nome: autor,
+    funcionario_tipo: 'funcionario',
+    data_inicio: dataInicio.toISOString(),
+    data_fim: dataFim.toISOString(),
+    recorrencia_tipo: null,
+    criado_por: currentUser?.id||null
+  });
+
+  document.getElementById(`mt-tarefa-titulo-${pedidoId}`).value='';
+  document.getElementById(`mt-tarefa-data-${pedidoId}`).value='';
+  document.getElementById(`mt-tarefa-hora-${pedidoId}`).value='';
+
+  notify('✅ Tarefa criada e adicionada à agenda!','success');
+  abrirDetalhesMt(pedidoId);
+}
+
+async function concluirTarefaMt(pedidoId, tarefaId){
+  const {data:p} = await db.from('pedidos_montagem').select('tarefas').eq('id',pedidoId).single();
+  const lista = typeof p?.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p?.tarefas||[]);
+  const t = lista.find(x=>x.id===tarefaId);
+  if(t) t.concluida = true;
+  await db.from('pedidos_montagem').update({tarefas: JSON.stringify(lista)}).eq('id',pedidoId);
+  notify('Tarefa concluída!','success');
+  abrirDetalhesMt(pedidoId);
+}
+
+async function adicionarTarefaMt(pedidoId){ adicionarObsMt(pedidoId); } // compatibilidade
+async function removerTarefaMt(pedidoId, idx){ removerObsMt(pedidoId, idx); } // compatibilidade
 
 function renderFilaMtLista(data){
   renderKanbanMt(data);
