@@ -9034,6 +9034,8 @@ async function salvarNascimentoAt(id){
       const emailCliente = atLocal2?.cliente_email;
       const nomeCliente = atLocal2?.cliente_nome;
       const empresaCliente = atLocal2?.empresa || 'marcenario';
+      console.log('[ANIV] atLocal2:', atLocal2);
+      console.log('[ANIV] email:', emailCliente, 'nome:', nomeCliente, 'empresa:', empresaCliente, 'cupom:', cupom);
       if(emailCliente){
         const emailResp = await fetch(`${SUPABASE_URL}/functions/v1/email-aniversario`,{
           method:'POST',
