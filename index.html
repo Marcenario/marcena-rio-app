@@ -602,7 +602,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <button class="nav-item active" id="at-nav-funil" onclick="showSubAt('at-funil',this)">Funil</button>
         <button class="nav-item" id="at-nav-novo" onclick="showSubAt('at-novo',this)">+ Novo atendimento</button>
         <button class="nav-item" id="at-nav-vendedores" style="display:none" onclick="showSubAt('at-vendedores',this)">Vendedores</button>
-        <button class="nav-item" id="at-nav-relatorio" style="display:none" onclick="showSubAt('at-relatorio',this)">Relatório</button>
+        <button class="nav-item" id="at-nav-relatorio" style="display:none" onclick="showSubAt('at-relatorio',this)">📋 Relatório do cliente</button>
         <button class="nav-item" id="at-nav-motivos" style="display:none" onclick="showSubAt('at-motivos',this)">Motivos de perda</button>
       </div>
 
@@ -714,8 +714,43 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
       <!-- RELATÓRIO -->
       <div id="at-relatorio" style="display:none">
-        <div class="info-box">A produtividade é recalculada mensalmente com base nos atendimentos concluídos.</div>
-        <div id="at-rel-content"><div class="loader">Carregando...</div></div>
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="card-title" style="margin-bottom:1rem;">📋 Relatório completo de atendimento</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:16px;">Gera um PDF com todo o histórico do cliente — dados pessoais, funil de vendas, projeto, montagem, vistoria, ocorrências e anotações.</div>
+          <div class="form-grid" style="margin-bottom:12px;">
+            <div class="form-row">
+              <label>Buscar cliente / contrato</label>
+              <input type="text" id="rel-at-busca" placeholder="Nome, telefone, e-mail ou nº contrato..."
+                oninput="buscarClienteRelat(this.value)"
+                style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+            </div>
+            <div class="form-row">
+              <label>Mês de referência</label>
+              <select id="rel-at-mes" onchange="buscarClienteRelat(document.getElementById('rel-at-busca').value)"
+                style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+                <option value="">Todos os meses</option>
+              </select>
+            </div>
+          </div>
+          <div id="rel-at-resultados" style="margin-bottom:12px;"></div>
+          <div id="rel-at-alert"></div>
+        </div>
+
+        <!-- Preview / selecionado -->
+        <div id="rel-at-preview" style="display:none;">
+          <div class="card" style="border:2px solid var(--accent);">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+              <div>
+                <div style="font-size:15px;font-weight:600;" id="rel-at-nome-sel">—</div>
+                <div style="font-size:12px;color:var(--text2);" id="rel-at-info-sel">—</div>
+              </div>
+              <button onclick="gerarRelatorioAtendimento()" id="btn-gerar-relat"
+                style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">
+                📄 Gerar PDF completo
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- MOTIVOS DE PERDA -->
@@ -1887,7 +1922,7 @@ async function onLogin(user){
   document.getElementById('conf-nav-conferentes').style.display=admOuGer?'block':'none';
   document.getElementById('conf-nav-relatorio').style.display=admOuGer?'block':'none';
   document.getElementById('at-nav-vendedores').style.display=admOuGer?'block':'none';
-  document.getElementById('at-nav-relatorio').style.display=isStaff?'block':'none';
+  document.getElementById('at-nav-relatorio').style.display=isAdmin()?'block':'none';
   document.getElementById('at-nav-motivos').style.display=isAdmin()?'block':'none'; // só admin
   if(rdKey)showRDConnected();
   document.getElementById('mt-data').value=new Date().toISOString().split('T')[0];
@@ -10553,46 +10588,327 @@ async function concluirConferencia(id, resultado){
 }
 
 async function loadRelatorioAt(){
-  const cont=document.getElementById('at-rel-content');
-  cont.innerHTML='<div class="loader">Carregando...</div>';
-  const {data:vds}=await db.from('vendedores').select('*').order('produtividade_atual',{ascending:false});
-  if(!vds||!vds.length){cont.innerHTML='<div class="empty-state"><p>Nenhum vendedor.</p></div>';return}
-  const mesAtual=new Date().toISOString().slice(0,7);
-  let html='';
-  for(const v of vds){
-    const {data:ats}=await db.from('atendimentos').select('*').eq('vendedor_id',v.id).eq('mes_ref',mesAtual);
-    const todos=ats||[];
-    let totalAmbs=0,vendidos=0,naoVendidos=0,valTotal=0,valVendido=0;
-    todos.forEach(a=>{
-      const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
-      totalAmbs+=ambs.length;
-      ambs.forEach(am=>{
-        valTotal+=(am.valor||0);
-        if(am.vendeu===true){vendidos++;valVendido+=(am.valor||0);}
-        if(am.vendeu===false)naoVendidos++;
-      });
-    });
-    const taxa=totalAmbs?Math.round((vendidos/totalAmbs)*100):0;
-    html+=`<div class="card">
-      <div class="card-header" style="margin-bottom:0.75rem;">
-        <div class="card-title">${v.nome}</div>
-        <span class="badge badge-amber">${fmt(v.produtividade_atual)}/mês</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:0.75rem;">
-        <div><div style="font-size:11px;color:var(--text2);">Atendimentos</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;">${todos.length}</div></div>
-        <div><div style="font-size:11px;color:var(--text2);">Ambientes projetados</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;">${totalAmbs}</div></div>
-        <div><div style="font-size:11px;color:var(--text2);">Vendidos</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;color:var(--green);">${vendidos}</div></div>
-        <div><div style="font-size:11px;color:var(--text2);">Não vendidos</div><div style="font-size:20px;font-weight:500;font-family:'DM Serif Display',serif;color:var(--red);">${naoVendidos}</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-        <div><div style="font-size:11px;color:var(--text2);">Valor total projetado</div><div style="font-size:14px;font-weight:500;">${fmt(valTotal)}</div></div>
-        <div><div style="font-size:11px;color:var(--text2);">Valor vendido</div><div style="font-size:14px;font-weight:500;color:var(--green);">${fmt(valVendido)}</div></div>
-        <div><div style="font-size:11px;color:var(--text2);">Taxa de conversão</div><div style="font-size:14px;font-weight:500;color:${taxa>=50?'var(--green)':'var(--red)'};">${taxa}%</div></div>
-      </div>
-      <div style="height:4px;background:var(--bg);border-radius:2px;margin-top:10px;"><div style="height:4px;border-radius:2px;background:var(--accent);width:${taxa}%"></div></div>
-    </div>`;
+  // Preencher filtro de meses
+  preencherFiltroMesRelat();
+  document.getElementById('rel-at-resultados').innerHTML='';
+  document.getElementById('rel-at-preview').style.display='none';
+  window._relatAtSelecionado = null;
+}
+
+
+/* ── RELATÓRIO COMPLETO DE ATENDIMENTO ── */
+
+function preencherFiltroMesRelat(){
+  const sel = document.getElementById('rel-at-mes');
+  if(!sel || sel.options.length > 1) return;
+  const hoje = new Date();
+  for(let i=0; i<18; i++){
+    const d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
+    const val = d.toISOString().slice(0,7);
+    const lbl = d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    const opt = document.createElement('option');
+    opt.value=val; opt.textContent=lbl;
+    sel.appendChild(opt);
   }
-  cont.innerHTML=html;
+}
+
+async function buscarClienteRelat(q){
+  const mes = document.getElementById('rel-at-mes')?.value||'';
+  const cont = document.getElementById('rel-at-resultados');
+  if(!q||q.trim().length<2){ cont.innerHTML=''; document.getElementById('rel-at-preview').style.display='none'; return; }
+  cont.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0;">Buscando...</div>';
+  const bq = q.toLowerCase().trim();
+  let query = db.from('atendimentos').select('id,cliente_nome,cliente_tel,cliente_email,numero_contrato,vendedor_nome,empresa,mes_ref,status,created_at');
+  if(mes) query = query.eq('mes_ref', mes);
+  const {data} = await query.order('created_at',{ascending:false}).limit(50);
+  const filtrado = (data||[]).filter(a=>
+    (a.cliente_nome||'').toLowerCase().includes(bq)||
+    (a.cliente_tel||'').toLowerCase().includes(bq)||
+    (a.cliente_email||'').toLowerCase().includes(bq)||
+    (a.numero_contrato||'').toLowerCase().includes(bq)
+  );
+  if(!filtrado.length){ cont.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0;">Nenhum atendimento encontrado.</div>'; return; }
+  const empLabel={marcenario:'Marcena Rio',conceptus:'Conceptus Italínea'};
+  const statusLabel={em_andamento:'Em andamento',concluido_fechado:'Fechado',concluido_perdido:'Perdido'};
+  cont.innerHTML=filtrado.slice(0,10).map(a=>`
+    <div onclick="selecionarClienteRelat('${a.id}','${(a.cliente_nome||'').replace(/'/g,"\\'")}','${a.numero_contrato||''}','${empLabel[a.empresa]||a.empresa||''}')"
+      style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;margin-bottom:6px;cursor:pointer;background:var(--bg2);transition:background 0.15s;"
+      onmouseenter="this.style.background='var(--accent-light)'" onmouseleave="this.style.background='var(--bg2)'">
+      <div>
+        <div style="font-size:13px;font-weight:600;">${a.cliente_nome||'—'}</div>
+        <div style="font-size:11px;color:var(--text2);">${a.cliente_tel||''} · ${a.cliente_email||''}</div>
+        <div style="font-size:11px;color:var(--text2);">Contrato: ${a.numero_contrato||'—'} · ${empLabel[a.empresa]||a.empresa||'—'} · ${a.vendedor_nome||'—'}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:11px;color:var(--text2);">${a.mes_ref||''}</div>
+        <span class="badge ${a.status==='concluido_fechado'?'badge-green':a.status==='concluido_perdido'?'badge-red':'badge-blue'}" style="font-size:10px;">${statusLabel[a.status]||a.status}</span>
+      </div>
+    </div>`).join('');
+}
+
+function selecionarClienteRelat(atId, nome, contrato, empresa){
+  window._relatAtSelecionado = atId;
+  document.getElementById('rel-at-nome-sel').textContent = nome;
+  document.getElementById('rel-at-info-sel').textContent = `Contrato: ${contrato||'—'} · ${empresa||'—'}`;
+  document.getElementById('rel-at-preview').style.display='block';
+  document.getElementById('rel-at-resultados').innerHTML='';
+  document.getElementById('rel-at-busca').value=nome;
+}
+
+async function gerarRelatorioAtendimento(){
+  const atId = window._relatAtSelecionado;
+  if(!atId){ notify('Selecione um atendimento primeiro.','error'); return; }
+  const btn = document.getElementById('btn-gerar-relat');
+  btn.disabled=true; btn.textContent='Gerando PDF...';
+
+  try{
+    // Buscar todos os dados em paralelo
+    const [
+      {data:at},
+      {data:anotacoes},
+      {data:tarefas},
+      {data:projeto},
+      {data:pedidos},
+      {data:vistorias},
+      {data:ocorrencias}
+    ] = await Promise.all([
+      db.from('atendimentos').select('*').eq('id',atId).single(),
+      db.from('at_anotacoes').select('*').eq('atendimento_id',atId).order('created_at'),
+      db.from('at_tarefas').select('*').eq('atendimento_id',atId).order('data_tarefa'),
+      db.from('projetos').select('*').eq('id',(await db.from('atendimentos').select('projeto_id').eq('id',atId).single()).data?.projeto_id||'00000000-0000-0000-0000-000000000000').maybeSingle(),
+      db.from('pedidos_montagem').select('*').eq('numero_contrato',(await db.from('atendimentos').select('numero_contrato').eq('id',atId).single()).data?.numero_contrato||'').order('created_at'),
+      db.from('relatorios_vistoria').select('*').eq('numero_contrato',(await db.from('atendimentos').select('numero_contrato').eq('id',atId).single()).data?.numero_contrato||'').order('created_at'),
+      db.from('ocorrencias_montagem').select('*').eq('atendimento_id',atId).order('created_at')
+    ]);
+
+    // Buscar projeto separado se precisar
+    const projId = at?.projeto_id;
+    const {data:proj} = projId ? await db.from('projetos').select('*').eq('id',projId).single() : {data:null};
+
+    const empLabel={marcenario:'Marcena Rio',conceptus:'Conceptus Italínea'};
+    const statusLabel={em_andamento:'Em andamento',concluido_fechado:'✅ Fechado / Venda realizada',concluido_perdido:'❌ Perdido'};
+    const ambs = (() => { try{ return JSON.parse(at?.ambientes||'[]'); }catch{ return []; } })();
+    const valTotal = ambs.reduce((s,a)=>s+(a.valor||0),0)||(at?.estimativa||0);
+    const valVendido = ambs.filter(a=>a.vendeu===true).reduce((s,a)=>s+(a.valor||0),0);
+    const empresa = empLabel[at?.empresa]||at?.empresa||'—';
+    const hoje = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+    const dataAt = at?.created_at ? new Date(at.created_at).toLocaleDateString('pt-BR') : '—';
+
+    const ETAPAS_NOMES = ETAPAS.map(e=>e.nome);
+    const etapaAtual = proj?.etapa_atual ? (ETAPAS_NOMES[proj.etapa_atual-1]||`Etapa ${proj.etapa_atual}`) : '—';
+    const pct = proj?.etapa_atual ? Math.round((proj.etapa_atual/ETAPAS.length)*100) : 0;
+
+    // Montar HTML do PDF
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;color:#1e3a2f;background:#fff;font-size:13px;line-height:1.5;}
+  .page{max-width:800px;margin:0 auto;padding:40px;}
+  .header{border-bottom:3px solid #1e3a2f;padding-bottom:20px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .header-logo{font-family:'DM Serif Display',serif;font-size:28px;color:#1e3a2f;}
+  .header-logo span{color:#c4614a;}
+  .header-meta{text-align:right;font-size:11px;color:#666;}
+  h2{font-family:'DM Serif Display',serif;font-size:20px;font-weight:400;color:#1e3a2f;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e0e0e0;}
+  h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#666;margin:16px 0 8px;}
+  .section{margin-bottom:28px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .field{background:#f7f5f2;border-radius:6px;padding:10px 14px;}
+  .field label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:#888;display:block;margin-bottom:2px;}
+  .field span{font-size:13px;font-weight:500;color:#1e3a2f;}
+  .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;}
+  .badge-green{background:#eafaf1;color:#1a6b35;}
+  .badge-red{background:#fce8e8;color:#8a1a1a;}
+  .badge-blue{background:#e8f0fc;color:#1a4a8a;}
+  .badge-amber{background:#fdf3e3;color:#8a5c1a;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{background:#1e3a2f;color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;}
+  td{padding:8px 10px;border-bottom:1px solid #eee;}
+  tr:nth-child(even) td{background:#f9f9f9;}
+  .timeline-item{display:flex;gap:12px;margin-bottom:8px;align-items:flex-start;}
+  .tl-dot{width:8px;height:8px;border-radius:50%;background:#1e3a2f;margin-top:5px;flex-shrink:0;}
+  .tl-dot.done{background:#27ae60;}
+  .tl-dot.active{background:#c4614a;}
+  .tl-dot.pending{background:#ddd;}
+  .nota{background:#fffbea;border-left:3px solid #d4af37;padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:8px;font-size:12px;}
+  .tarefa{background:#f0f7f4;border-left:3px solid #1e3a2f;padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:8px;font-size:12px;}
+  .tarefa.concluida{opacity:0.6;text-decoration:line-through;}
+  .footer{margin-top:40px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#aaa;display:flex;justify-content:space-between;}
+  .alert-box{background:#fce8e8;border:1px solid #f0a8a8;border-radius:6px;padding:12px 16px;margin-bottom:12px;font-size:12px;color:#8a1a1a;}
+  .prog-bar{height:8px;background:#e0e0e0;border-radius:4px;margin-top:8px;}
+  .prog-fill{height:8px;background:#1e3a2f;border-radius:4px;}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- CABEÇALHO -->
+  <div class="header">
+    <div>
+      <div class="header-logo">Planeja<span>.ai</span></div>
+      <div style="font-size:12px;color:#666;margin-top:2px;">Relatório completo de atendimento</div>
+    </div>
+    <div class="header-meta">
+      Emitido em ${hoje}<br>
+      por ${currentUser?.email||'admin'}<br>
+      <strong>${empresa}</strong>
+    </div>
+  </div>
+
+  <!-- 1. DADOS DO CLIENTE -->
+  <div class="section">
+    <h2>👤 Dados do cliente</h2>
+    <div class="grid3" style="margin-bottom:10px;">
+      <div class="field"><label>Nome</label><span>${at?.cliente_nome||'—'}</span></div>
+      <div class="field"><label>Telefone</label><span>${at?.cliente_tel||'—'}</span></div>
+      <div class="field"><label>E-mail</label><span>${at?.cliente_email||'—'}</span></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label>Tipo de cliente</label><span>${{lead:'Lead',porta:'Cliente de porta',retorno:'Já é cliente',indicacao:'Indicação'}[at?.tipo]||at?.tipo||'—'}</span></div>
+      <div class="field"><label>Empresa</label><span>${empresa}</span></div>
+      <div class="field"><label>Vendedor responsável</label><span>${at?.vendedor_nome||'—'}</span></div>
+    </div>
+    ${at?.endereco_logradouro?`<div class="field" style="margin-top:10px;"><label>Endereço</label><span>${at.endereco_logradouro}${at.endereco_numero?', '+at.endereco_numero:''} ${at.endereco_complemento||''} — ${at.endereco_bairro||''}, ${at.endereco_cidade||''} - ${at.endereco_uf||''} · CEP ${at.endereco_cep||''}</span></div>`:''}
+  </div>
+
+  <!-- 2. ATENDIMENTO / FUNIL -->
+  <div class="section">
+    <h2>📊 Atendimento no funil de vendas</h2>
+    <div class="grid3" style="margin-bottom:10px;">
+      <div class="field"><label>Número do atendimento</label><span>${at?.numero||'—'}</span></div>
+      <div class="field"><label>Data de entrada</label><span>${dataAt}</span></div>
+      <div class="field"><label>Mês de referência</label><span>${at?.mes_ref||'—'}</span></div>
+    </div>
+    <div class="grid3" style="margin-bottom:10px;">
+      <div class="field"><label>Número do contrato</label><span>${at?.numero_contrato||'—'}</span></div>
+      <div class="field"><label>Ambiente desejado</label><span>${at?.ambiente_desejado||'—'}</span></div>
+      <div class="field"><label>Status</label><span class="badge ${at?.status==='concluido_fechado'?'badge-green':at?.status==='concluido_perdido'?'badge-red':'badge-blue'}">${statusLabel[at?.status]||at?.status||'—'}</span></div>
+    </div>
+    ${at?.status==='concluido_perdido'&&at?.motivo_perda?`<div class="alert-box">Motivo da perda: <strong>${at.motivo_perda}</strong></div>`:''}
+    ${ambs.length?`
+    <h3>Ambientes</h3>
+    <table>
+      <tr><th>Ambiente</th><th>Estimativa</th><th>Resultado</th></tr>
+      ${ambs.map(a=>`<tr><td>${a.nome||'—'}</td><td>${fmt(a.valor||0)}</td><td>${a.vendeu===true?'<span class="badge badge-green">✅ Vendido</span>':a.vendeu===false?'<span class="badge badge-red">❌ Não vendido</span>':'<span class="badge badge-amber">⏳ Em negociação</span>'}</td></tr>`).join('')}
+      <tr style="font-weight:600;"><td>Total</td><td>${fmt(valTotal)}</td><td style="color:#1a6b35;">${valVendido>0?'Vendido: '+fmt(valVendido):''}</td></tr>
+    </table>`:''}
+  </div>
+
+  <!-- 3. PROJETO / TIMELINE -->
+  ${proj?`
+  <div class="section">
+    <h2>📍 Projeto e timeline</h2>
+    <div class="grid3" style="margin-bottom:12px;">
+      <div class="field"><label>Etapa atual</label><span>${etapaAtual}</span></div>
+      <div class="field"><label>Progresso</label><span>${pct}% concluído</span></div>
+      <div class="field"><label>Prazo desejado</label><span>${proj.prazo_desejado||'—'}</span></div>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+    <div style="margin-top:14px;">
+    ${ETAPAS.map((et,i)=>{
+      const idx=i+1;
+      const feita=proj.etapa_atual>idx;
+      const ativa=proj.etapa_atual===idx;
+      const campo=et.key?proj[et.key]:null;
+      const dataEt=campo&&!campo.startsWith('http')?new Date(campo+'T12:00:00').toLocaleDateString('pt-BR'):null;
+      if(!feita&&!ativa) return '';
+      return `<div class="timeline-item">
+        <div class="tl-dot ${feita?'done':ativa?'active':'pending'}"></div>
+        <div><strong>${et.nome}</strong>${dataEt?` <span style="color:#888;font-size:11px;">— ${dataEt}</span>`:''} ${feita?'<span class="badge badge-green" style="font-size:10px;">Concluído</span>':'<span class="badge badge-amber" style="font-size:10px;">Em andamento</span>'}</div>
+      </div>`;
+    }).filter(Boolean).join('')}
+    </div>
+  </div>`:''}
+
+  <!-- 4. MONTAGEM -->
+  ${pedidos&&pedidos.length?`
+  <div class="section">
+    <h2>🔨 Montagem</h2>
+    ${pedidos.map(p=>{
+      const pAmbs=(() => { try{ return JSON.parse(p.ambientes||'[]'); }catch{ return []; } })();
+      const statusMt={em_montagem:'Em montagem',concluido:'Concluído',vistoria:'Em vistoria',asteca_pendente:'ASTECA pendente'};
+      return `<div style="border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <div><strong>${p.equipe_nome||'Sem equipe'}</strong> <span class="badge badge-${p.status==='concluido'?'green':'blue'}">${statusMt[p.status]||p.status}</span></div>
+          <div style="font-size:12px;color:#666;">Chegada: ${p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</div>
+        </div>
+        ${p.prazo_contratual?`<div style="font-size:12px;color:#1a6b35;margin-bottom:6px;">📅 Prazo contratual: ${new Date(p.prazo_contratual+'T12:00:00').toLocaleDateString('pt-BR')}</div>`:''}
+        ${p.iniciado_em?`<div style="font-size:12px;color:#666;margin-bottom:6px;">▶ Iniciado em: ${new Date(p.iniciado_em).toLocaleString('pt-BR')} por ${p.iniciado_por||'—'}</div>`:''}
+        ${pAmbs.length?`<table><tr><th>Pedido</th><th>NF</th><th>Ambiente</th><th>Valor</th></tr>${pAmbs.map(a=>`<tr><td>${a.pedido||'—'}</td><td>${a.nf||'—'}</td><td>${a.nome||'—'}</td><td>${fmt(a.valor||0)}</td></tr>`).join('')}</table>`:''}
+        ${(()=>{ const t=typeof p.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p.tarefas||[]); return t.length?`<div style="margin-top:8px;"><strong style="font-size:11px;">Observações/Tarefas:</strong>${t.map(x=>`<div style="font-size:11px;color:#444;padding:3px 0;">• ${x.titulo||x.texto||''} (${x.data||''} · ${x.usuario||''})</div>`).join('')}</div>`:''; })()}
+      </div>`;
+    }).join('')}
+  </div>`:''}
+
+  <!-- 5. VISTORIA -->
+  ${vistorias&&vistorias.length?`
+  <div class="section">
+    <h2>🔍 Vistoria</h2>
+    ${vistorias.map(v=>{
+      const ocs=(() => { try{ return JSON.parse(v.ocorrencias||'[]'); }catch{ return []; } })();
+      return `<div style="border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <div><strong>Vistoria ${v.data_vistoria?new Date(v.data_vistoria+'T12:00:00').toLocaleDateString('pt-BR'):''}</strong></div>
+          <span class="badge badge-${v.status==='assinado'?'green':'amber'}">${v.status||'—'}</span>
+        </div>
+        <div style="font-size:12px;color:#666;margin-bottom:6px;">Responsável: ${v.responsavel_nome||'—'}</div>
+        ${v.observacao_cliente?`<div style="font-size:12px;margin-bottom:6px;"><strong>Obs. cliente:</strong> ${v.observacao_cliente}</div>`:''}
+        ${ocs.length?`<div style="font-size:12px;"><strong>Ocorrências (${ocs.length}):</strong> ${ocs.map(o=>`${o.tipo||o.desc||JSON.stringify(o)}`).join(' · ')}</div>`:''}
+      </div>`;
+    }).join('')}
+  </div>`:''}
+
+  <!-- 6. TAREFAS DO ATENDIMENTO -->
+  ${tarefas&&tarefas.length?`
+  <div class="section">
+    <h2>📋 Tarefas</h2>
+    ${tarefas.map(t=>`<div class="tarefa ${t.concluida?'concluida':''}">
+      <div style="display:flex;justify-content:space-between;">
+        <strong>${t.titulo||'—'}</strong>
+        <span class="badge ${t.concluida?'badge-green':'badge-blue'}">${t.concluida?'✓ Concluída':'Pendente'}</span>
+      </div>
+      <div style="font-size:11px;color:#666;margin-top:3px;">📅 ${t.data_tarefa?new Date(t.data_tarefa+'T12:00:00').toLocaleDateString('pt-BR'):'—'} às ${t.horario||'—'} · ${t.responsavel_nome||'—'}</div>
+    </div>`).join('')}
+  </div>`:''}
+
+  <!-- 7. HISTÓRICO DE ANOTAÇÕES -->
+  ${anotacoes&&anotacoes.length?`
+  <div class="section">
+    <h2>💬 Histórico de anotações</h2>
+    ${anotacoes.map(a=>`<div class="nota">
+      <div>${a.texto||'—'}</div>
+      <div style="font-size:10px;color:#888;margin-top:4px;">${new Date(a.created_at).toLocaleString('pt-BR')} · ${a.autor_nome||'—'}</div>
+    </div>`).join('')}
+  </div>`:''}
+
+  <!-- RODAPÉ -->
+  <div class="footer">
+    <span>Planeja.ai — Gestão e Marketplace de Móveis Planejados</span>
+    <span>Relatório gerado em ${hoje}</span>
+  </div>
+
+</div>
+</body>
+</html>`;
+
+    // Abrir em nova janela e imprimir
+    const win = window.open('','_blank','width=900,height=700');
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(()=>{ win.print(); }, 800);
+
+  }catch(e){
+    console.error('Erro ao gerar relatório:', e);
+    notify('Erro ao gerar relatório: '+e.message,'error');
+  }finally{
+    btn.disabled=false; btn.textContent='📄 Gerar PDF completo';
+  }
 }
 
 /* ── MOTIVOS DE PERDA ── */
