@@ -7786,13 +7786,14 @@ const AT_TIPO_PREFIXO = {lead:'ld', porta:'pt', retorno:'jc', indicacao:'id'};
 async function gerarNumeroAtendimento(empresa, tipo){
   const hoje = new Date();
   const mes = String(hoje.getMonth()+1).padStart(2,'0');
+  const ano = String(hoje.getFullYear()).slice(-2);
   const mesRef = hoje.toISOString().slice(0,7);
   let query = db.from('atendimentos').select('id').eq('mes_ref', mesRef);
   if(empresa) query = query.eq('empresa', empresa);
   const {data} = await query;
   const seq = String((data?.length||0)+1).padStart(3,'0');
   const prefixo = AT_TIPO_PREFIXO[tipo] || 'ld';
-  return `${prefixo}-${seq}${mes}`;
+  return `${prefixo}-${seq}${mes}${ano}`;
 }
 
 async function salvarAtendimento(){
