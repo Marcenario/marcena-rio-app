@@ -634,7 +634,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
               <option value="">Todos os vendedores</option>
             </select>
           </div>
-          <button onclick="exportarFunil()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">⬇ Exportar CSV</button>
+          <button onclick="exportarFunil()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">⬇ Exportar XLS</button>
         </div>
         <div id="at-funil-content"><div class="loader">Carregando...</div></div>
       </div>
@@ -10332,30 +10332,101 @@ async function excluirMotivo(id){
 
 /* ── EXPORTAR CSV ── */
 async function exportarFunil(){
-  const mes=document.getElementById('at-filtro-mes').value;
-  let query=db.from('atendimentos').select('*');
-  if(mes)query=query.eq('mes_ref',mes);
-  const {data}=await query.order('created_at',{ascending:false});
-  if(!data||!data.length){notify('Nenhum dado para exportar.','error');return}
-  const etapaLabel={entrada:'Entrada',oportunidade:'Oportunidade',planta:'Envio de Planta',projeto:'Projeto',apresentacao:'Apresentação',orcamento:'Orçamento'};
-  const statusLabel={em_andamento:'Em andamento',concluido_fechado:'Fechado',concluido_perdido:'Perdido'};
-  const tipoLabel={lead:'Lead',porta:'Cliente de porta',retorno:'Já é cliente',indicacao:'Indicação'};
-  let csv='Data;Cliente;Tipo;Vendedor;Ambiente;Etapa;Status;Motivo Perda;Ambientes;Valor Total;Valor Vendido\n';
-  data.forEach(a=>{
-    const ambs=(a.ambientes&&a.ambientes!=='')?(() => { try{return JSON.parse(a.ambientes);}catch{return [];} })():[];
-    const valTotal=ambs.reduce((s,am)=>s+(am.valor||0),0);
-    const valVendido=ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0);
-    const ambStr=ambs.map(am=>am.nome+(am.vendeu===true?' (V)':am.vendeu===false?' (NV)':'')).join(' | ');
-    const data_str=new Date(a.created_at).toLocaleDateString('pt-BR');
-    csv+=`${data_str};${a.cliente_nome};${tipoLabel[a.tipo]||a.tipo};${a.vendedor_nome||'—'};${a.ambiente_desejado||'—'};${etapaLabel[a.etapa]||a.etapa};${statusLabel[a.status]||a.status};${a.motivo_perda||''};${ambStr};${valTotal.toFixed(2).replace('.',',')};${valVendido.toFixed(2).replace('.',',')}\n`;
-  });
-  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=`funil_atendimentos_${mes||'todos'}.csv`;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  notify('CSV exportado!');
+  notify('Gerando planilha...','info');
+  let query = db.from('atendimentos').select('*');
+  const mes = document.getElementById('at-filtro-mes')?.value;
+  const vendedor = document.getElementById('at-filtro-vendedor')?.value;
+  if(_funilAtual){
+    const funilNome = _funilAtual.nome;
+    if(funilNome === 'Funil de Vendas'){
+      query = query.or(`funil_id.eq.${_funilAtual.id},funil_id.is.null`);
+    } else {
+      query = query.eq('funil_id', _funilAtual.id);
+    }
+  }
+  if(mes) query = query.eq('mes_ref', mes);
+  if(vendedor) query = query.eq('vendedor_id', vendedor);
+  const {data} = await query.order('created_at', {ascending:false});
+  if(!data||!data.length){ notify('Nenhum dado para exportar.','error'); return; }
+
+  if(!window.XLSX){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload=res; s.onerror=rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const XLSXLib = window.XLSX;
+  const wb = XLSXLib.utils.book_new();
+  const tipoLabel = {lead:'Lead',porta:'Cliente de porta',retorno:'Já é cliente',indicacao:'Indicação'};
+  const statusLabel = {em_andamento:'Em andamento',concluido_fechado:'Fechado',concluido_perdido:'Perdido'};
+  const empLabel = {marcenario:'Marcena Rio', conceptus:'Conceptus Italínea'};
+  const COLS = ['#','Data','Cliente','E-mail','Telefone','Tipo','Empresa','Vendedor','Ambiente(s)','Estimativa (R$)','Valor Vendido (R$)','Status','Motivo Perda','Dias no Funil','Nascimento','Cupom Aniv.'];
+  const colWidths = [4,12,24,24,14,16,18,20,40,16,18,16,22,12,14,14].map(w=>({wch:w}));
+
+  const parseAmbs = a => { try{ return a.ambientes&&a.ambientes!==''?JSON.parse(a.ambientes):[];}catch{return[];} };
+
+  const toRow = a => {
+    const ambs = parseAmbs(a);
+    const valTotal = ambs.reduce((s,am)=>s+(am.valor||0),0)||(a.estimativa||0);
+    const valVendido = ambs.filter(am=>am.vendeu===true).reduce((s,am)=>s+(am.valor||0),0);
+    const ambStr = ambs.length ? ambs.map(am=>am.nome+(am.vendeu===true?' ✓':am.vendeu===false?' ✗':'')).join(' | ') : (a.ambiente_desejado||'');
+    const dias = Math.floor((new Date()-new Date(a.created_at))/86400000);
+    return [a.numero||'', new Date(a.created_at).toLocaleDateString('pt-BR'), a.cliente_nome||'', a.cliente_email||'', a.cliente_tel||'', tipoLabel[a.tipo]||a.tipo||'', empLabel[a.empresa]||a.empresa||'', a.vendedor_nome||'', ambStr, valTotal||0, valVendido||0, statusLabel[a.status]||a.status||'', a.motivo_perda||'', dias, a.data_nascimento||'', a.cupom_aniversario||''];
+  };
+
+  // Aba por etapa
+  for(const etapa of _etapasFunilAtual){
+    const nomeNorm = (etapa.nome||'').toLowerCase().trim();
+    const isVendas = nomeNorm==='vendas', isPerdas = nomeNorm==='perdas';
+    const cards = isVendas ? data.filter(a=>a.status==='concluido_fechado') : isPerdas ? data.filter(a=>a.status==='concluido_perdido') : data.filter(a=>a.etapa_funil_id===etapa.id&&a.status==='em_andamento');
+    if(!cards.length) continue;
+    const totalVal = isVendas ? cards.reduce((s,a)=>{const ambs=parseAmbs(a);return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);},0) : cards.reduce((s,a)=>s+(a.estimativa||0),0);
+    const tituloLinha = [`${etapa.nome.toUpperCase()} — ${cards.length} atendimento(s)${totalVal?' — Total: R$ '+totalVal.toLocaleString('pt-BR',{minimumFractionDigits:2}):''}`, ...Array(COLS.length-1).fill('')];
+    const rows = [tituloLinha, COLS, ...cards.map(a=>toRow(a))];
+    const ws = XLSXLib.utils.aoa_to_sheet(rows);
+    ws['!cols'] = colWidths;
+    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:COLS.length-1}}];
+    const hexCor = (etapa.cor||'#1e3a2f').replace('#','').toUpperCase().padEnd(6,'0');
+    if(ws['A1']) ws['A1'].s = {font:{bold:true,color:{rgb:'FFFFFF'},sz:12},fill:{fgColor:{rgb:hexCor}},alignment:{horizontal:'center',vertical:'center'}};
+    COLS.forEach((_,i)=>{ const cell=XLSXLib.utils.encode_cell({r:1,c:i}); if(ws[cell]) ws[cell].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1E3A2F'}},alignment:{horizontal:'center',wrapText:true}}; });
+    XLSXLib.utils.book_append_sheet(wb, ws, etapa.nome.replace(/[\/\?*[\]]/g,'').substring(0,31));
+  }
+
+  // Aba "Todos"
+  const todosRows = [COLS, ...data.map(a=>toRow(a))];
+  const wsTodos = XLSXLib.utils.aoa_to_sheet(todosRows);
+  wsTodos['!cols'] = colWidths;
+  COLS.forEach((_,i)=>{ const cell=XLSXLib.utils.encode_cell({r:0,c:i}); if(wsTodos[cell]) wsTodos[cell].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1E3A2F'}},alignment:{horizontal:'center'}}; });
+  XLSXLib.utils.book_append_sheet(wb, wsTodos, 'Todos');
+
+  // Aba Resumo
+  const resumoRows = [
+    ['RESUMO POR ETAPA',...Array(3).fill('')],
+    ['Etapa','Atendimentos','Valor Total (R$)','Cor'],
+    ..._etapasFunilAtual.map(etapa=>{
+      const nomeNorm=(etapa.nome||'').toLowerCase().trim();
+      const isV=nomeNorm==='vendas',isP=nomeNorm==='perdas';
+      const cards=isV?data.filter(a=>a.status==='concluido_fechado'):isP?data.filter(a=>a.status==='concluido_perdido'):data.filter(a=>a.etapa_funil_id===etapa.id&&a.status==='em_andamento');
+      const val=isV?cards.reduce((s,a)=>{const ambs=parseAmbs(a);return s+ambs.filter(am=>am.vendeu===true).reduce((ss,am)=>ss+(am.valor||0),0);},0):cards.reduce((s,a)=>s+(a.estimativa||0),0);
+      return [etapa.nome, cards.length, val||0, etapa.cor||''];
+    }),
+    ['','','',''],
+    ['TOTAL', data.length, '=SUM(C3:C'+(2+_etapasFunilAtual.length)+')', '']
+  ];
+  const wsRes = XLSXLib.utils.aoa_to_sheet(resumoRows);
+  wsRes['!cols'] = [{wch:30},{wch:16},{wch:20},{wch:12}];
+  wsRes['!merges'] = [{s:{r:0,c:0},e:{r:0,c:3}}];
+  if(wsRes['A1']) wsRes['A1'].s = {font:{bold:true,color:{rgb:'FFFFFF'},sz:13},fill:{fgColor:{rgb:'1E3A2F'}},alignment:{horizontal:'center'}};
+  XLSXLib.utils.book_append_sheet(wb, wsRes, 'Resumo');
+
+  const nomeFunil = (_funilAtual?.nome||'funil').replace(/\s+/g,'_');
+  XLSXLib.writeFile(wb, `funil_${nomeFunil}_${mes||'todos'}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.xlsx`);
+  notify('✅ Planilha XLS exportada!','success');
 }
+
 
 
 /* ===== OCORRÊNCIAS ===== */
