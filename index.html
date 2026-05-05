@@ -4292,10 +4292,15 @@ let dashEmpresa = 'marcenario';
 
 function setDashEmpresa(emp, btn) {
   dashEmpresa = emp;
-  const mrBtn=document.getElementById('dash-emp-mr');
-  const ctBtn=document.getElementById('dash-emp-ct');
-  if(mrBtn){mrBtn.style.background=emp==='marcenario'?'var(--brand)':'transparent';mrBtn.style.color=emp==='marcenario'?'#fff':'var(--text2)';mrBtn.style.borderColor=emp==='marcenario'?'var(--brand)':'var(--border2)';}
-  if(ctBtn){ctBtn.style.background=emp==='conceptus'?'var(--brand)':'transparent';ctBtn.style.color=emp==='conceptus'?'#fff':'var(--text2)';ctBtn.style.borderColor=emp==='conceptus'?'var(--brand)':'var(--border2)';}
+  // Atualiza visual de todos os botões dinamicamente
+  Object.keys(EMPRESAS).forEach(s=>{
+    const b=document.getElementById('dash-emp-'+s);
+    if(!b)return;
+    const ativo=s===emp;
+    b.style.background=ativo?'var(--brand)':'transparent';
+    b.style.color=ativo?'#fff':'var(--text2)';
+    b.style.borderColor=ativo?'var(--brand)':'var(--border2)';
+  });
   loadDashFinanceiro();
 }
 
@@ -5639,11 +5644,15 @@ let finEmpresa='marcenario';
 
 function setEmpresaFin(empresa, btn){
   finEmpresa=empresa;
-  // Atualiza visual dos botões (com null check)
-  const mrBtn=document.getElementById('fin-emp-mr');
-  const ctBtn=document.getElementById('fin-emp-ct');
-  if(mrBtn){mrBtn.style.background=empresa==='marcenario'?'var(--brand)':'transparent';mrBtn.style.color=empresa==='marcenario'?'#fff':'var(--text2)';mrBtn.style.borderColor=empresa==='marcenario'?'var(--brand)':'var(--border2)';}
-  if(ctBtn){ctBtn.style.background=empresa==='conceptus'?'var(--brand)':'transparent';ctBtn.style.color=empresa==='conceptus'?'#fff':'var(--text2)';ctBtn.style.borderColor=empresa==='conceptus'?'var(--brand)':'var(--border2)';}
+  // Atualiza visual de todos os botões dinamicamente (IDs gerados por atualizarSeletoresEmpresa)
+  Object.keys(EMPRESAS).forEach(s=>{
+    const b=document.getElementById('fin-emp-'+s);
+    if(!b)return;
+    const ativo=s===empresa;
+    b.style.background=ativo?'var(--brand)':'transparent';
+    b.style.color=ativo?'#fff':'var(--text2)';
+    b.style.borderColor=ativo?'var(--brand)':'var(--border2)';
+  });
   // Recarrega a aba atual
   const abaAtiva=document.querySelector('#financeiro .sub-nav .nav-item.active');
   const abaId=abaAtiva?abaAtiva.id.replace('fin-nav-','fin-'):'fin-dre';
