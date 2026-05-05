@@ -834,6 +834,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <button class="nav-item" id="rh-nav-folha" style="display:none" onclick="showSubRH('rh-folha',this)">Folha do mês</button>
         <button class="nav-item" id="rh-nav-funcionarios" style="display:none" onclick="showSubRH('rh-funcionarios',this)">Funcionários</button>
         <button class="nav-item" id="rh-nav-relatorios" style="display:none" onclick="showSubRH('rh-relatorios',this)">📅 Cartão de Ponto</button>
+        <button class="nav-item" id="rh-nav-ajuste-ponto" style="display:none" onclick="showSubRH('rh-ajuste-ponto',this)">✏️ Ajuste de Ponto</button>
         <button class="nav-item" id="rh-nav-folgas" style="display:none" onclick="showSubRH('rh-folgas',this)">Folgas</button>
         <button class="nav-item" id="rh-nav-pasta" style="display:none" onclick="showSubRH('rh-pasta',this)">📁 Pasta do Funcionário</button>
       </div>
@@ -928,6 +929,51 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <button class="btn-submit" onclick="gerarRelatorioRH()">Gerar e enviar para assinatura</button>
         </div>
         <div id="rh-rel-list" style="margin-top:1rem;"><div class="loader">Carregando...</div></div>
+      </div>
+
+      <!-- AJUSTE DE PONTO (admin) -->
+      <div id="rh-ajuste-ponto" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">✏️ Ajuste de cartão de ponto</div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>Funcionário</label>
+              <select id="rh-aj-func" onchange="loadAjustePonto()" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Mês de referência</label>
+              <select id="rh-aj-mes" onchange="loadAjustePonto()" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;"></select>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px;">Clique em um dia para editar os registros. Todas as alterações ficam registradas com justificativa.</div>
+        </div>
+        <div id="rh-aj-content" style="margin-top:1rem;"></div>
+
+        <!-- Modal de edição de um dia -->
+        <div id="modal-aj-ponto" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:1000;overflow-y:auto;">
+          <div style="background:var(--bg2);border-radius:var(--radius);padding:24px;max-width:480px;margin:60px auto;position:relative;">
+            <button onclick="document.getElementById('modal-aj-ponto').style.display='none'" style="position:absolute;top:12px;right:12px;background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--text3);">✕</button>
+            <div style="font-size:15px;font-weight:600;margin-bottom:4px;" id="modal-aj-titulo">Ajuste de ponto</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;" id="modal-aj-subtitulo"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Entrada</label><input type="time" id="aj-entrada" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Saída almoço</label><input type="time" id="aj-saida-alm" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Retorno almoço</label><input type="time" id="aj-ret-alm" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Saída</label><input type="time" id="aj-saida" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+            </div>
+            <div style="margin-bottom:14px;">
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Justificativa <span style="color:var(--red);">*</span></label>
+              <input type="text" id="aj-justificativa" placeholder="Ex: Esqueceu de bater, sistema fora do ar, ajuste autorizado..." style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+            </div>
+            <div id="aj-ponto-alert" style="margin-bottom:8px;"></div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="salvarAjustePonto()" style="flex:1;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">💾 Salvar ajuste</button>
+              <button onclick="document.getElementById('modal-aj-ponto').style.display='none'" style="padding:10px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:transparent;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--text2);">Cancelar</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- FOLGAS (admin) -->
@@ -1842,6 +1888,7 @@ function showSection(id,btn){
     document.getElementById('rh-nav-folha').style.display=isAdm?'block':'none';
     document.getElementById('rh-nav-funcionarios').style.display=isAdm?'block':'none';
     document.getElementById('rh-nav-relatorios').style.display=isAdm?'block':'none';
+    document.getElementById('rh-nav-ajuste-ponto').style.display=isAdm?'block':'none';
     document.getElementById('rh-nav-folgas').style.display=isAdm?'block':'none';
   }
   if(id==='financeiro'){preencherFiltroFinMes('fin-dre-mes');loadDRE();loadAlertasDespesas();document.getElementById('fin-nav-config').style.display=userNivel==='admin'?'block':'none';}
@@ -4687,7 +4734,7 @@ async function loadDashMontadoresRanking(mes) {
 let rhFuncAtual = null; // dados do funcionário logado
 
 function showSubRH(id, btn) {
-  ['rh-ponto','rh-atestado','rh-folha','rh-funcionarios','rh-relatorios','rh-folgas','rh-pasta'].forEach(s => {
+  ['rh-ponto','rh-atestado','rh-folha','rh-funcionarios','rh-relatorios','rh-folgas','rh-pasta','rh-ajuste-ponto'].forEach(s => {
     const el = document.getElementById(s); if(el) el.style.display = 'none';
   });
   document.querySelectorAll('#rh .sub-nav .nav-item').forEach(n => n.classList.remove('active'));
@@ -4700,6 +4747,7 @@ function showSubRH(id, btn) {
   if(id === 'rh-relatorios') { preencherFiltroRHMes('rh-rel-mes'); loadFuncSelectRH('rh-rel-func'); loadRelatoriosRH(); }
   if(id === 'rh-pasta') { loadFuncSelectRH('rh-pasta-func'); loadPastaFuncionario(); }
   if(id === 'rh-folgas') { loadFuncSelectRH('rh-folga-func', true); loadFolgasRH(); }
+  if(id === 'rh-ajuste-ponto') { preencherFiltroRHMes('rh-aj-mes'); loadFuncSelectRH('rh-aj-func'); }
 }
 
 function preencherFiltroRHMes(elId) {
@@ -4903,6 +4951,153 @@ async function loadHistoricoPonto(funcId) {
   });
   html += '</div></div>';
   cont.innerHTML = html;
+}
+
+/* ── AJUSTE DE PONTO (admin) ── */
+let _ajFuncId = null, _ajData = null, _ajMes = null;
+
+async function loadAjustePonto() {
+  const funcId = document.getElementById('rh-aj-func').value;
+  const mes = document.getElementById('rh-aj-mes').value;
+  const cont = document.getElementById('rh-aj-content');
+  if(!funcId || !mes) { cont.innerHTML = ''; return; }
+  _ajFuncId = funcId; _ajMes = mes;
+  cont.innerHTML = '<div class="loader">Carregando registros...</div>';
+
+  const [{data:func},{data:pontos},{data:folgas}] = await Promise.all([
+    db.from('rh_funcionarios').select('*').eq('id',funcId).maybeSingle(),
+    db.from('rh_pontos').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes).order('data').order('created_at'),
+    db.from('rh_folgas').select('*').eq('mes_ref',mes).or(`funcionario_id.eq.${funcId},funcionario_id.is.null`)
+  ]);
+  if(!func){ cont.innerHTML='<div class="empty-state"><p>Funcionário não encontrado.</p></div>'; return; }
+
+  const [ano, mesN] = mes.split('-').map(Number);
+  const diasMes = new Date(ano, mesN, 0).getDate();
+  const folgasSet = new Set((folgas||[]).map(f=>f.data));
+  const porDia = {};
+  (pontos||[]).forEach(p=>{ if(!porDia[p.data]) porDia[p.data]={}; porDia[p.data][p.tipo]=p; });
+
+  const tiposLabel = {entrada:'Entrada', saida_almoco:'Saída alm.', retorno_almoco:'Retorno', saida:'Saída'};
+  const tipos = ['entrada','saida_almoco','retorno_almoco','saida'];
+
+  let html = `<div class="card">
+    <div class="card-title" style="margin-bottom:0.75rem;">📋 ${func.nome} — ${new Date(mes+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:12px;">Clique em qualquer linha para editar os registros do dia.</div>
+    <div style="overflow-x:auto;">
+    <div style="display:grid;grid-template-columns:110px repeat(4,1fr) 80px;gap:4px;padding:6px 10px;background:var(--bg);border-radius:var(--radius-sm);font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px;">
+      <span>Data</span><span>Entrada</span><span>Saída alm.</span><span>Retorno</span><span>Saída</span><span></span>
+    </div>`;
+
+  for(let d=1; d<=diasMes; d++){
+    const dataStr = `${mes}-${String(d).padStart(2,'0')}`;
+    const dataObj = new Date(dataStr+'T12:00:00');
+    const diaSem = dataObj.getDay();
+    if(diaSem===0) continue;
+    const ehFolga = folgasSet.has(dataStr);
+    const regs = porDia[dataStr]||{};
+    const dataFmt = dataObj.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+    const isFuturo = dataObj > new Date();
+
+    const getHora = tipo => {
+      const r = regs[tipo];
+      if(!r) return '<span style="color:var(--text3);">—</span>';
+      const h = r.horario || (r.created_at ? new Date(new Date(r.created_at).getTime()-3*3600000).toISOString().slice(11,16) : '—');
+      const ajustado = r.ajustado_por ? `<span title="Ajustado por ${r.ajustado_por}" style="color:#b45309;"> ✏️</span>` : '';
+      return `<span style="font-weight:500;">${h}${ajustado}</span>`;
+    };
+
+    const temAlgum = Object.keys(regs).length > 0;
+    const bgRow = ehFolga?'background:#f0fdf4;':(!temAlgum&&!isFuturo?'background:#fff5f5;':'');
+    const cursor = isFuturo||ehFolga ? '' : 'cursor:pointer;';
+
+    html += `<div onclick="${isFuturo||ehFolga?'':''}" style="display:grid;grid-template-columns:110px repeat(4,1fr) 80px;gap:4px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;${bgRow}${cursor}transition:background 0.1s;" onmouseenter="this.style.background='#f0f7f4'" onmouseleave="this.style.background='${ehFolga?'#f0fdf4':(!temAlgum&&!isFuturo?'#fff5f5':'')}'" >
+      <span style="font-weight:500;color:${!temAlgum&&!isFuturo&&!ehFolga?'var(--red)':'var(--text)'};">${dataFmt}</span>
+      ${tipos.map(t=>getHora(t)).join('')}
+      <span>${ehFolga?'<span style="font-size:10px;color:var(--green);">🌴 Folga</span>':isFuturo?'':'<button onclick="abrirModalAjustePonto(\''+dataStr+'\',\''+func.nome+'\')" style="background:var(--brand);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:\'DM Sans\',sans-serif;">✏️ Editar</button>'}</span>
+    </div>`;
+  }
+  html += '</div></div>';
+  cont.innerHTML = html;
+}
+
+async function abrirModalAjustePonto(dataStr, funcNome) {
+  _ajData = dataStr;
+  const {data:pontos} = await db.from('rh_pontos').select('*').eq('funcionario_id',_ajFuncId).eq('data',dataStr).order('created_at');
+  const regs = {};
+  (pontos||[]).forEach(p=>{ regs[p.tipo]=p; });
+
+  const getHorario = tipo => {
+    const r = regs[tipo];
+    if(!r) return '';
+    return r.horario || (r.created_at ? new Date(new Date(r.created_at).getTime()-3*3600000).toISOString().slice(11,16) : '');
+  };
+
+  document.getElementById('aj-entrada').value = getHorario('entrada');
+  document.getElementById('aj-saida-alm').value = getHorario('saida_almoco');
+  document.getElementById('aj-ret-alm').value = getHorario('retorno_almoco');
+  document.getElementById('aj-saida').value = getHorario('saida');
+  document.getElementById('aj-justificativa').value = '';
+  document.getElementById('aj-ponto-alert').innerHTML = '';
+
+  const dataFmt = new Date(dataStr+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+  document.getElementById('modal-aj-titulo').textContent = `Ajuste de ponto — ${funcNome}`;
+  document.getElementById('modal-aj-subtitulo').textContent = dataFmt;
+  document.getElementById('modal-aj-ponto').style.display = 'flex';
+  document.getElementById('modal-aj-ponto').style.alignItems = 'flex-start';
+}
+
+async function salvarAjustePonto() {
+  const justificativa = document.getElementById('aj-justificativa').value.trim();
+  if(!justificativa){ setAlert('aj-ponto-alert','Justificativa é obrigatória.','error'); return; }
+
+  const campos = {
+    entrada: document.getElementById('aj-entrada').value,
+    saida_almoco: document.getElementById('aj-saida-alm').value,
+    retorno_almoco: document.getElementById('aj-ret-alm').value,
+    saida: document.getElementById('aj-saida').value
+  };
+
+  // Buscar registros existentes do dia
+  const {data:existentes} = await db.from('rh_pontos').select('*').eq('funcionario_id',_ajFuncId).eq('data',_ajData);
+  const regsMap = {};
+  (existentes||[]).forEach(p=>{ regsMap[p.tipo]=p; });
+
+  const ops = [];
+  const tipos = ['entrada','saida_almoco','retorno_almoco','saida'];
+
+  for(const tipo of tipos){
+    const hora = campos[tipo];
+    const existente = regsMap[tipo];
+    if(hora && existente){
+      // Atualizar horário
+      ops.push(db.from('rh_pontos').update({
+        horario: hora,
+        ajustado_por: currentUser.email,
+        ajuste_motivo: justificativa,
+        ajuste_em: new Date().toISOString()
+      }).eq('id', existente.id));
+    } else if(hora && !existente){
+      // Criar novo registro
+      ops.push(db.from('rh_pontos').insert({
+        funcionario_id: _ajFuncId,
+        data: _ajData,
+        tipo,
+        horario: hora,
+        mes_ref: _ajMes,
+        ajustado_por: currentUser.email,
+        ajuste_motivo: justificativa,
+        ajuste_em: new Date().toISOString()
+      }));
+    } else if(!hora && existente){
+      // Remover registro
+      ops.push(db.from('rh_pontos').delete().eq('id', existente.id));
+    }
+  }
+
+  await Promise.all(ops);
+  document.getElementById('modal-aj-ponto').style.display = 'none';
+  notify('✅ Ponto ajustado com sucesso!');
+  loadAjustePonto();
 }
 
 /* ── ATESTADOS ── */
