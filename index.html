@@ -8831,9 +8831,17 @@ async function abrirModalAt(id){
     if(isAdmin()){
       const sel = document.getElementById(`at-tarefa-resp-${id}`);
       if(sel){
-        db.from('perfis').select('id,nome,email').not('nivel','eq','cliente').order('nome').then(({data})=>{
-          sel.innerHTML = '<option value="">Selecionar responsável...</option>' +
-            (data||[]).map(f=>`<option value="${f.id}" data-nome="${f.nome||f.email}">${f.nome||f.email}</option>`).join('');
+        db.from('rh_funcionarios').select('id,nome,user_id').eq('ativo',true).order('nome').then(({data})=>{
+          if(!data||!data.length){
+            // Fallback: buscar de perfis
+            db.from('perfis').select('id,nome,email').not('nivel','eq','cliente').order('nome').then(({data:p})=>{
+              sel.innerHTML = '<option value="">Selecionar responsável...</option>' +
+                (p||[]).map(f=>`<option value="${f.id}" data-nome="${f.nome||f.email}">${f.nome||f.email}</option>`).join('');
+            });
+          } else {
+            sel.innerHTML = '<option value="">Selecionar responsável...</option>' +
+              data.map(f=>`<option value="${f.user_id||f.id}" data-nome="${f.nome}">${f.nome}</option>`).join('');
+          }
         });
       }
     }
