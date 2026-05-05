@@ -7089,7 +7089,22 @@ async function loadConferencia(){
   if(!_etapasConferencia.length){ cont.innerHTML='<div class="empty-state"><p>O Funil de Conferência não tem etapas cadastradas.</p></div>'; return; }
 
   const {data} = await db.from('atendimentos').select('*').eq('funil_id',_funilConferencia.id).order('created_at',{ascending:false});
-  window._todosConferencia = data || [];
+  const atsConf = data || [];
+
+  // Enriquecer com etapa do projeto
+  const projIdsConf = [...new Set(atsConf.map(a=>a.projeto_id).filter(Boolean))];
+  if(projIdsConf.length){
+    const {data:projs} = await db.from('projetos').select('id,etapa_atual').in('id', projIdsConf);
+    const projMap = {}; (projs||[]).forEach(p=>{ projMap[p.id]=p; });
+    atsConf.forEach(a=>{
+      if(a.projeto_id && projMap[a.projeto_id]){
+        const etIdx = (projMap[a.projeto_id].etapa_atual||1)-1;
+        a._etapa_projeto = ETAPAS[etIdx]?.nome || `Etapa ${projMap[a.projeto_id].etapa_atual}`;
+      }
+    });
+  }
+
+  window._todosConferencia = atsConf;
   renderConferencia(window._todosConferencia, cont);
 
   // Verificar alertas de capacidade
@@ -7668,7 +7683,22 @@ async function loadFunil(){
   if(vendedorFilter) query = query.eq('vendedor_id', vendedorFilter);
 
   const {data} = await query.order('created_at', {ascending:false});
-  window._todosAtendimentos = data || [];
+  const ats = data || [];
+
+  // Enriquecer com etapa do projeto (busca em paralelo)
+  const projIds = [...new Set(ats.map(a=>a.projeto_id).filter(Boolean))];
+  if(projIds.length){
+    const {data:projs} = await db.from('projetos').select('id,etapa_atual').in('id', projIds);
+    const projMap = {}; (projs||[]).forEach(p=>{ projMap[p.id]=p; });
+    ats.forEach(a=>{
+      if(a.projeto_id && projMap[a.projeto_id]){
+        const etIdx = (projMap[a.projeto_id].etapa_atual||1)-1;
+        a._etapa_projeto = ETAPAS[etIdx]?.nome || `Etapa ${projMap[a.projeto_id].etapa_atual}`;
+      }
+    });
+  }
+
+  window._todosAtendimentos = ats;
 
   const busca = document.getElementById('at-busca')?.value || '';
   renderFunilDinamico(filtrarAtendimentos(window._todosAtendimentos, busca), cont);
@@ -8151,6 +8181,7 @@ function renderFunilCard(a, cor){
     ${ambResumo?`<div class="funil-card-sub">🏠 ${ambResumo}</div>`:''}
     <div class="funil-card-sub">👤 ${a.vendedor_nome||'Sem vendedor'}</div>
     <div class="funil-card-sub">${tipoCodHtml}${tipoIcon} ${tipoLabel}</div>
+    ${a._etapa_projeto?`<div style="font-size:10px;color:var(--text2);background:var(--bg);padding:2px 7px;border-radius:4px;margin-top:3px;">📍 ${a._etapa_projeto}</div>`:''}
     ${totalVal?`<div class="funil-card-val">${fmt(totalVal)}</div>`:''}
     ${conferenteHtml}
     ${timerHtml}
