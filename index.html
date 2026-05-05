@@ -1226,6 +1226,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <div class="form-row"><label>Impostos sobre faturamento (%)</label><input type="number" id="fin-cfg-imp" placeholder="Ex: 6" step="0.1"></div>
           </div>
           <button class="btn-submit" onclick="salvarConfigFin()">Salvar configurações</button>
+          <div id="fin-cfg-ultima-atualizacao" style="font-size:11px;color:var(--text3);margin-top:8px;"></div>
         </div>
         <div id="fin-cargos-content" style="margin-top:1rem;"><div class="loader">Carregando...</div></div>
       </div>
@@ -5709,6 +5710,7 @@ async function salvarCargo(){
 }
 
 async function loadCargos(){
+  loadConfigFin(); // Carregar configurações salvas junto com os cargos
   const cont=document.getElementById('fin-cargos-content');
   const {data}=await db.from('fin_cargos').select('*').eq('empresa',finEmpresa).order('categoria').order('nome');
   if(!data||!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum cargo cadastrado.</p></div>';return}
@@ -5751,6 +5753,8 @@ async function salvarConfigFin(){
     frete_pct:parseFloat(document.getElementById('fin-cfg-frete').value)||0,
     icms_pct:parseFloat(document.getElementById('fin-cfg-icms').value)||0,
     impostos_pct:parseFloat(document.getElementById('fin-cfg-imp').value)||0,
+    updated_at: new Date().toISOString(),
+    updated_by: currentUser?.email||'admin',
   };
   const {data:exist}=await db.from('fin_config').select('id').eq('empresa',finEmpresa).limit(1);
   if(exist&&exist.length){
@@ -5758,7 +5762,10 @@ async function salvarConfigFin(){
   } else {
     await db.from('fin_config').insert({...cfg,empresa:finEmpresa});
   }
-  notify('Configurações salvas!');
+  notify('✅ Configurações salvas! Válidas até a próxima alteração.');
+  // Atualizar label de última atualização
+  const el=document.getElementById('fin-cfg-ultima-atualizacao');
+  if(el) el.textContent=`Última atualização: agora · ${currentUser?.email||'admin'}`;
 }
 
 async function loadConfigFin(){
@@ -5770,6 +5777,12 @@ async function loadConfigFin(){
     document.getElementById('fin-cfg-frete').value=c.frete_pct||'';
     document.getElementById('fin-cfg-icms').value=c.icms_pct||'';
     document.getElementById('fin-cfg-imp').value=c.impostos_pct||'';
+    // Mostrar data/hora da última alteração
+    const el=document.getElementById('fin-cfg-ultima-atualizacao');
+    if(el&&c.updated_at){
+      const dt=new Date(c.updated_at).toLocaleString('pt-BR');
+      el.textContent=`Última atualização: ${dt}${c.updated_by?' · '+c.updated_by:''}`;
+    }
   }
   return c;
 }
