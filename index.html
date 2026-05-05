@@ -3321,7 +3321,9 @@ async function loadFilaMt(){
       (projetos||[]).forEach(p=>{ projMap[p.id]=p; });
     }
 
-    const ETAPAS_LABEL = ['Medição / Briefing','Envio de planta','Elaboração do projeto','Apresentação','Orçamento','Negociação e fechamento','Projeto Executivo','Projeto Revisado','Aprovação do projeto','Projetos para Implantar','Programação de entrega','Entrega e montagem','Vistoria final','ASTECA','Finalização','Garantia'];
+    const ETAPAS_LABEL = typeof ETAPAS !== 'undefined'
+      ? ETAPAS.map(e=>e.nome)
+      : ['Medição / Briefing','Envio de planta / Briefing','Elaboração do projeto','Apresentação do projeto','Orçamento','Negociação e fechamento','Projeto de Venda','Conferência de medidas','Elaboração do projeto executivo','Apresentação do projeto executivo','Projeto Executivo','Produção','Saída da fábrica','Chegada na Transportadora','Entrega','Montagem','Vistoria Final','2ª Produção','2ª Saída da fábrica','2ª Chegada na Transportadora','2ª Entrega','2ª Montagem','ASTECA'];
 
     pedidosData.forEach(p=>{
       const projetoId = atMap[p.numero_contrato];
