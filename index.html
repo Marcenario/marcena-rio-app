@@ -5177,7 +5177,7 @@ async function loadPontoHoje() {
 
   let batidasHtml = tipos.map(t => {
     const reg = r.find(rr => rr.tipo === t);
-    const hora = reg ? new Date(reg.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '—';
+    const hora = reg ? (reg.horario ? reg.horario.slice(0,5) : new Date(new Date(reg.created_at).getTime()-3*3600000).toISOString().slice(11,16)) : '—';
     const dot = reg ? 'ponto-dot-ok' : 'ponto-dot-pend';
     const fotoHtml = reg && reg.foto_url
       ? `<a href="${reg.foto_url}" target="_blank" style="font-size:11px;color:var(--blue);">📷 Ver foto</a>`
@@ -5288,7 +5288,7 @@ async function loadHistoricoPonto(funcId) {
   Object.entries(porDia).forEach(([data, regs]) => {
     const d = new Date(data + 'T12:00:00');
     const dataStr = d.toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit'});
-    const get = tipo => { const r = regs.find(rr => rr.tipo === tipo); return r ? new Date(r.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '—'; };
+    const get = tipo => { const r = regs.find(rr => rr.tipo === tipo); return r ? (r.horario ? r.horario.slice(0,5) : new Date(new Date(r.created_at).getTime()-3*3600000).toISOString().slice(11,16)) : '—'; };
     html += `<div style="display:grid;grid-template-columns:80px 1fr 1fr 1fr 1fr;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border);font-size:12px;">
       <span style="font-weight:500;">${dataStr}</span>
       <span>${get('entrada')}</span><span>${get('saida_almoco')}</span><span>${get('retorno_almoco')}</span><span>${get('saida')}</span>
