@@ -2072,7 +2072,7 @@ async function enviarOrcamento(){
       : {data:null};
     const etapaFunilId=primeiraEtapa?.id||null;
 
-    const {error:atErr}=await db.from('atendimentos').insert({
+    const {data:atData, error:atErr}=await db.from('atendimentos').insert({
       numero: numeroAt,
       tipo: 'lead',
       cliente_nome: nome,
@@ -2088,12 +2088,15 @@ async function enviarOrcamento(){
       etapa_funil_id: etapaFunilId,
       vendedor_id: vendedor?.id||null,
       vendedor_nome: vendedor?.nome||null,
-      registrado_por: currentUser.id
-    });
+      registrado_por: currentUser.id,
+      projeto_id: proj.id
+    }).select('id').single();
     if(atErr){
       console.error('Erro ao criar atendimento:', atErr);
       notify('Solicitação enviada! Atendimento será criado em breve.','info');
     } else {
+      // Vincular atendimento ao projeto também
+      if(atData?.id) await db.from('projetos').update({atendimento_id: atData.id}).eq('id', proj.id);
       if(vendedor) notify(`Atendimento criado e distribuído para ${vendedor.nome}!`);
       else notify('Atendimento criado com sucesso!');
     }
@@ -6827,8 +6830,10 @@ let atEmpresa='marcenario';
 
 function setEmpresaAt(emp, btn){
   atEmpresa=emp;
-  document.getElementById('at-emp-mr').classList.toggle('active', emp==='marcenario');
-  document.getElementById('at-emp-ct').classList.toggle('active', emp==='conceptus');
+  Object.keys(EMPRESAS).forEach(s=>{
+    const b=document.getElementById('at-emp-'+s);
+    if(b) b.classList.toggle('active', s===emp);
+  });
 }
 
 function setTipoAt(tipo, btn){
