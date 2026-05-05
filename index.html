@@ -7667,6 +7667,17 @@ async function loadFunil(){
 
   const tipo = _funilAtual.tipo;
 
+  // Popular filtro de vendedores se ainda estiver vazio
+  const selVend = document.getElementById('at-filtro-vendedor');
+  if(selVend && selVend.options.length <= 1){
+    const {data:vends} = await db.from('vendedores').select('id,nome').order('nome');
+    (vends||[]).forEach(v=>{
+      const opt = document.createElement('option');
+      opt.value = v.id; opt.textContent = v.nome;
+      selVend.appendChild(opt);
+    });
+  }
+
   if(tipo === 'reclamacoes'){
     await loadFunilReclamacoes(cont);
     return;
@@ -9099,7 +9110,7 @@ async function loadAgenda(){
   const {data:funilConf} = await db.from('funis').select('id').eq('tipo','conferencia').limit(1).single();
   const funilConfId = funilConf?.id || null;
 
-  const [eqRes, confRes, pedRes, atRes, reuRes, projRes, perfilRes, anivRes] = await Promise.all([
+  const [eqRes, confRes, pedRes, atRes, reuRes, projRes, perfilRes, anivRes, rhFuncRes] = await Promise.all([
     db.from('equipes_montagem').select('*').order('nome'),
     db.from('conferentes').select('*').order('nome'),
     db.from('pedidos_montagem').select('*').neq('status','concluido').order('data_chegada'),
@@ -9109,7 +9120,8 @@ async function loadAgenda(){
     db.from('agenda_reunioes').select('*').order('data_inicio'),
     db.from('projetos').select('*').order('created_at',{ascending:false}),
     db.from('perfis').select('id,nome,email,nivel').not('nivel','eq','cliente').order('nome'),
-    db.from('atendimentos').select('id,cliente_nome,data_nascimento,cupom_aniversario,vendedor_id,vendedor_nome').not('data_nascimento','is',null)
+    db.from('atendimentos').select('id,cliente_nome,data_nascimento,cupom_aniversario,vendedor_id,vendedor_nome').not('data_nascimento','is',null),
+    db.from('rh_funcionarios').select('id,nome,user_id,cargo').order('nome')
   ]);
 
   const equipes = eqRes.data||[];
@@ -9120,6 +9132,7 @@ async function loadAgenda(){
   const projetos = projRes.data||[];
   const perfisStaff = perfilRes.data||[];
   const aniversariantes = anivRes.data||[];
+  const rhFuncionarios = rhFuncRes.data||[];
 
 
   // Montar lista de funcionários com cores
@@ -9138,13 +9151,17 @@ async function loadAgenda(){
   // Usuários staff/admin que ainda não estão na lista (admin master, vendedores do perfil, etc.)
   const usuariosExtras = perfisStaff.filter(p=>!idsJaIncluidos.has(p.id));
 
+  // Funcionários do RH que ainda não estão na lista (pelo user_id)
+  const rhExtras = rhFuncionarios.filter(f=>f.user_id&&!idsJaIncluidos.has(f.user_id)&&!usuariosExtras.find(u=>u.id===f.user_id));
+
   const baseOffset = equipes.length + conferentes.length + vendedores.length;
 
   _agFuncionarios = [
     ...equipes.map((e,i)=>({id:e.id,nome:e.nome,tipo:'equipe',cor:e.cor||AG_CORES[i%AG_CORES.length]})),
     ...conferentes.map((c2,i)=>({id:c2.id,nome:c2.nome,tipo:'conferente',cor:c2.cor||AG_CORES[(equipes.length+i)%AG_CORES.length]})),
     ...vendedores.map((v,i)=>({id:v.id,nome:v.nome,tipo:'vendedor',cor:AG_CORES[(equipes.length+conferentes.length+i)%AG_CORES.length]})),
-    ...usuariosExtras.map((u,i)=>({id:u.id,nome:u.nome||(u.email?.split('@')[0])||'Usuário',tipo:u.nivel==='admin'?'admin':'staff',cor:AG_CORES[(baseOffset+i)%AG_CORES.length]}))
+    ...usuariosExtras.map((u,i)=>({id:u.id,nome:u.nome||(u.email?.split('@')[0])||'Usuário',tipo:u.nivel==='admin'?'admin':'staff',cor:AG_CORES[(baseOffset+i)%AG_CORES.length]})),
+    ...rhExtras.map((f,i)=>({id:f.user_id,nome:f.nome,tipo:'funcionario',cor:AG_CORES[(baseOffset+usuariosExtras.length+i)%AG_CORES.length]}))
   ];
 
   // Salvar cores no banco se ainda não tiver
