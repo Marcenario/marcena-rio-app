@@ -4357,7 +4357,7 @@ async function loadDashAlertas(mes) {
     alertas.push({cls:'amber',icon:'🟡',msg:`${solsEquipe.length} solicitação(ões) de mudança de equipe pendentes`,acao:'Ver Painel Admin',fn:"showSection('painel_admin',document.getElementById('nav-admin'))"});
 
   // Taxa de conversão
-  const {data: ats} = await db.from('atendimentos').select('status').eq('mes_ref', mes);
+  const {data: ats} = await db.from('atendimentos').select('status').eq('mes_ref', mes).eq('empresa', dashEmpresa);
   if(ats && ats.length >= 5) {
     const fechados = ats.filter(a=>a.status==='concluido_fechado').length;
     const taxa = Math.round((fechados/ats.length)*100);
@@ -4396,7 +4396,7 @@ async function loadDashAlertas(mes) {
 /* ── ATENDIMENTO ── */
 async function loadDashAtendimento(mes) {
   const cont = document.getElementById('dash-atend-content');
-  const {data: ats} = await db.from('atendimentos').select('*').eq('mes_ref', mes);
+  const {data: ats} = await db.from('atendimentos').select('*').eq('mes_ref', mes).eq('empresa', dashEmpresa);
   const todos = ats||[];
   const total = todos.length;
   const fechados = todos.filter(a=>a.status==='concluido_fechado').length;
@@ -4597,7 +4597,7 @@ async function loadDashRH() {
 /* ── VENDEDORES ── */
 async function loadDashVendedores(mes) {
   const cont = document.getElementById('dash-vend-content');
-  const {data: ats} = await db.from('atendimentos').select('vendedor_id,vendedor_nome,ambientes,status').eq('mes_ref',mes);
+  const {data: ats} = await db.from('atendimentos').select('vendedor_id,vendedor_nome,ambientes,status').eq('mes_ref',mes).eq('empresa',dashEmpresa);
   if(!ats||!ats.length) { cont.innerHTML='<div class="empty-state"><p>Sem dados de atendimento.</p></div>'; return; }
 
   const ranking = {};
@@ -5946,7 +5946,7 @@ async function loadDRE(){
   // Buscar dados
   let qRec=db.from('fin_receitas').select('valor,mes_ref').eq('empresa',finEmpresa);
   let qDesp=db.from('fin_despesas').select('valor,tipo,mes_ref,pago').eq('empresa',finEmpresa);
-  let qAt=db.from('atendimentos').select('ambientes,mes_ref');
+  let qAt=db.from('atendimentos').select('ambientes,mes_ref').eq('empresa',finEmpresa);
 
   if(tipo==='mensal'){
     qRec=qRec.eq('mes_ref',mes);qDesp=qDesp.eq('mes_ref',mes);qAt=qAt.eq('mes_ref',mes);
