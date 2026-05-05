@@ -3310,12 +3310,11 @@ async function loadFilaMt(){
   const pedidosData = pedidos||[];
   const contratos = [...new Set(pedidosData.map(p=>p.numero_contrato).filter(Boolean))];
   if(contratos.length){
-    // Buscar atendimentos pelo numero_contrato para pegar projeto_id
-    const {data:ats} = await db.from('atendimentos').select('numero,projeto_id').in('numero', contratos);
+    // atendimentos tem campo numero_contrato que bate com pedidos_montagem.numero_contrato
+    const {data:ats} = await db.from('atendimentos').select('numero_contrato,projeto_id').in('numero_contrato', contratos).not('projeto_id','is',null);
     const projetoIds = [...new Set((ats||[]).map(a=>a.projeto_id).filter(Boolean))];
-    const atMap = {}; (ats||[]).forEach(a=>{ if(a.numero) atMap[a.numero]=a.projeto_id; });
+    const atMap = {}; (ats||[]).forEach(a=>{ if(a.numero_contrato) atMap[a.numero_contrato]=a.projeto_id; });
 
-    // Buscar projetos pelo id para pegar data_producao e etapa_atual
     let projMap = {};
     if(projetoIds.length){
       const {data:projetos} = await db.from('projetos').select('id,data_producao,etapa_atual').in('id', projetoIds);
@@ -3332,6 +3331,33 @@ async function loadFilaMt(){
         if(!p.etapa_projeto && proj.etapa_atual) p.etapa_projeto = ETAPAS_LABEL[(proj.etapa_atual||1)-1]||`Etapa ${proj.etapa_atual}`;
       }
     });
+
+    // Fallback: para pedidos sem projeto_id no atendimento, buscar via relatorio_vistoria
+    const semPrazo = pedidosData.filter(p=>!p.prazo_contratual&&!p.etapa_projeto&&p.relatorio_vistoria_id);
+    if(semPrazo.length){
+      const relIds = semPrazo.map(p=>p.relatorio_vistoria_id).filter(Boolean);
+      const {data:rels} = await db.from('relatorios_vistoria').select('id,numero_contrato').in('id',relIds);
+      const relContratoMap = {}; (rels||[]).forEach(r=>{ relContratoMap[r.id]=r.numero_contrato; });
+      const contratosExtra = [...new Set(Object.values(relContratoMap))].filter(c=>!atMap[c]);
+      if(contratosExtra.length){
+        const {data:atsExtra} = await db.from('atendimentos').select('numero_contrato,projeto_id').in('numero_contrato',contratosExtra).not('projeto_id','is',null);
+        (atsExtra||[]).forEach(a=>{ if(a.numero_contrato) atMap[a.numero_contrato]=a.projeto_id; });
+        const projetoIdsExtra = [...new Set((atsExtra||[]).map(a=>a.projeto_id).filter(Boolean))].filter(id=>!projMap[id]);
+        if(projetoIdsExtra.length){
+          const {data:projExtra} = await db.from('projetos').select('id,data_producao,etapa_atual').in('id',projetoIdsExtra);
+          (projExtra||[]).forEach(p=>{ projMap[p.id]=p; });
+        }
+      }
+      semPrazo.forEach(p=>{
+        const contrato = relContratoMap[p.relatorio_vistoria_id];
+        const projetoId = contrato ? atMap[contrato] : null;
+        if(projetoId && projMap[projetoId]){
+          const proj = projMap[projetoId];
+          if(!p.prazo_contratual && proj.data_producao) p.prazo_contratual = proj.data_producao;
+          if(!p.etapa_projeto && proj.etapa_atual) p.etapa_projeto = ETAPAS_LABEL[(proj.etapa_atual||1)-1]||`Etapa ${proj.etapa_atual}`;
+        }
+      });
+    }
   }
 
   // Ordenar: iniciados primeiro, depois por data de chegada
