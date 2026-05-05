@@ -957,15 +957,41 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <button onclick="document.getElementById('modal-aj-ponto').style.display='none'" style="position:absolute;top:12px;right:12px;background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--text3);">✕</button>
             <div style="font-size:15px;font-weight:600;margin-bottom:4px;" id="modal-aj-titulo">Ajuste de ponto</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;" id="modal-aj-subtitulo"></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Entrada</label><input type="time" id="aj-entrada" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
-              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Saída almoço</label><input type="time" id="aj-saida-alm" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
-              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Retorno almoço</label><input type="time" id="aj-ret-alm" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
-              <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Saída</label><input type="time" id="aj-saida" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+
+            <!-- Tipo de ajuste -->
+            <div style="margin-bottom:14px;">
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:6px;">Tipo de ajuste</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button id="aj-tipo-horario" onclick="setTipoAjuste('horario')" style="padding:6px 14px;border-radius:16px;border:1.5px solid var(--brand);background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">🕐 Horários</button>
+                <button id="aj-tipo-abono" onclick="setTipoAjuste('abono')" style="padding:6px 14px;border-radius:16px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">✅ Abonar dia</button>
+              </div>
             </div>
+
+            <!-- Painel: Horários -->
+            <div id="aj-painel-horario">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Entrada</label><input type="time" id="aj-entrada" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+                <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Saída almoço</label><input type="time" id="aj-saida-alm" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+                <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Retorno almoço</label><input type="time" id="aj-ret-alm" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+                <div><label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Saída</label><input type="time" id="aj-saida" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></div>
+              </div>
+            </div>
+
+            <!-- Painel: Abono -->
+            <div id="aj-painel-abono" style="display:none;margin-bottom:12px;">
+              <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:6px;">Motivo do abono</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <button class="aj-abono-btn" onclick="selecionarAbono('feriado',this)" style="padding:10px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;">🏖️ Feriado</button>
+                <button class="aj-abono-btn" onclick="selecionarAbono('folga',this)" style="padding:10px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;">🌴 Folga</button>
+                <button class="aj-abono-btn" onclick="selecionarAbono('atestado',this)" style="padding:10px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;">🏥 Atestado</button>
+                <button class="aj-abono-btn" onclick="selecionarAbono('outros',this)" style="padding:10px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;">📄 Outros</button>
+              </div>
+              <input type="hidden" id="aj-abono-tipo" value="">
+            </div>
+
             <div style="margin-bottom:14px;">
               <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Justificativa <span style="color:var(--red);">*</span></label>
-              <input type="text" id="aj-justificativa" placeholder="Ex: Esqueceu de bater, sistema fora do ar, ajuste autorizado..." style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+              <input type="text" id="aj-justificativa" placeholder="Ex: Feriado municipal, folga compensatória, atestado médico..." style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
             </div>
             <div id="aj-ponto-alert" style="margin-bottom:8px;"></div>
             <div style="display:flex;gap:8px;">
@@ -4964,16 +4990,18 @@ async function loadAjustePonto() {
   _ajFuncId = funcId; _ajMes = mes;
   cont.innerHTML = '<div class="loader">Carregando registros...</div>';
 
-  const [{data:func},{data:pontos},{data:folgas}] = await Promise.all([
+  const [{data:func},{data:pontos},{data:folgas},{data:abonos}] = await Promise.all([
     db.from('rh_funcionarios').select('*').eq('id',funcId).maybeSingle(),
     db.from('rh_pontos').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes).order('data').order('created_at'),
-    db.from('rh_folgas').select('*').eq('mes_ref',mes).or(`funcionario_id.eq.${funcId},funcionario_id.is.null`)
+    db.from('rh_folgas').select('*').eq('mes_ref',mes).or(`funcionario_id.eq.${funcId},funcionario_id.is.null`),
+    db.from('rh_abonos').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes)
   ]);
   if(!func){ cont.innerHTML='<div class="empty-state"><p>Funcionário não encontrado.</p></div>'; return; }
 
   const [ano, mesN] = mes.split('-').map(Number);
   const diasMes = new Date(ano, mesN, 0).getDate();
   const folgasSet = new Set((folgas||[]).map(f=>f.data));
+  const abonosMap = {}; (abonos||[]).forEach(a=>{ abonosMap[a.data]=a; });
   const porDia = {};
   (pontos||[]).forEach(p=>{ if(!porDia[p.data]) porDia[p.data]={}; porDia[p.data][p.tipo]=p; });
 
@@ -4994,6 +5022,8 @@ async function loadAjustePonto() {
     const diaSem = dataObj.getDay();
     if(diaSem===0) continue;
     const ehFolga = folgasSet.has(dataStr);
+    const ehAbono = !!abonosMap[dataStr];
+    const abono = abonosMap[dataStr];
     const regs = porDia[dataStr]||{};
     const dataFmt = dataObj.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
     const isFuturo = dataObj > new Date();
@@ -5006,18 +5036,63 @@ async function loadAjustePonto() {
       return `<span style="font-weight:500;">${h}${ajustado}</span>`;
     };
 
+    const abonoLabels = {feriado:'🏖️ Feriado',folga:'🌴 Folga',atestado:'🏥 Atestado',outros:'📄 Outros'};
     const temAlgum = Object.keys(regs).length > 0;
-    const bgRow = ehFolga?'background:#f0fdf4;':(!temAlgum&&!isFuturo?'background:#fff5f5;':'');
-    const cursor = isFuturo||ehFolga ? '' : 'cursor:pointer;';
+    const bgRow = ehAbono?'background:#fffbea;':ehFolga?'background:#f0fdf4;':(!temAlgum&&!isFuturo?'background:#fff5f5;':'');
+    const corData = !temAlgum&&!isFuturo&&!ehFolga&&!ehAbono?'var(--red)':'var(--text)';
+    const bgHover = ehAbono?'#fffbea':ehFolga?'#f0fdf4':(!temAlgum&&!isFuturo?'#fff5f5':'#f0f7f4');
 
-    html += `<div onclick="${isFuturo||ehFolga?'':''}" style="display:grid;grid-template-columns:110px repeat(4,1fr) 80px;gap:4px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;${bgRow}${cursor}transition:background 0.1s;" onmouseenter="this.style.background='#f0f7f4'" onmouseleave="this.style.background='${ehFolga?'#f0fdf4':(!temAlgum&&!isFuturo?'#fff5f5':'')}'" >
-      <span style="font-weight:500;color:${!temAlgum&&!isFuturo&&!ehFolga?'var(--red)':'var(--text)'};">${dataFmt}</span>
-      ${tipos.map(t=>getHora(t)).join('')}
-      <span>${ehFolga?'<span style="font-size:10px;color:var(--green);">🌴 Folga</span>':isFuturo?'':'<button onclick="abrirModalAjustePonto(\''+dataStr+'\',\''+func.nome+'\')" style="background:var(--brand);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:\'DM Sans\',sans-serif;">✏️ Editar</button>'}</span>
+    const statusCol = ehAbono
+      ? `<span style="font-size:10px;color:#b8860b;font-weight:600;">${abonoLabels[abono.tipo]||'✅ Abono'}</span>`
+      : ehFolga
+      ? '<span style="font-size:10px;color:var(--green);">🌴 Folga</span>'
+      : isFuturo ? ''
+      : `<button onclick="abrirModalAjustePonto('${dataStr}','${func.nome}')" style="background:var(--brand);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">✏️ Editar</button>`;
+
+    // Permitir editar mesmo dias com folga/abono (para corrigir ou remover)
+    const btnEditar = !isFuturo
+      ? `<button onclick="abrirModalAjustePonto('${dataStr}','${func.nome}')" style="background:var(--brand);color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">✏️ Editar</button>`
+      : '';
+
+    html += `<div style="display:grid;grid-template-columns:110px repeat(4,1fr) 100px;gap:4px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;${bgRow}transition:background 0.1s;" onmouseenter="this.style.background='${bgHover}'" onmouseleave="this.style.background='${bgRow.replace('background:','').replace(';','')}'">
+      <span style="font-weight:500;color:${corData};">${dataFmt}</span>
+      ${ehAbono ? `<span colspan="4" style="grid-column:2/6;color:#b8860b;font-size:12px;">${abonoLabels[abono.tipo]||'Abono'} — ${abono.motivo||''}</span>` : tipos.map(t=>getHora(t)).join('')}
+      <span style="display:flex;gap:4px;align-items:center;">${btnEditar}</span>
     </div>`;
   }
   html += '</div></div>';
   cont.innerHTML = html;
+}
+
+function setTipoAjuste(tipo){
+  const isHorario = tipo==='horario';
+  document.getElementById('aj-painel-horario').style.display=isHorario?'block':'none';
+  document.getElementById('aj-painel-abono').style.display=isHorario?'none':'block';
+  document.getElementById('aj-tipo-horario').style.background=isHorario?'var(--brand)':'transparent';
+  document.getElementById('aj-tipo-horario').style.color=isHorario?'#fff':'var(--text2)';
+  document.getElementById('aj-tipo-horario').style.borderColor=isHorario?'var(--brand)':'var(--border2)';
+  document.getElementById('aj-tipo-abono').style.background=!isHorario?'var(--brand)':'transparent';
+  document.getElementById('aj-tipo-abono').style.color=!isHorario?'#fff':'var(--text2)';
+  document.getElementById('aj-tipo-abono').style.borderColor=!isHorario?'var(--brand)':'var(--border2)';
+  if(!isHorario) document.getElementById('aj-abono-tipo').value='';
+}
+
+function selecionarAbono(tipo, btn){
+  document.querySelectorAll('.aj-abono-btn').forEach(b=>{
+    b.style.background='var(--bg)';
+    b.style.borderColor='var(--border2)';
+    b.style.color='var(--text2)';
+    b.style.fontWeight='400';
+  });
+  btn.style.background='var(--brand)';
+  btn.style.borderColor='var(--brand)';
+  btn.style.color='#fff';
+  btn.style.fontWeight='600';
+  document.getElementById('aj-abono-tipo').value=tipo;
+  // Pré-preencher justificativa com o tipo
+  const labels={feriado:'Feriado',folga:'Folga compensatória',atestado:'Atestado médico',outros:'Outros'};
+  const jEl=document.getElementById('aj-justificativa');
+  if(!jEl.value) jEl.value=labels[tipo]||'';
 }
 
 async function abrirModalAjustePonto(dataStr, funcNome) {
@@ -5032,12 +5107,29 @@ async function abrirModalAjustePonto(dataStr, funcNome) {
     return r.horario || (r.created_at ? new Date(new Date(r.created_at).getTime()-3*3600000).toISOString().slice(11,16) : '');
   };
 
+  // Verificar se já tem abono registrado
+  const {data:abono} = await db.from('rh_abonos').select('*').eq('funcionario_id',_ajFuncId).eq('data',dataStr).maybeSingle();
+
   document.getElementById('aj-entrada').value = getHorario('entrada');
   document.getElementById('aj-saida-alm').value = getHorario('saida_almoco');
   document.getElementById('aj-ret-alm').value = getHorario('retorno_almoco');
   document.getElementById('aj-saida').value = getHorario('saida');
-  document.getElementById('aj-justificativa').value = '';
+  document.getElementById('aj-justificativa').value = abono?.motivo||'';
   document.getElementById('aj-ponto-alert').innerHTML = '';
+  document.getElementById('aj-abono-tipo').value = abono?.tipo||'';
+
+  // Resetar botões de abono
+  document.querySelectorAll('.aj-abono-btn').forEach(b=>{
+    b.style.background='var(--bg)';b.style.borderColor='var(--border2)';b.style.color='var(--text2)';b.style.fontWeight='400';
+  });
+  if(abono?.tipo){
+    // Ativar o botão do tipo de abono existente
+    setTipoAjuste('abono');
+    const btnAtivo = document.querySelector(`.aj-abono-btn[onclick*="${abono.tipo}"]`);
+    if(btnAtivo){ btnAtivo.style.background='var(--brand)';btnAtivo.style.borderColor='var(--brand)';btnAtivo.style.color='#fff';btnAtivo.style.fontWeight='600'; }
+  } else {
+    setTipoAjuste('horario');
+  }
 
   const dataFmt = new Date(dataStr+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
   document.getElementById('modal-aj-titulo').textContent = `Ajuste de ponto — ${funcNome}`;
@@ -5050,6 +5142,33 @@ async function salvarAjustePonto() {
   const justificativa = document.getElementById('aj-justificativa').value.trim();
   if(!justificativa){ setAlert('aj-ponto-alert','Justificativa é obrigatória.','error'); return; }
 
+  const tipoAjuste = document.getElementById('aj-painel-abono').style.display==='none' ? 'horario' : 'abono';
+
+  if(tipoAjuste==='abono'){
+    const tipoAbono = document.getElementById('aj-abono-tipo').value;
+    if(!tipoAbono){ setAlert('aj-ponto-alert','Selecione o motivo do abono.','error'); return; }
+
+    // Salvar/atualizar abono
+    const {data:exist} = await db.from('rh_abonos').select('id').eq('funcionario_id',_ajFuncId).eq('data',_ajData).maybeSingle();
+    const abonoData = {
+      funcionario_id: _ajFuncId,
+      data: _ajData,
+      mes_ref: _ajMes,
+      tipo: tipoAbono,
+      motivo: justificativa,
+      concedido_por: currentUser.email,
+      concedido_em: new Date().toISOString()
+    };
+    if(exist){ await db.from('rh_abonos').update(abonoData).eq('id',exist.id); }
+    else { await db.from('rh_abonos').insert(abonoData); }
+
+    document.getElementById('modal-aj-ponto').style.display='none';
+    notify('✅ Abono registrado com sucesso!');
+    loadAjustePonto();
+    return;
+  }
+
+  // Ajuste de horários
   const campos = {
     entrada: document.getElementById('aj-entrada').value,
     saida_almoco: document.getElementById('aj-saida-alm').value,
@@ -5057,7 +5176,6 @@ async function salvarAjustePonto() {
     saida: document.getElementById('aj-saida').value
   };
 
-  // Buscar registros existentes do dia
   const {data:existentes} = await db.from('rh_pontos').select('*').eq('funcionario_id',_ajFuncId).eq('data',_ajData);
   const regsMap = {};
   (existentes||[]).forEach(p=>{ regsMap[p.tipo]=p; });
@@ -5069,36 +5187,20 @@ async function salvarAjustePonto() {
     const hora = campos[tipo];
     const existente = regsMap[tipo];
     if(hora && existente){
-      // Atualizar horário
-      ops.push(db.from('rh_pontos').update({
-        horario: hora,
-        ajustado_por: currentUser.email,
-        ajuste_motivo: justificativa,
-        ajuste_em: new Date().toISOString()
-      }).eq('id', existente.id));
+      ops.push(db.from('rh_pontos').update({horario:hora,ajustado_por:currentUser.email,ajuste_motivo:justificativa,ajuste_em:new Date().toISOString()}).eq('id',existente.id));
     } else if(hora && !existente){
-      // Criar novo registro
-      ops.push(db.from('rh_pontos').insert({
-        funcionario_id: _ajFuncId,
-        data: _ajData,
-        tipo,
-        horario: hora,
-        mes_ref: _ajMes,
-        ajustado_por: currentUser.email,
-        ajuste_motivo: justificativa,
-        ajuste_em: new Date().toISOString()
-      }));
+      ops.push(db.from('rh_pontos').insert({funcionario_id:_ajFuncId,data:_ajData,tipo,horario:hora,mes_ref:_ajMes,ajustado_por:currentUser.email,ajuste_motivo:justificativa,ajuste_em:new Date().toISOString()}));
     } else if(!hora && existente){
-      // Remover registro
-      ops.push(db.from('rh_pontos').delete().eq('id', existente.id));
+      ops.push(db.from('rh_pontos').delete().eq('id',existente.id));
     }
   }
 
   await Promise.all(ops);
-  document.getElementById('modal-aj-ponto').style.display = 'none';
+  document.getElementById('modal-aj-ponto').style.display='none';
   notify('✅ Ponto ajustado com sucesso!');
   loadAjustePonto();
 }
+
 
 /* ── ATESTADOS ── */
 async function enviarAtestado() {
@@ -5348,6 +5450,11 @@ async function buildFolhaFunc(func, mes) {
   const {data: pontos} = await db.from('rh_pontos').select('*').eq('funcionario_id', func.id).eq('mes_ref', mes).order('data').order('created_at');
   const {data: folgas} = await db.from('rh_folgas').select('*').eq('mes_ref', mes).or(`funcionario_id.eq.${func.id},funcionario_id.is.null`);
   const {data: atestados} = await db.from('rh_atestados').select('*').eq('funcionario_id', func.id).eq('mes_ref', mes).eq('status', 'aprovado');
+  const {data: abonos} = await db.from('rh_abonos').select('*').eq('funcionario_id', func.id).eq('mes_ref', mes);
+
+  const abonoLabels = {feriado:'🏖️ Feriado',folga:'🌴 Folga',atestado:'🏥 Atestado',outros:'📄 Outros'};
+  const abonosMap = {};
+  (abonos||[]).forEach(a => { abonosMap[a.data] = a; });
 
   // Gera lista de dias do mês
   const [ano, mesN] = mes.split('-').map(Number);
@@ -5370,32 +5477,44 @@ async function buildFolhaFunc(func, mes) {
       : {entrada: func.entrada_sf, saida: func.saida_sf, horas: 9};
 
     const isFolga = (folgas||[]).some(f => f.data === dataStr);
-    const isAbono = (atestados||[]).some(a => {
+    const isAtestado = (atestados||[]).some(a => {
       const ini = new Date(a.data_inicial+'T12:00:00');
       const fim = new Date(ini); fim.setDate(fim.getDate() + a.dias - 1);
       return dataObj >= ini && dataObj <= fim;
     });
+    const isAbono = !!abonosMap[dataStr];
+    const abono = abonosMap[dataStr];
 
     const regs = porDia[dataStr] || [];
     const entradaReg = regs.find(r => r.tipo === 'entrada');
     const saidaReg = regs.find(r => r.tipo === 'saida');
     const dataFmt = dataObj.toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit'});
 
+    // Hora exibida — usa horario (ajuste) se existir, senão created_at
+    const getHoraReg = reg => {
+      if(!reg) return '—';
+      if(reg.horario) return reg.horario.slice(0,5);
+      return new Date(new Date(reg.created_at).getTime()-3*3600000).toISOString().slice(11,16);
+    };
+
     let status = '', horasStr = '', cls = '';
     if(isFolga) { status = '🌴 Folga'; cls = 'folga'; }
-    else if(isAbono) { status = '🏥 Atestado'; cls = 'folga'; }
+    else if(isAtestado) { status = '🏥 Atestado'; cls = 'folga'; }
+    else if(isAbono) { status = abonoLabels[abono.tipo]||'✅ Abono'; cls = 'folga'; }
     else if(!regs.length) {
-      // Data futura não conta como falta
       if(dataObj <= new Date()) { faltas++; status = '✗ Falta'; cls = 'falta'; }
       else { status = '—'; }
     } else {
       diasTrab++;
       if(entradaReg && saidaReg) {
-        const hTrab = (new Date(saidaReg.created_at) - new Date(entradaReg.created_at)) / 3600000;
+        const tEntrada = entradaReg.horario ? entradaReg.horario.split(':').reduce((a,b,i)=>a+(+b)*(i?60:3600),0) : (new Date(entradaReg.created_at).getTime()-3*3600000)/1000%86400;
+        const tSaida   = saidaReg.horario   ? saidaReg.horario.split(':').reduce((a,b,i)=>a+(+b)*(i?60:3600),0)   : (new Date(saidaReg.created_at).getTime()-3*3600000)/1000%86400;
         const almIni = regs.find(r => r.tipo === 'saida_almoco');
         const almFim = regs.find(r => r.tipo === 'retorno_almoco');
-        const hAlm = almIni && almFim ? (new Date(almFim.created_at) - new Date(almIni.created_at)) / 3600000 : 1;
-        const hLiq = hTrab - hAlm;
+        const tAlmIni = almIni ? (almIni.horario ? almIni.horario.split(':').reduce((a,b,i)=>a+(+b)*(i?60:3600),0) : (new Date(almIni.created_at).getTime()-3*3600000)/1000%86400) : null;
+        const tAlmFim = almFim ? (almFim.horario ? almFim.horario.split(':').reduce((a,b,i)=>a+(+b)*(i?60:3600),0) : (new Date(almFim.created_at).getTime()-3*3600000)/1000%86400) : null;
+        const hAlm = tAlmIni && tAlmFim ? (tAlmFim - tAlmIni)/3600 : 1;
+        const hLiq = (tSaida - tEntrada)/3600 - Math.max(0, hAlm);
         const diff = hLiq - jornada.horas;
         horasStr = `${Math.floor(hLiq)}h${String(Math.round((hLiq%1)*60)).padStart(2,'0')}`;
         if(diff > 1) { bancoHoras += diff - 1; status = `✓ +${(diff-1).toFixed(1)}h extra`; cls = ''; }
@@ -5406,11 +5525,11 @@ async function buildFolhaFunc(func, mes) {
 
     linhas += `<div class="rh-dia-row ${cls}">
       <span style="font-weight:500;">${dataFmt}</span>
-      <span>${entradaReg ? new Date(entradaReg.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—'}</span>
-      <span>${regs.find(r=>r.tipo==='saida_almoco') ? new Date(regs.find(r=>r.tipo==='saida_almoco').created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—'}</span>
-      <span>${regs.find(r=>r.tipo==='retorno_almoco') ? new Date(regs.find(r=>r.tipo==='retorno_almoco').created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—'}</span>
-      <span>${saidaReg ? new Date(saidaReg.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—'}</span>
-      <span style="font-size:11px;color:var(--text2);">${status}</span>
+      <span>${getHoraReg(entradaReg)}</span>
+      <span>${getHoraReg(regs.find(r=>r.tipo==='saida_almoco'))}</span>
+      <span>${getHoraReg(regs.find(r=>r.tipo==='retorno_almoco'))}</span>
+      <span>${getHoraReg(saidaReg)}</span>
+      <span style="font-size:11px;color:var(--text2);">${status}${abono?.motivo&&isAbono?` <span style="color:var(--text3);font-size:10px;">— ${abono.motivo}</span>`:''}</span>
     </div>`;
   }
 
@@ -5443,12 +5562,16 @@ async function gerarRelatorioRH() {
   notify('Gerando cartão de ponto...','info');
 
   // 1. Buscar dados
-  const [{data:func},{data:pontos},{data:folgas}] = await Promise.all([
+  const [{data:func},{data:pontos},{data:folgas},{data:abonos}] = await Promise.all([
     db.from('rh_funcionarios').select('*').eq('id',funcId).maybeSingle(),
     db.from('rh_pontos').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes).order('data').order('created_at'),
-    db.from('rh_folgas').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes)
+    db.from('rh_folgas').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes),
+    db.from('rh_abonos').select('*').eq('funcionario_id',funcId).eq('mes_ref',mes)
   ]);
   if(!func){ notify('Funcionário não encontrado.','error'); return; }
+
+  const abonoLabels = {feriado:'Feriado',folga:'Folga',atestado:'Atestado',outros:'Abono'};
+  const abonosMap = {}; (abonos||[]).forEach(a=>{ abonosMap[a.data]=a; });
 
   // 2. Agrupar pontos por dia
   const porDia = {};
@@ -5502,12 +5625,23 @@ async function gerarRelatorioRH() {
   doc.text('Folgas', 161, 52, {align:'center'});
   doc.setTextColor(0);
 
-  // Tabela
-  const linhasTab = Object.entries(porDia).map(([d,reg])=>{
-    const dia = new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
-    const fol = folgas_set.has(d) ? ' (folga)' : '';
-    return [dia+fol, reg.entrada||'—', reg.saida_almoco||'—', reg.retorno_almoco||'—', reg.saida||'—'];
-  });
+  // Tabela — todos os dias do mês (exceto domingo)
+  const [ano2, mesN2] = mes.split('-').map(Number);
+  const diasMes2 = new Date(ano2, mesN2, 0).getDate();
+  const linhasTab = [];
+  for(let d=1; d<=diasMes2; d++){
+    const dataStr = `${mes}-${String(d).padStart(2,'0')}`;
+    const dataObj2 = new Date(dataStr+'T12:00:00');
+    if(dataObj2.getDay()===0) continue;
+    const reg = porDia[dataStr]||{};
+    const ehFolgaPdf = folgas_set.has(dataStr);
+    const ehAbonoPdf = !!abonosMap[dataStr];
+    const dia = dataObj2.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+    if(ehFolgaPdf){ linhasTab.push([dia, '—','—','—','— (Folga)']); }
+    else if(ehAbonoPdf){ linhasTab.push([dia,'—','—','—',`— (${abonoLabels[abonosMap[dataStr].tipo]||'Abono'})`]); }
+    else if(Object.keys(reg).length){ linhasTab.push([dia, reg.entrada||'—', reg.saida_almoco||'—', reg.retorno_almoco||'—', reg.saida||'—']); }
+    else if(dataObj2 <= new Date()){ linhasTab.push([dia,'—','—','—','✗ Falta']); }
+  }
 
   doc.autoTable({
     startY: 60,
