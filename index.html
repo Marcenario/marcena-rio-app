@@ -9029,29 +9029,32 @@ async function salvarNascimentoAt(id){
   const nascHoje = new Date(val+'T12:00:00');
   if(nascHoje.getMonth()===hoje.getMonth() && nascHoje.getDate()===hoje.getDate()){
     try{
-      // Buscar email e empresa do atendimento para passar à edge function
-      const {data:atDados} = await db.from('atendimentos')
-        .select('cliente_nome,cliente_email,cupom_aniversario,empresa')
-        .eq('id',id).single();
-      if(atDados?.cliente_email){
+      // Usar dados já conhecidos do atendimento local
+      const atLocal2 = window._todosAtendimentos?.find(a=>a.id===id);
+      const emailCliente = atLocal2?.cliente_email;
+      const nomeCliente = atLocal2?.cliente_nome;
+      const empresaCliente = atLocal2?.empresa || 'marcenario';
+      if(emailCliente){
         const emailResp = await fetch(`${SUPABASE_URL}/functions/v1/email-aniversario`,{
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
           body:JSON.stringify({
-            nome: atDados.cliente_nome,
-            email: atDados.cliente_email,
-            cupom: atDados.cupom_aniversario || cupom,
-            empresa: atDados.empresa || 'marcenario'
+            nome: nomeCliente,
+            email: emailCliente,
+            cupom: cupom,
+            empresa: empresaCliente
           })
         });
         const emailJson = await emailResp.json().catch(()=>({}));
         if(emailResp.ok){
           notify('🎂 Aniversário hoje! Email de parabéns enviado.','success');
-          // Marcar que enviou este ano
           await db.from('atendimentos').update({aniversario_email_ano: new Date().getFullYear()}).eq('id',id);
         } else {
           console.warn('Email aniversário erro:', emailJson);
+          notify('⚠️ Email não enviado: '+JSON.stringify(emailJson),'error');
         }
+      } else {
+        console.warn('Email aniversário: cliente sem email cadastrado');
       }
     }catch(e){ console.warn('Email aniversário não enviado:',e); }
   }
