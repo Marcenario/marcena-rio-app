@@ -8347,12 +8347,14 @@ async function abrirModalAt(id){
     if(fv?.id){
       const {data:etapasDB}=await db.from('funis_etapas').select('*').eq('funil_id',fv.id).order('ordem');
       etapasDinamicas = etapasDB||[];
-      // Vincular funil ao atendimento e definir etapa de entrada se não tiver
+      // Vincular funil ao atendimento — só admin/gerente têm permissão de UPDATE
       const primeiraEtapa = etapasDinamicas[0];
-      await db.from('atendimentos').update({
-        funil_id: fv.id,
-        etapa_funil_id: a.etapa_funil_id || primeiraEtapa?.id || null
-      }).eq('id',id);
+      if(isAdmOuGer()){
+        await db.from('atendimentos').update({
+          funil_id: fv.id,
+          etapa_funil_id: a.etapa_funil_id || primeiraEtapa?.id || null
+        }).eq('id',id);
+      }
       a.funil_id = fv.id;
       if(!a.etapa_funil_id && primeiraEtapa) a.etapa_funil_id = primeiraEtapa.id;
     }
@@ -8427,7 +8429,7 @@ async function abrirModalAt(id){
         <button onclick="alterarEmpresaAt('${id}','marcenario')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${a.empresa==='marcenario'?'#6b4c2a':'var(--border2)'};background:${a.empresa==='marcenario'?'#6b4c2a':'transparent'};color:${a.empresa==='marcenario'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Marcena Rio</button>
         <button onclick="alterarEmpresaAt('${id}','conceptus')" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${a.empresa==='conceptus'?'#1a3a6e':'var(--border2)'};background:${a.empresa==='conceptus'?'#1a3a6e':'transparent'};color:${a.empresa==='conceptus'?'#fff':'var(--text2)'};font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Conceptus Italínea</button>
       `:`
-        <strong style="font-size:13px;">${a.nomeEmpresa(empresa)}</strong>
+        <strong style="font-size:13px;">${EMPRESAS[a.empresa]?.nome||a.empresa||'—'}</strong>
         <button onclick="solicitarMudancaEmpresaAt('${id}','${a.empresa||'marcenario'}')" style="padding:4px 12px;border-radius:16px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">🔄 Solicitar mudança</button>
       `}
     </div>`:''}
