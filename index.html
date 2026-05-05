@@ -3622,11 +3622,13 @@ function dragStartMt(event, pedidoId){
   event.currentTarget.classList.add('dragging');
   event.dataTransfer.effectAllowed='move';
   event.dataTransfer.setData('text/plain', pedidoId);
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ w._scrollLeft=w.scrollLeft; w.style.overflowX='hidden'; });
 }
 
 async function dropMt(event, equipeId, equipeNome){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ w.style.overflowX='auto'; if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const pedidoId = _dragMtId || event.dataTransfer.getData('text/plain');
   if(!pedidoId||!equipeId) return;
 
@@ -7561,6 +7563,7 @@ function toggleColunaConf(etapaId){
 async function dropConf(event, etapaId){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ w.style.overflowX='auto'; if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const atId = _dragAtId || event.dataTransfer.getData('text/plain');
   if(!atId||!etapaId) return;
   const at = window._todosConferencia?.find(a=>a.id===atId);
@@ -8179,11 +8182,13 @@ function dragStartRec(event, recId){
   event.currentTarget.classList.add('dragging');
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', recId);
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ w._scrollLeft=w.scrollLeft; w.style.overflowX='hidden'; });
 }
 
 async function dropRec(event, etapaNome){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ w.style.overflowX='auto'; if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const recId = _dragRecId || event.dataTransfer.getData('text/plain');
   if(!recId || !etapaNome) return;
 
@@ -8207,26 +8212,41 @@ function dragStart(event, atId){
   event.currentTarget.classList.add('dragging');
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', atId);
+  // Fixar scroll do funil-wrap durante drag para evitar scroll para a esquerda
+  document.querySelectorAll('.funil-wrap').forEach(w=>{
+    w._scrollLeft = w.scrollLeft;
+    w.style.overflowX = 'hidden';
+  });
 }
 
 function dragEnd(event){
   event.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.funil-col-body').forEach(col=>col.classList.remove('drag-over'));
+  // Restaurar scroll do funil-wrap
+  document.querySelectorAll('.funil-wrap').forEach(w=>{
+    w.style.overflowX = 'auto';
+    if(w._scrollLeft !== undefined) w.scrollLeft = w._scrollLeft;
+  });
 }
 
 function dragOver(event){
   event.preventDefault();
+  event.stopPropagation();
   event.dataTransfer.dropEffect = 'move';
   event.currentTarget.classList.add('drag-over');
 }
 
 function dragLeave(event){
-  event.currentTarget.classList.remove('drag-over');
+  // Só remover se realmente saiu do elemento (não de um filho)
+  if(!event.currentTarget.contains(event.relatedTarget)){
+    event.currentTarget.classList.remove('drag-over');
+  }
 }
 
 async function drop(event, etapaId){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ w.style.overflowX='auto'; if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const atId = _dragAtId || event.dataTransfer.getData('text/plain');
   if(!atId || !etapaId) return;
 
