@@ -3304,15 +3304,39 @@ async function loadFilaMt(){
     db.from('pedidos_montagem').select('*').order('created_at',{ascending:true}),
     db.from('equipes_montagem').select('*').order('nome')
   ]);
-  window._todosPedidosMt = pedidos||[];
   window._equipesMt = equipes||[];
 
-  const data = pedidos||[];
-  document.getElementById('mt-st-ag').textContent=data.filter(p=>p.status==='aguardando').length;
-  document.getElementById('mt-st-em').textContent=data.filter(p=>p.status==='em_montagem').length;
-  document.getElementById('mt-st-co').textContent=data.filter(p=>p.status==='concluido').length;
-  document.getElementById('mt-st-vl').textContent=fmt(data.filter(p=>p.status!=='concluido').reduce((s,p)=>s+p.valor_total,0));
-  renderKanbanMt(data);
+  // Enriquecer com prazo_contratual e etapa_projeto do projeto via numero_contrato
+  const pedidosData = pedidos||[];
+  const contratos = [...new Set(pedidosData.map(p=>p.numero_contrato).filter(Boolean))];
+  if(contratos.length){
+    const {data:projetos} = await db.from('projetos').select('numero_contrato,data_producao,etapa_atual').in('numero_contrato', contratos);
+    const ETAPAS_LABEL = ['Medição / Briefing','Envio de planta','Elaboração do projeto','Apresentação','Orçamento','Negociação e fechamento','Projeto Executivo','Projeto Revisado','Aprovação do projeto','Projetos para Implantar','Programação de entrega','Entrega e montagem','Vistoria final','ASTECA','Finalização','Garantia'];
+    const projMap = {};
+    (projetos||[]).forEach(p=>{ projMap[p.numero_contrato]=p; });
+    pedidosData.forEach(p=>{
+      if(p.numero_contrato && projMap[p.numero_contrato]){
+        const proj = projMap[p.numero_contrato];
+        if(!p.prazo_contratual && proj.data_producao) p.prazo_contratual = proj.data_producao;
+        if(!p.etapa_projeto && proj.etapa_atual) p.etapa_projeto = ETAPAS_LABEL[(proj.etapa_atual||1)-1]||`Etapa ${proj.etapa_atual}`;
+      }
+    });
+  }
+
+  // Ordenar: iniciados primeiro, depois por data de chegada
+  pedidosData.sort((a,b)=>{
+    if(a.iniciado_em && !b.iniciado_em) return -1;
+    if(!a.iniciado_em && b.iniciado_em) return 1;
+    return new Date(a.created_at)-new Date(b.created_at);
+  });
+
+  window._todosPedidosMt = pedidosData;
+
+  document.getElementById('mt-st-ag').textContent=pedidosData.filter(p=>p.status==='aguardando').length;
+  document.getElementById('mt-st-em').textContent=pedidosData.filter(p=>p.status==='em_montagem').length;
+  document.getElementById('mt-st-co').textContent=pedidosData.filter(p=>p.status==='concluido').length;
+  document.getElementById('mt-st-vl').textContent=fmt(pedidosData.filter(p=>p.status!=='concluido').reduce((s,p)=>s+p.valor_total,0));
+  renderKanbanMt(pedidosData);
 }
 
 function filtrarFilaMt(busca){
@@ -3412,9 +3436,39 @@ function renderCardKanbanMt(p){
   const corBorda=isAsteca?'#8a1a1a':'var(--accent)';
   const dataStr=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
   const prazo=p.data_producao?new Date(p.data_producao+'T12:00:00').toLocaleDateString('pt-BR'):null;
+  const prazoContratual=p.prazo_contratual?new Date(p.prazo_contratual+'T12:00:00').toLocaleDateString('pt-BR'):null;
   const isNaColAsteca=p.status==='asteca_pendente';
   const isVistoria=p.status==='vistoria';
   const isConcluido=p.status==='concluido';
+  const isIniciado=!!p.iniciado_em;
+
+  // Ponto 2 — Botão iniciar / badge iniciado
+  const tipoLabel=isAsteca?'ASTECA':'Montagem';
+  const btnIniciar=(!isConcluido&&!isIniciado)
+    ?`<button onclick="event.stopPropagation();iniciarMontagem('${p.id}')" style="background:#1e3a2f;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:10px;cursor:pointer;font-weight:600;">▶ Iniciar ${tipoLabel}</button>`
+    :'';
+  const badgeIniciado=isIniciado
+    ?`<div style="margin-top:5px;background:#d4edda;color:#155724;border-radius:4px;padding:3px 7px;font-size:10px;font-weight:600;">✅ ${tipoLabel} iniciada · ${new Date(p.iniciado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>`
+    :'';
+
+  // Ponto 3 — Prazo contratual
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const prazoDate=p.prazo_contratual?new Date(p.prazo_contratual+'T12:00:00'):null;
+  const prazoVencido=prazoDate&&prazoDate<hoje;
+  const prazoHtml=prazoContratual
+    ?`<div style="font-size:11px;font-weight:700;color:${prazoVencido?'#8a1a1a':'#1a6b35'};background:${prazoVencido?'#fce8e8':'#eaf5ee'};padding:2px 6px;border-radius:4px;margin-top:3px;">📅 Prazo: ${prazoContratual}${prazoVencido?' ⚠️ VENCIDO':''}</div>`
+    :'';
+
+  // Ponto 4 — Etapa do projeto na timeline
+  const etapaHtml=p.etapa_projeto
+    ?`<div style="font-size:10px;color:var(--text2);background:var(--bg);padding:2px 6px;border-radius:4px;margin-top:3px;">📍 ${p.etapa_projeto}</div>`
+    :'';
+
+  // Ponto 1 — Tarefas (contador)
+  const tarefas=typeof p.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p.tarefas||[]);
+  const tarefasHtml=tarefas.length
+    ?`<div style="font-size:10px;color:var(--text2);margin-top:3px;">📋 ${tarefas.length} tarefa${tarefas.length>1?'s':''}</div>`
+    :'';
 
   // Botões de ação
   const btns=[];
@@ -3444,15 +3498,19 @@ function renderCardKanbanMt(p){
     ondragstart="dragStartMt(event,'${p.id}')"
     ondragend="dragEnd(event)"
     onclick="abrirDetalhesMt('${p.id}')"
-    style="border-left:3px solid ${corBorda};cursor:grab;">
+    style="border-left:3px solid ${corBorda};cursor:grab;${isIniciado?'background:linear-gradient(135deg,#f0fff4,#fff);':''}">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:4px;">
       <div style="font-size:13px;font-weight:500;">${p.cliente_nome||'—'}</div>
       ${isAsteca?`<span style="font-size:10px;font-weight:600;background:#8a1a1a;color:#fff;padding:2px 6px;border-radius:6px;flex-shrink:0;">ASTECA</span>`:''}
     </div>
     <div style="font-size:11px;color:var(--text2);">Contrato: ${p.numero_contrato||'—'}</div>
     <div style="font-size:11px;color:var(--text2);">Chegada: ${dataStr}</div>
-    ${prazo?`<div style="font-size:11px;color:#1a6b35;font-weight:600;">Prazo: ${prazo}</div>`:''}
+    ${prazoHtml}
+    ${etapaHtml}
+    ${badgeIniciado}
+    ${tarefasHtml}
     <div style="font-size:12px;font-weight:600;color:var(--accent);margin-top:6px;">${fmt(p.valor_total||0)}</div>
+    ${btnIniciar?`<div style="margin-top:6px;" onclick="event.stopPropagation()">${btnIniciar}</div>`:''}
     ${btns.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;" onclick="event.stopPropagation()">${btns.join('')}</div>`:''}
   </div>`;
 }
@@ -3503,29 +3561,96 @@ async function dropMt(event, equipeId, equipeNome){
 }
 
 async function abrirDetalhesMt(pedidoId){
-  // Abrir modal com detalhes do pedido (reutiliza lógica existente)
-  const p = window._todosPedidosMt?.find(x=>x.id===pedidoId);
+  const {data:p} = await db.from('pedidos_montagem').select('*').eq('id',pedidoId).single();
   if(!p) return;
-  // Usar o renderPedidoMt existente em um popup simples
   document.getElementById('modal-at').style.display='flex';
   const ambs=typeof p.ambientes==='string'?(()=>{try{return JSON.parse(p.ambientes);}catch{return [];}})():p.ambientes||[];
+  const tarefas=typeof p.tarefas==='string'?(()=>{try{return JSON.parse(p.tarefas||'[]');}catch{return [];}})():(p.tarefas||[]);
   const dataStr=p.data_chegada?new Date(p.data_chegada+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  const isAsteca=p.tipo==='asteca';
+  const tipoLabel=isAsteca?'ASTECA':'Montagem';
+  const isIniciado=!!p.iniciado_em;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const prazoDate=p.prazo_contratual?new Date(p.prazo_contratual+'T12:00:00'):null;
+  const prazoVencido=prazoDate&&prazoDate<hoje;
+  const prazoStr=prazoDate?prazoDate.toLocaleDateString('pt-BR'):null;
+
   document.getElementById('modal-at-body').innerHTML=`
-    <div style="font-size:16px;font-weight:600;margin-bottom:12px;">${p.cliente_nome||'—'}</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">Contrato: <strong>${p.numero_contrato||'—'}</strong></div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">Chegada: ${dataStr}</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:4px;">Equipe: ${p.equipe_nome||'—'}</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:4px;">${p.cliente_nome||'—'}${isAsteca?' <span style="color:#8a1a1a;font-size:13px;">⚡ ASTECA</span>':''}</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:2px;">Contrato: <strong>${p.numero_contrato||'—'}</strong></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:2px;">Chegada: ${dataStr}</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:2px;">Equipe: ${p.equipe_nome||'—'}</div>
+    ${prazoStr?`<div style="font-size:13px;font-weight:700;color:${prazoVencido?'#8a1a1a':'#1a6b35'};background:${prazoVencido?'#fce8e8':'#eaf5ee'};padding:4px 8px;border-radius:4px;margin-bottom:4px;">📅 Prazo contratual: ${prazoStr}${prazoVencido?' — ⚠️ VENCIDO':''}</div>`:''}
+    ${p.etapa_projeto?`<div style="font-size:12px;color:var(--text2);background:var(--bg);padding:4px 8px;border-radius:4px;margin-bottom:4px;">📍 Etapa do cliente: <strong>${p.etapa_projeto}</strong></div>`:''}
+    ${isIniciado?`<div style="font-size:12px;color:#155724;background:#d4edda;padding:4px 8px;border-radius:4px;margin-bottom:4px;">✅ ${tipoLabel} iniciada em ${new Date(p.iniciado_em).toLocaleString('pt-BR')} por ${p.iniciado_por||'—'}</div>`:''}
     <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">Valor: <strong>${fmt(p.valor_total||0)}</strong></div>
-    ${ambs.length?`<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">
+    ${ambs.length?`<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px;">
       <tr style="background:var(--bg2);"><th style="padding:6px;text-align:left;border:1px solid var(--border);">Pedido</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">NF</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">Ambiente</th><th style="padding:6px;text-align:right;border:1px solid var(--border);">Valor</th></tr>
       ${ambs.map(a=>`<tr><td style="padding:6px;border:1px solid var(--border);">${a.pedido||a.nped||'—'}</td><td style="padding:6px;border:1px solid var(--border);">${a.nf||'—'}</td><td style="padding:6px;border:1px solid var(--border);">${a.nome||a.ambiente||'—'}</td><td style="padding:6px;border:1px solid var(--border);text-align:right;">${fmt(a.valor||0)}</td></tr>`).join('')}
     </table>`:''}
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:600;color:var(--brand);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📋 Tarefas / Observações</div>
+      <div id="mt-tarefas-lista-${pedidoId}" style="margin-bottom:10px;">
+        ${tarefas.length===0?'<div style="font-size:12px;color:var(--text3);padding:6px 0;">Nenhum registro ainda.</div>':''}
+        ${tarefas.map((t,i)=>`<div style="background:var(--bg);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;">${t.texto}</div>${userNivel==='admin'?`<button onclick="removerTarefaMt('${pedidoId}',${i})" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 8px;">✕</button>`:''}</div><div style="color:var(--text3);font-size:10px;margin-top:3px;">${t.data||''} · ${t.usuario||''}</div></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="mt-tarefa-input-${pedidoId}" placeholder="Adicionar observação ou tarefa..." style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;">
+        <button onclick="adicionarTarefaMt('${pedidoId}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">+ Adicionar</button>
+      </div>
+    </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${!isIniciado&&p.status!=='concluido'?`<button onclick="iniciarMontagem('${p.id}')" style="background:#1e3a2f;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:600;">▶ Iniciar ${tipoLabel}</button>`:''}
       ${p.status!=='concluido'?`<button onclick="concluirPedidoMt('${p.id}');fecharModalAt();" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">✓ Concluir</button>`:''}
       <button onclick="fecharModalAt()" style="background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">Fechar</button>
     </div>
     <button onclick="fecharModalAt()" style="position:absolute;top:12px;right:12px;background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--text3);">✕</button>
   `;
+}
+
+async function iniciarMontagem(pedidoId){
+  const agora = new Date().toISOString();
+  const usuario = currentUser?.email || 'desconhecido';
+  const {error} = await db.from('pedidos_montagem').update({
+    iniciado_em: agora,
+    iniciado_por: usuario
+  }).eq('id', pedidoId);
+  if(error){ notify('Erro ao registrar início.','error'); return; }
+  notify('✅ Início registrado!','success');
+  // Atualizar local
+  const local = window._todosPedidosMt?.find(x=>x.id===pedidoId);
+  if(local){ local.iniciado_em=agora; local.iniciado_por=usuario; }
+  // Reabrir modal com dados atualizados
+  abrirDetalhesMt(pedidoId);
+  // Recarregar kanban para mover card ao topo
+  loadMontagemKanban();
+}
+
+async function adicionarTarefaMt(pedidoId){
+  const input = document.getElementById(`mt-tarefa-input-${pedidoId}`);
+  const texto = input?.value?.trim();
+  if(!texto){ notify('Digite o texto da tarefa.','error'); return; }
+  const {data:p} = await db.from('pedidos_montagem').select('tarefas').eq('id',pedidoId).single();
+  const tarefas = typeof p?.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p?.tarefas||[]);
+  tarefas.push({
+    texto,
+    data: new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    usuario: currentUser?.email||'—'
+  });
+  await db.from('pedidos_montagem').update({tarefas: JSON.stringify(tarefas)}).eq('id',pedidoId);
+  input.value = '';
+  notify('Tarefa adicionada!','success');
+  abrirDetalhesMt(pedidoId);
+}
+
+async function removerTarefaMt(pedidoId, idx){
+  if(!confirm('Remover esta tarefa?')) return;
+  const {data:p} = await db.from('pedidos_montagem').select('tarefas').eq('id',pedidoId).single();
+  const tarefas = typeof p?.tarefas==='string'?JSON.parse(p.tarefas||'[]'):(p?.tarefas||[]);
+  tarefas.splice(idx, 1);
+  await db.from('pedidos_montagem').update({tarefas: JSON.stringify(tarefas)}).eq('id',pedidoId);
+  notify('Tarefa removida.','success');
+  abrirDetalhesMt(pedidoId);
 }
 
 function renderFilaMtLista(data){
