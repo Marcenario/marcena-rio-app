@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seu Móvel Planejado</title>
-<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Seu M&oacute;vel Planejado&quot;,&quot;short_name&quot;:&quot;SeuMovel&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%23ffffff&quot;,&quot;theme_color&quot;:&quot;%231a1a2e&quot;}">
-<meta name="theme-color" content="#1a1a2e">
+<title>Planeja.ai</title>
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Planeja.ai&quot;,&quot;short_name&quot;:&quot;Planeja&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%23f7f5f2&quot;,&quot;theme_color&quot;:&quot;%231e3a2f&quot;}">
+<meta name="theme-color" content="#1e3a2f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SeuMovelPlanejado">
+<meta name="apple-mobile-web-app-title" content="Planeja.ai">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--brand:#1a1a2e;--brand-mid:#2d2d4e;--accent:#c8a96e;--accent-light:#f0e6d3;--bg:#f8f6f2;--bg2:#ffffff;--text:#1a1a2e;--text2:#6b6880;--text3:#9b98a8;--border:rgba(26,26,46,0.10);--border2:rgba(26,26,46,0.18);--green:#2d7a4f;--green-bg:#eaf5ee;--amber:#8a5c1a;--amber-bg:#fdf3e3;--blue:#1a4a8a;--blue-bg:#e8f0fc;--red:#8a1a1a;--red-bg:#fce8e8;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(26,26,46,0.08);--shadow-lg:0 8px 32px rgba(26,26,46,0.12)}
+:root{--brand:#1e3a2f;--brand-mid:#2d5a45;--accent:#c4614a;--accent-light:#f5e6e2;--gold:#c4614a;--bg:#f7f5f2;--bg2:#ffffff;--text:#1e3a2f;--text2:#4a6a5a;--text3:#8aa89a;--border:rgba(30,58,47,0.10);--border2:rgba(30,58,47,0.18);--green:#2d7a4f;--green-bg:#eaf5ee;--amber:#8a5c1a;--amber-bg:#fdf3e3;--blue:#1a4a8a;--blue-bg:#e8f0fc;--red:#8a1a1a;--red-bg:#fce8e8;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(30,58,47,0.08);--shadow-lg:0 8px 32px rgba(30,58,47,0.12)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
-#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--brand);padding:2rem}
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--brand);padding:2rem;background-image:radial-gradient(circle at 20% 20%, rgba(196,97,74,0.12) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(45,90,69,0.3) 0%, transparent 50%)}
 .auth-box{background:var(--bg2);border-radius:20px;padding:2.5rem;width:100%;max-width:400px;box-shadow:var(--shadow-lg)}
 .auth-logo{text-align:center;margin-bottom:2rem}
 .auth-logo h1{font-size:32px;color:var(--brand);letter-spacing:-0.5px}
@@ -38,8 +38,9 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .auth-msg.success{color:var(--green)}
 #app-screen{display:none;min-height:100vh}
 .topbar{background:var(--brand);color:#fff;padding:0 2rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.topbar-logo{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:-0.3px}
-.topbar-logo span{color:var(--accent);font-style:italic}
+.topbar-logo{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:-0.3px;display:flex;align-items:center;gap:10px}
+.topbar-logo-icon{width:32px;height:32px;background:rgba(240,232,220,0.12);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.topbar-logo span{color:#c4614a}
 .topbar-right{display:flex;align-items:center;gap:12px}
 .topbar-user{font-size:13px;opacity:0.7}
 .topbar-nivel{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:500}
@@ -288,9 +289,23 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 <div id="auth-screen">
   <div class="auth-box">
     <div class="auth-logo">
-      <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" alt="Marcena Rio" style="width:180px;margin-bottom:12px;" onerror="this.style.display='none';">
-      <h1 id="logo-fallback" style="display:none;font-size:32px;color:var(--brand);">Seu Móvel<span style="color:var(--accent);font-style:italic;"> Planejado</span></h1>
-      <p>Portal do cliente · Móveis planejados</p>
+      <!-- Planeja.ai identity mark -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:8px;">
+        <div style="width:80px;height:80px;background:#1e3a2f;border-radius:18px;display:flex;align-items:center;justify-content:center;position:relative;">
+          <svg width="50" height="50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="14" y="14" width="72" height="72" rx="7" stroke="#f0e8dc" stroke-width="4"/>
+            <line x1="50" y1="14" x2="50" y2="86" stroke="#f0e8dc" stroke-width="3.5"/>
+            <line x1="14" y1="50" x2="86" y2="50" stroke="#f0e8dc" stroke-width="3.5"/>
+            <path d="M14 38 Q24 38 24 50" stroke="#f0e8dc" stroke-width="2.5" fill="none" opacity="0.6"/>
+            <path d="M62 50 Q62 62 74 62" stroke="#f0e8dc" stroke-width="2.5" fill="none" opacity="0.6"/>
+          </svg>
+          <div style="position:absolute;top:-6px;right:-6px;width:24px;height:24px;background:#c4614a;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;font-size:8px;font-weight:700;color:#fff;">.ai</div>
+        </div>
+        <div style="text-align:center;">
+          <h1 style="font-family:'DM Serif Display',serif;font-size:34px;font-weight:400;color:#1e3a2f;letter-spacing:-0.5px;line-height:1;">Planeja<span style="color:#c4614a;">.ai</span></h1>
+          <p style="font-size:11px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Gestão e Marketplace de Móveis Planejados</p>
+        </div>
+      </div>
     </div>
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="switchAuthTab('login')">Entrar</button>
@@ -315,7 +330,16 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
 <div id="app-screen">
   <div class="topbar">
-    <div class="topbar-logo">Seu Móvel<span> Planejado</span></div>
+    <div class="topbar-logo">
+      <div class="topbar-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="14" y="14" width="72" height="72" rx="7" stroke="#f0e8dc" stroke-width="6"/>
+          <line x1="50" y1="14" x2="50" y2="86" stroke="#f0e8dc" stroke-width="5"/>
+          <line x1="14" y1="50" x2="86" y2="50" stroke="#f0e8dc" stroke-width="5"/>
+        </svg>
+      </div>
+      Planeja<span>.ai</span>
+    </div>
     <div class="topbar-right">
       <span class="topbar-nivel" id="topbar-nivel"></span>
       <span class="topbar-user" id="topbar-email"></span>
@@ -1241,7 +1265,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div class="form-row"><label>Nome da empresa</label><input type="text" id="emp-nome" placeholder="ex: Minha Loja de Móveis"></div>
           <div class="form-row"><label>Subtítulo</label><input type="text" id="emp-subtitulo" placeholder="ex: Móveis Planejados"></div>
           <div class="form-grid">
-            <div class="form-row"><label>Cor principal</label><input type="color" id="emp-cor" value="#1a1a2e" style="width:100%;height:38px;border:1px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;"></div>
+            <div class="form-row"><label>Cor principal</label><input type="color" id="emp-cor" value="#1e3a2f" style="width:100%;height:38px;border:1px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;"></div>
             <div class="form-row"><label>Cor clara</label><input type="color" id="emp-cor-clara" value="#f0f0f0" style="width:100%;height:38px;border:1px solid var(--border2);border-radius:var(--radius-sm);cursor:pointer;"></div>
           </div>
           <div class="form-row"><label>URL da logo</label><input type="text" id="emp-logo" placeholder="https://..."></div>
@@ -1660,7 +1684,7 @@ async function carregarEmpresas(){
       id: e.id,
       nome: e.nome,
       subtitulo: e.subtitulo||'',
-      cor: e.cor||'#1a1a2e',
+      cor: e.cor||'#1e3a2f',
       corClara: e.cor_clara||'#f0f0f0',
       logo: e.logo_url||'',
       email: e.email||''
@@ -1686,7 +1710,7 @@ function atualizarSeletoresEmpresa(){
 function nomeEmpresa(slug){ return EMPRESAS[slug]?.nome || slug || '—'; }
 function corEmpresa(slug){ return EMPRESAS[slug]?.cor || '#1a1a2e'; }
 
-function notify(msg,type='success'){const n=document.getElementById('notif');n.textContent=msg;n.style.background=type==='error'?'#8a1a1a':type==='info'?'#1a4a8a':'#1a1a2e';n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3000)}
+function notify(msg,type='success'){const n=document.getElementById('notif');n.textContent=msg;n.style.background=type==='error'?'#8a1a1a':type==='info'?'#1a4a8a':'#1e3a2f';n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3000)}
 function setAlert(id,msg,type='info'){const el=document.getElementById(id);if(el)el.innerHTML=msg?`<div class="alert alert-${type}">${msg}</div>`:''}
 function fmt(v){return'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 // Retorna data local no fuso do Brasil (America/Sao_Paulo) — evita problema de UTC virando dia seguinte após 21h
@@ -2886,7 +2910,7 @@ async function loadEmpresasAdmin(){
 
   el.innerHTML = data.map(e=>`
     <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
-      <div style="width:40px;height:40px;border-radius:8px;background:${e.cor||'#1a1a2e'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <div style="width:40px;height:40px;border-radius:8px;background:${e.cor||'#1e3a2f'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         ${e.logo_url?`<img src="${e.logo_url}" style="max-width:36px;max-height:36px;object-fit:contain;">`:`<span style="color:#fff;font-size:16px;font-weight:700;">${(e.nome||'?')[0]}</span>`}
       </div>
       <div style="flex:1;min-width:0;">
@@ -2906,7 +2930,7 @@ function abrirModalNovaEmpresa(){
   document.getElementById('emp-slug').value='';
   document.getElementById('emp-nome').value='';
   document.getElementById('emp-subtitulo').value='';
-  document.getElementById('emp-cor').value='#1a1a2e';
+  document.getElementById('emp-cor').value='#1e3a2f';
   document.getElementById('emp-cor-clara').value='#f0f0f0';
   document.getElementById('emp-logo').value='';
   document.getElementById('emp-email').value='';
@@ -2923,7 +2947,7 @@ async function editarEmpresa(id){
   document.getElementById('emp-slug').value=e.slug; document.getElementById('emp-slug').disabled=true;
   document.getElementById('emp-nome').value=e.nome||'';
   document.getElementById('emp-subtitulo').value=e.subtitulo||'';
-  document.getElementById('emp-cor').value=e.cor||'#1a1a2e';
+  document.getElementById('emp-cor').value=e.cor||'#1e3a2f';
   document.getElementById('emp-cor-clara').value=e.cor_clara||'#f0f0f0';
   document.getElementById('emp-logo').value=e.logo_url||'';
   document.getElementById('emp-email').value=e.email||'';
@@ -3013,7 +3037,7 @@ function showRDConnected(){
   const r=b.querySelector('.rd-row');if(r)r.style.display='none';
 }
 async function enviarRD(nome,email,telefone,ambiente,descricao,investimento){
-  try{await fetch('https://api.rd.services/platform/conversions?api_key=4e0542b477a910cc438dcad16032df37',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'CONVERSION',event_family:'CDP',payload:{conversion_identifier:'Solicitação de Orçamento - Seu Móvel Planejado',name:nome,email,mobile_phone:telefone,cf_pra_qual_ambiente_deseja_um_orcamento:ambiente,cf_valor_de_investimento_previsto:investimento,cf_descricao_do_projeto:descricao}})})}catch(e){console.warn('RD:',e)}
+  try{await fetch('https://api.rd.services/platform/conversions?api_key=4e0542b477a910cc438dcad16032df37',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'CONVERSION',event_family:'CDP',payload:{conversion_identifier:'Solicitação de Orçamento - Planeja.ai',name:nome,email,mobile_phone:telefone,cf_pra_qual_ambiente_deseja_um_orcamento:ambiente,cf_valor_de_investimento_previsto:investimento,cf_descricao_do_projeto:descricao}})})}catch(e){console.warn('RD:',e)}
 }
 
 /* MONTAGEM */
@@ -3282,7 +3306,7 @@ function renderKanbanMt(data){
   // Colunas por equipe
   equipes.forEach(eq=>{
     const cards=ativos.filter(p=>p.equipe_id===eq.id);
-    html+=buildColMt('eq_'+eq.id, eq.nome, '#f0e6d3', '#6b4c2a', '#6b4c2a', cards);
+    html+=buildColMt('eq_'+eq.id, eq.nome, '#f5e6e2', '#1e3a2f', '#1e3a2f', cards);
   });
 
   // Sem equipe
@@ -5309,7 +5333,7 @@ async function gerarRelatorioRH() {
   doc.text('Responsável / Admin', 123, y+5, {align:'center'});
   doc.text('Data: ___/___/______', 181, y+5, {align:'center'});
   doc.setFontSize(7); doc.setTextColor(160);
-  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} · Seu Móvel Planejado`, 14, 290);
+  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')} · Planeja.ai`, 14, 290);
 
   // 4. Baixar PDF localmente (sem upload automático)
   doc.save(`cartao_ponto_${func.nome.replace(/ /g,'_')}_${mes}.pdf`);
@@ -10567,29 +10591,29 @@ async function abrirRelatorio(id){
   <title>Relatório de Vistoria — ${r.cliente_nome}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Arial',sans-serif;color:#1a1a2e;background:#fff}
+    body{font-family:'Arial',sans-serif;color:#1e3a2f;background:#fff}
     .page{max-width:800px;margin:0 auto;padding:40px}
-    .header{border-bottom:3px solid #1a1a2e;padding-bottom:16px;margin-bottom:28px}
-    .titulo-doc{font-size:18px;font-weight:700;text-align:center;margin:16px 0 0;text-transform:uppercase;letter-spacing:1px;color:#1a1a2e}
-    .dados-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #1a1a2e;margin-bottom:24px}
+    .header{border-bottom:3px solid #1e3a2f;padding-bottom:16px;margin-bottom:28px}
+    .titulo-doc{font-size:18px;font-weight:700;text-align:center;margin:16px 0 0;text-transform:uppercase;letter-spacing:1px;color:#1e3a2f}
+    .dados-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #1e3a2f;margin-bottom:24px}
     .dado{padding:10px 14px;border-bottom:1px solid #ccc}
-    .dado:nth-child(odd){border-right:1px solid #1a1a2e}
+    .dado:nth-child(odd){border-right:1px solid #1e3a2f}
     .dado label{font-size:10px;font-weight:700;text-transform:uppercase;color:#6b6880;display:block;margin-bottom:2px}
-    .dado span{font-size:13px;font-weight:600;color:#1a1a2e}
-    .secao-titulo{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#1a1a2e;padding:8px 14px;margin:24px 0 12px}
+    .dado span{font-size:13px;font-weight:600;color:#1e3a2f}
+    .secao-titulo{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#1e3a2f;padding:8px 14px;margin:24px 0 12px}
     .tabela{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px}
-    .tabela th{background:#f0e6d3;color:#1a1a2e;font-weight:700;padding:8px;text-align:left;border:1px solid #ccc}
+    .tabela th{background:#f5e6e2;color:#1e3a2f;font-weight:700;padding:8px;text-align:left;border:1px solid #ccc}
     .tabela td{padding:8px;border:1px solid #ccc;color:#1a1a2e}
-    .tabela tr:nth-child(even) td{background:#f8f6f2}
+    .tabela tr:nth-child(even) td{background:#f7f5f2}
     /* Fotos: 1 por linha, 2 por página, sem legenda */
     .foto-bloco{margin-bottom:0;page-break-inside:avoid;break-inside:avoid;}
     .foto-unica{border:1px solid #ccc;margin-bottom:12px;page-break-inside:avoid;break-inside:avoid;}
     .foto-unica img{width:100%;height:320px;object-fit:cover;display:block;}
     .foto-par-pagina{page-break-after:always;break-after:page;}
-    .obs-box{border:1px solid #1a1a2e;padding:14px;min-height:80px;margin-bottom:20px;font-size:13px}
+    .obs-box{border:1px solid #1e3a2f;padding:14px;min-height:80px;margin-bottom:20px;font-size:13px}
     .assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px;page-break-inside:avoid;}
     .assinatura{text-align:center}
-    .assinatura-nome{font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:2px;}
+    .assinatura-nome{font-size:13px;font-weight:600;color:#1e3a2f;margin-bottom:2px;}
     .assinatura-email{font-size:11px;color:#6b6880;margin-bottom:0;}
     .assinatura-linha{border-top:1px solid #1a1a2e;padding-top:8px;margin-top:48px;}
     .rodape{text-align:center;margin-top:28px;font-size:10px;color:#9b98a8}
