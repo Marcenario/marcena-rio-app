@@ -2138,6 +2138,11 @@ function renderListaProjetos(lista){
 
 function filtrarProjetos(busca){
   const status=document.getElementById('proj-filtro-status')?.value||'';
+  if(!_todosProj||!_todosProj.length){
+    // Dados ainda não carregados — aguardar e tentar de novo
+    setTimeout(()=>filtrarProjetos(busca), 300);
+    return;
+  }
   let lista=_todosProj;
   if(busca&&busca.trim()){
     const q=busca.toLowerCase().trim();
@@ -2146,7 +2151,8 @@ function filtrarProjetos(busca){
       (p.cliente_tel||'').toLowerCase().includes(q)||
       (p.cliente_email||'').toLowerCase().includes(q)||
       (p.titulo||'').toLowerCase().includes(q)||
-      (p.ambiente||'').toLowerCase().includes(q)
+      (p.ambiente||'').toLowerCase().includes(q)||
+      (p.descricao||'').toLowerCase().includes(q)
     );
   }
   if(status==='andamento') lista=lista.filter(p=>p.etapa_atual<ETAPAS_TOTAL);
