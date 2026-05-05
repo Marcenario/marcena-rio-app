@@ -9029,12 +9029,30 @@ async function salvarNascimentoAt(id){
   const nascHoje = new Date(val+'T12:00:00');
   if(nascHoje.getMonth()===hoje.getMonth() && nascHoje.getDate()===hoje.getDate()){
     try{
-      await fetch(`${SUPABASE_URL}/functions/v1/email-aniversario`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-        body:JSON.stringify({})
-      });
-      notify('🎂 Aniversário hoje! Email de parabéns enviado.','success');
+      // Buscar email e empresa do atendimento para passar à edge function
+      const {data:atDados} = await db.from('atendimentos')
+        .select('cliente_nome,cliente_email,cupom_aniversario,empresa')
+        .eq('id',id).single();
+      if(atDados?.cliente_email){
+        const emailResp = await fetch(`${SUPABASE_URL}/functions/v1/email-aniversario`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+          body:JSON.stringify({
+            nome: atDados.cliente_nome,
+            email: atDados.cliente_email,
+            cupom: atDados.cupom_aniversario || cupom,
+            empresa: atDados.empresa || 'marcenario'
+          })
+        });
+        const emailJson = await emailResp.json().catch(()=>({}));
+        if(emailResp.ok){
+          notify('🎂 Aniversário hoje! Email de parabéns enviado.','success');
+          // Marcar que enviou este ano
+          await db.from('atendimentos').update({aniversario_email_ano: new Date().getFullYear()}).eq('id',id);
+        } else {
+          console.warn('Email aniversário erro:', emailJson);
+        }
+      }
     }catch(e){ console.warn('Email aniversário não enviado:',e); }
   }
 
