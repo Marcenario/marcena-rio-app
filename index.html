@@ -11654,17 +11654,18 @@ async function gerarRelatorio(){
   btn.disabled=false;btn.textContent='Gerar relatório de vistoria';
   if(error){setAlert('vs-novo-alert','Erro ao gerar relatório.','error');return}
 
-  // Gerar PDF automaticamente e salvar no Storage
+  // Gerar PDF real e salvar no Storage
   try{
     notify('Gerando PDF...','info');
-    const htmlRel = gerarHtmlRelatorio(rel);
-    const blob = new Blob([htmlRel], {type:'text/html'});
-    const path = `vistorias/rel_${rel.id}_${Date.now()}.html`;
-    const {error:upErr} = await db.storage.from('arquivos').upload(path, blob, {upsert:true, contentType:'text/html'});
-    if(!upErr){
-      const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
-      await db.from('relatorios_vistoria').update({pdf_url: urlData.publicUrl}).eq('id', rel.id);
-      rel.pdf_url = urlData.publicUrl;
+    const pdfBlob = await gerarPdfVistoriaBlob(rel);
+    if(pdfBlob){
+      const path = `vistorias/rel_${rel.id}_${Date.now()}.pdf`;
+      const {error:upErr} = await db.storage.from('arquivos').upload(path, pdfBlob, {upsert:true, contentType:'application/pdf'});
+      if(!upErr){
+        const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
+        await db.from('relatorios_vistoria').update({pdf_url: urlData.publicUrl}).eq('id', rel.id);
+        rel.pdf_url = urlData.publicUrl;
+      }
     }
   }catch(e){ console.warn('Erro ao salvar PDF:', e); }
 
@@ -11675,6 +11676,139 @@ async function gerarRelatorio(){
   document.getElementById('vs-responsavel-nome').value='';
   document.getElementById('vs-responsavel-email').value='';
   setTimeout(()=>{showSubVistoria('vs-lista',document.getElementById('vs-nav-lista'));loadVistorias()},1500);
+}
+
+async function gerarPdfVistoriaBlob(r){
+  // Carregar jsPDF dinamicamente
+  if(!window.jspdf){
+    await new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+  const ocs = typeof r.ocorrencias==='string'?JSON.parse(r.ocorrencias||'[]'):(r.ocorrencias||[]);
+  const dataStr = r.data_vistoria ? new Date(r.data_vistoria+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+
+  const tipoLabel = (t)=>({
+    falta_volume:'Falta de volume', asteca_fabrica:'Asteca de fábrica',
+    asteca_loja:'Asteca de loja', avaria_transporte:'Avaria de transporte',
+    avaria_montagem:'Avaria de montagem'
+  }[t]||t);
+
+  let y = 20;
+  const lm = 15; const rm = 195; const pw = rm - lm;
+
+  // Cabeçalho
+  doc.setFillColor(26, 26, 46);
+  doc.rect(lm, y, pw, 12, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text('RELATÓRIO DE SUPERVISÃO DE MONTAGEM', lm+4, y+8);
+  y += 18;
+
+  // Dados
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+
+  const addField = (label, value, x, yw, w=85)=>{
+    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.setTextColor(100,100,120);
+    doc.text(label.toUpperCase(), x, yw);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.setTextColor(0,0,0);
+    doc.text(value||'—', x, yw+5);
+  };
+
+  doc.setDrawColor(26,26,46);
+  doc.rect(lm, y, pw, 20);
+  doc.line(lm+pw/2, y, lm+pw/2, y+20);
+  addField('Cliente', r.cliente_nome, lm+3, y+6);
+  addField('Contrato', r.numero_contrato||'—', lm+pw/2+3, y+6);
+  y += 20;
+  doc.rect(lm, y, pw, 20);
+  doc.line(lm+pw/2, y, lm+pw/2, y+20);
+  addField('Data da vistoria', dataStr, lm+3, y+6);
+  addField('Responsável', r.responsavel_nome||'—', lm+pw/2+3, y+6);
+  y += 26;
+
+  // Ocorrências
+  doc.setFillColor(26,26,46);
+  doc.rect(lm, y, pw, 8, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text('OCORRÊNCIAS REGISTRADAS', lm+4, y+5.5);
+  y += 12;
+
+  if(ocs.length === 0){
+    doc.setTextColor(100,100,100); doc.setFont('helvetica','italic'); doc.setFontSize(9);
+    doc.text('Nenhuma ocorrência registrada.', lm+3, y+4);
+    y += 10;
+  } else {
+    // Cabeçalho tabela
+    const cols = ['Tipo','Descrição','Nº Pedido','NF','Item','Qtd'];
+    const colW = [35, 65, 25, 20, 15, 15];
+    let cx = lm;
+    doc.setFillColor(240,230,211);
+    doc.rect(lm, y, pw, 7, 'F');
+    doc.setTextColor(0,0,0); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    cols.forEach((c,i)=>{ doc.text(c, cx+2, y+5); cx+=colW[i]; });
+    y += 7;
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    ocs.forEach(o=>{
+      if(y > 260){ doc.addPage(); y = 20; }
+      cx = lm;
+      doc.setDrawColor(200,200,200);
+      doc.rect(lm, y, pw, 7);
+      doc.setTextColor(0,0,0);
+      const vals = [
+        tipoLabel(o.tipo||''),
+        (o.descricao||o.desc||'—').substring(0,40),
+        o.nped||o.num_pedido||'—',
+        o.nf||o.nota_fiscal||'—',
+        String(o.item||o.num_item||'—'),
+        String(o.qtd||o.quantidade||1)
+      ];
+      vals.forEach((v,i)=>{ doc.text(v, cx+2, y+5); cx+=colW[i]; });
+      y += 7;
+    });
+    y += 4;
+  }
+
+  // Observações
+  if(r.observacao_cliente){
+    doc.setFillColor(26,26,46);
+    doc.rect(lm, y, pw, 8, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('OBSERVAÇÕES DO CLIENTE', lm+4, y+5.5);
+    y += 12;
+    doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    const lines = doc.splitTextToSize(r.observacao_cliente, pw-6);
+    doc.text(lines, lm+3, y);
+    y += lines.length * 5 + 6;
+  }
+
+  // Assinaturas
+  y = Math.max(y, 220);
+  if(y > 250){ doc.addPage(); y = 20; }
+  doc.setDrawColor(0,0,0);
+  doc.line(lm, y+15, lm+80, y+15);
+  doc.line(rm-80, y+15, rm, y+15);
+  doc.setFontSize(8); doc.setTextColor(80,80,80);
+  doc.text(r.responsavel_nome||'Responsável pela Vistoria', lm, y+20);
+  doc.text(r.cliente_nome, rm-80, y+20);
+
+  // Rodapé
+  doc.setFontSize(8); doc.setTextColor(150,150,150);
+  doc.text(`${dataStr} · Gerado pelo Planeja.ai`, lm, 290);
+
+  return doc.output('blob');
 }
 
 function gerarHtmlRelatorio(r){
@@ -11731,10 +11865,10 @@ async function regenerarPdfVistoria(id){
   const {data:r} = await db.from('relatorios_vistoria').select('*').eq('id',id).single();
   if(!r){ notify('Relatório não encontrado.','error'); return; }
   try{
-    const htmlRel = gerarHtmlRelatorio(r);
-    const blob = new Blob([htmlRel], {type:'text/html'});
-    const path = `vistorias/rel_${r.id}_${Date.now()}.html`;
-    const {error:upErr} = await db.storage.from('arquivos').upload(path, blob, {upsert:true, contentType:'text/html'});
+    const pdfBlob = await gerarPdfVistoriaBlob(r);
+    if(!pdfBlob) throw new Error('Não foi possível gerar o PDF');
+    const path = `vistorias/rel_${r.id}_${Date.now()}.pdf`;
+    const {error:upErr} = await db.storage.from('arquivos').upload(path, pdfBlob, {upsert:true, contentType:'application/pdf'});
     if(upErr) throw new Error(upErr.message);
     const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
     await db.from('relatorios_vistoria').update({pdf_url: urlData.publicUrl}).eq('id', id);
