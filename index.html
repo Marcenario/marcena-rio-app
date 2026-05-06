@@ -11653,6 +11653,21 @@ async function gerarRelatorio(){
   }).select().single();
   btn.disabled=false;btn.textContent='Gerar relatório de vistoria';
   if(error){setAlert('vs-novo-alert','Erro ao gerar relatório.','error');return}
+
+  // Gerar PDF automaticamente e salvar no Storage
+  try{
+    notify('Gerando PDF...','info');
+    const htmlRel = gerarHtmlRelatorio(rel);
+    const blob = new Blob([htmlRel], {type:'text/html'});
+    const path = `vistorias/rel_${rel.id}_${Date.now()}.html`;
+    const {error:upErr} = await db.storage.from('arquivos').upload(path, blob, {upsert:true, contentType:'text/html'});
+    if(!upErr){
+      const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
+      await db.from('relatorios_vistoria').update({pdf_url: urlData.publicUrl}).eq('id', rel.id);
+      rel.pdf_url = urlData.publicUrl;
+    }
+  }catch(e){ console.warn('Erro ao salvar PDF:', e); }
+
   setAlert('vs-novo-alert',`Relatório gerado com sucesso! <a href="#" onclick="abrirRelatorio('${rel.id}')" style="color:var(--green);font-weight:500;">Visualizar relatório</a>`,'success');
   notify('Relatório gerado!');
   vsOcorrencias=[];
@@ -11660,6 +11675,24 @@ async function gerarRelatorio(){
   document.getElementById('vs-responsavel-nome').value='';
   document.getElementById('vs-responsavel-email').value='';
   setTimeout(()=>{showSubVistoria('vs-lista',document.getElementById('vs-nav-lista'));loadVistorias()},1500);
+}
+
+function gerarHtmlRelatorio(r){
+  const ocs = typeof r.ocorrencias==='string'?JSON.parse(r.ocorrencias||'[]'):(r.ocorrencias||[]);
+  const dataFmt = r.data_vistoria ? new Date(r.data_vistoria+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório de Vistoria — ${r.cliente_nome}</title>
+  <style>body{font-family:Arial,sans-serif;margin:40px;color:#222;}h1{color:#1e3a2f;}table{width:100%;border-collapse:collapse;}td,th{border:1px solid #ccc;padding:8px;}th{background:#1e3a2f;color:#fff;}.oc{margin:10px 0;padding:10px;border:1px solid #ddd;border-radius:4px;}</style>
+  </head><body>
+  <h1>Relatório de Vistoria Final</h1>
+  <p><strong>Cliente:</strong> ${r.cliente_nome||'—'}</p>
+  <p><strong>E-mail:</strong> ${r.cliente_email||'—'}</p>
+  <p><strong>Contrato:</strong> ${r.numero_contrato||'—'}</p>
+  <p><strong>Data:</strong> ${dataFmt}</p>
+  <p><strong>Responsável:</strong> ${r.responsavel_nome||'—'}</p>
+  ${r.observacao_cliente?`<p><strong>Observações:</strong> ${r.observacao_cliente}</p>`:''}
+  ${ocs.length?`<h2>Ocorrências (${ocs.length})</h2>${ocs.map((o,i)=>`<div class="oc"><strong>${i+1}. ${o.tipo||'Ocorrência'}</strong><p>${o.descricao||o.desc||''}</p>${o.fotoUrl?`<img src="${o.fotoUrl}" style="max-width:300px;">`:''}</div>`).join('')}`:'<p>Nenhuma ocorrência registrada.</p>'}
+  <br><br><p>___________________________<br>${r.responsavel_nome}<br>Responsável pela vistoria</p>
+  </body></html>`;
 }
 
 async function loadVistorias(){
@@ -11685,11 +11718,31 @@ async function loadVistorias(){
         <button onclick="abrirModalAuditoria('${r.id}')" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔍 Histórico</button>
         ${r.projeto_executivo_url?`<a href="${r.projeto_executivo_url}" target="_blank" style="background:var(--bg);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;text-decoration:none;font-family:'DM Sans',sans-serif;">📋 Projeto</a>`:''}
         ${(r.status==='gerado'||r.status==='enviado')?`<button onclick="enviarRelatorioEmail('${r.id}')" style="background:#0061ff;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">✍️ ${r.status==='enviado'?'Reenviar para assinatura':'Enviar para assinatura'}</button>`:''}
+        ${!r.pdf_url&&r.status!=='assinado'?`<button onclick="regenerarPdfVistoria('${r.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔄 Gerar PDF</button>`:''}
         ${r.status==='enviado'&&r.docusign_envelope_id?`<button onclick="sincronizarAssinatura('${r.id}','${r.docusign_envelope_id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔄 Sincronizar</button>`:''}
         ${r.status==='assinado'&&r.pdf_url?`<a href="${r.pdf_url}" target="_blank" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;text-decoration:none;font-family:'DM Sans',sans-serif;">📥 Baixar assinado</a>`:''}
       </div>
     </div>`;
   }).join('');
+}
+
+async function regenerarPdfVistoria(id){
+  notify('Gerando PDF...','info');
+  const {data:r} = await db.from('relatorios_vistoria').select('*').eq('id',id).single();
+  if(!r){ notify('Relatório não encontrado.','error'); return; }
+  try{
+    const htmlRel = gerarHtmlRelatorio(r);
+    const blob = new Blob([htmlRel], {type:'text/html'});
+    const path = `vistorias/rel_${r.id}_${Date.now()}.html`;
+    const {error:upErr} = await db.storage.from('arquivos').upload(path, blob, {upsert:true, contentType:'text/html'});
+    if(upErr) throw new Error(upErr.message);
+    const {data:urlData} = db.storage.from('arquivos').getPublicUrl(path);
+    await db.from('relatorios_vistoria').update({pdf_url: urlData.publicUrl}).eq('id', id);
+    notify('✅ PDF gerado! Agora pode enviar para assinatura.','success');
+    loadVistorias();
+  }catch(e){
+    notify('Erro ao gerar PDF: '+e.message,'error');
+  }
 }
 
 async function abrirRelatorio(id){
