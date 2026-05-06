@@ -10362,7 +10362,7 @@ async function carregarBlocoRelatorioVistoria(projetoId, contrato){
   }
 
   const {data:rels} = await db.from('relatorios_vistoria')
-    .select('id,status,doc_id,pdf_url,signed_pdf_url,data_vistoria,cliente_nome,responsavel_nome')
+    .select('id,status,docusign_envelope_id,pdf_url,signed_pdf_url,data_vistoria,cliente_nome,responsavel_nome')
     .eq('numero_contrato', contrato)
     .order('created_at',{ascending:false}).limit(1);
 
@@ -10393,7 +10393,7 @@ async function carregarBlocoRelatorioVistoria(projetoId, contrato){
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       ${pdfUrl ? `<a href="${pdfUrl}" target="_blank" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text);text-decoration:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;">📎 ${r.status==='assinado'?'Ver PDF assinado':'Ver PDF'}</a>` : ''}
       ${r.status!=='assinado' ? `<button onclick="enviarRelatorioEmail('${r.id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">✉ Enviar para assinatura</button>` : ''}
-      ${r.status==='enviado'&&r.doc_id ? `<button onclick="sincronizarAssinaturaTimeline('${r.id}','${r.doc_id}','${projetoId}','${contrato}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">🔄 Sincronizar</button>` : ''}
+      ${r.status==='enviado'&&r.docusign_envelope_id ? `<button onclick="sincronizarAssinaturaTimeline('${r.id}','${r.docusign_envelope_id}','${projetoId}','${contrato}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">🔄 Sincronizar</button>` : ''}
     </div>
     ${r.status==='assinado'&&r.signed_pdf_url?`
     <div style="margin-top:10px;padding:10px;background:var(--green-bg);border-radius:6px;border:1px solid #a8d5b5;">
