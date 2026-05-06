@@ -3745,10 +3745,9 @@ async function iniciarMontagem(pedidoId){
   // Atualizar local
   const local = window._todosPedidosMt?.find(x=>x.id===pedidoId);
   if(local){ local.iniciado_em=agora; local.iniciado_por=usuario; }
-  // Reabrir modal com dados atualizados
+  // Reabrir modal com dados atualizados e recarregar fila
   abrirDetalhesMt(pedidoId);
-  // Recarregar kanban para mover card ao topo
-  loadMontagemKanban();
+  loadFilaMt();
 }
 
 async function adicionarObsMt(pedidoId){
@@ -4348,6 +4347,7 @@ function setTipoMt(tipo){
   const secLabel=document.getElementById('mt-secao-label');
   const btnEnviar=document.getElementById('btn-mt-novo');
   const hintEl=document.getElementById('mt-at-busca-hint');
+  if(!btnM||!btnA||!wrap||!secLabel||!btnEnviar) return;
 
   // Sempre resetar vínculo ao trocar de tipo
   _mtAtendimentoId=null;
@@ -9895,6 +9895,7 @@ async function salvarEnderecoAt(id){
 async function carregarHistoricoAnexos(tipo, referenciaId, elId){
   const el = document.getElementById(elId);
   if(!el) return;
+  if(!referenciaId){ el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0;">Nenhum anexo registrado ainda.</div>'; return; }
 
   const {data, error} = await db.from('anexos')
     .select('*')
