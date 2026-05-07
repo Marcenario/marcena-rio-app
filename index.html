@@ -7108,6 +7108,14 @@ async function loadConferencia(){
       }
     });
   }
+  // Fallback: usar etapa do funil para atendimentos de conferência sem projeto vinculado
+  const semEtapaConf = atsConf.filter(a=>!a._etapa_projeto&&a.etapa_funil_id);
+  if(semEtapaConf.length){
+    const etapaIdsConf=[...new Set(semEtapaConf.map(a=>a.etapa_funil_id))];
+    const {data:etapasConf}=await db.from('funis_etapas').select('id,nome').in('id',etapaIdsConf);
+    const etapaMapConf={}; (etapasConf||[]).forEach(e=>{ etapaMapConf[e.id]=e.nome; });
+    semEtapaConf.forEach(a=>{ if(etapaMapConf[a.etapa_funil_id]) a._etapa_projeto=etapaMapConf[a.etapa_funil_id]; });
+  }
 
   window._todosConferencia = atsConf;
   renderConferencia(window._todosConferencia, cont);
@@ -7712,6 +7720,14 @@ async function loadFunil(){
         a._etapa_projeto = ETAPAS[etIdx]?.nome || `Etapa ${projMap[a.projeto_id].etapa_atual}`;
       }
     });
+  }
+  // Fallback: usar etapa do funil de vendas para atendimentos sem projeto vinculado
+  const semEtapa = ats.filter(a=>!a._etapa_projeto&&a.etapa_funil_id);
+  if(semEtapa.length){
+    const etapaIds=[...new Set(semEtapa.map(a=>a.etapa_funil_id))];
+    const {data:etapas}=await db.from('funis_etapas').select('id,nome').in('id',etapaIds);
+    const etapaMap={}; (etapas||[]).forEach(e=>{ etapaMap[e.id]=e.nome; });
+    semEtapa.forEach(a=>{ if(etapaMap[a.etapa_funil_id]) a._etapa_projeto=etapaMap[a.etapa_funil_id]; });
   }
 
   window._todosAtendimentos = ats;
