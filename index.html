@@ -368,12 +368,12 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <div class="card">
         <div class="card-header"><div><div class="card-title">Nova solicitação de orçamento</div><div class="card-sub">Preencha as informações para iniciarmos seu projeto</div></div></div>
         <div class="form-grid">
-          <div class="form-row"><label>Nome completo</label><input type="text" id="orc-nome" placeholder="Seu nome completo"></div>
-          <div class="form-row"><label>Telefone / WhatsApp</label><input type="text" id="orc-tel" placeholder="(21) 99999-0000"></div>
+          <div class="form-row"><label>Nome completo <span style="color:var(--accent)">*</span></label><input type="text" id="orc-nome" placeholder="Seu nome completo"></div>
+          <div class="form-row"><label>Telefone / WhatsApp <span style="color:var(--accent)">*</span></label><input type="text" id="orc-tel" placeholder="(21) 99999-0000"></div>
         </div>
         <div class="form-grid">
-          <div class="form-row"><label>Para qual ambiente deseja um orçamento?</label><input type="text" id="orc-ambiente" placeholder="Ex: Cozinha, dormitório, sala..."></div>
-          <div class="form-row"><label>Faixa de investimento</label>
+          <div class="form-row"><label>Para qual ambiente deseja um orçamento? <span style="color:var(--accent)">*</span></label><input type="text" id="orc-ambiente" placeholder="Ex: Cozinha, dormitório, sala..."></div>
+          <div class="form-row"><label>Faixa de investimento <span style="color:var(--accent)">*</span></label>
             <select id="orc-prazo">
               <option value="">Selecione...</option>
               <option>0 a 15.000</option><option>15.000 a 30.000</option>
@@ -382,7 +382,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             </select>
           </div>
         </div>
-        <div class="form-row"><label>Descrição do projeto</label><textarea id="orc-desc" placeholder="Descreva o que você precisa: estilo, cores, referências, medidas aproximadas..."></textarea></div>
+        <div class="form-row"><label>Descrição do projeto <span style="color:var(--accent)">*</span></label><textarea id="orc-desc" placeholder="Descreva o que você precisa: estilo, cores, referências, medidas aproximadas..."></textarea></div>
         <div class="form-row">
           <label>Planta ou referências (opcional)</label>
           <div id="upload-area" style="border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;background:var(--bg);" onclick="document.getElementById('orc-arquivo').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="handleDrop(event)">
@@ -665,21 +665,21 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           </div>
 
           <div class="form-grid">
-            <div class="form-row"><label>Nome do cliente</label><input type="text" id="at-nome" placeholder="Nome completo"></div>
-            <div class="form-row"><label>Telefone / WhatsApp</label><input type="text" id="at-tel" placeholder="(21) 99999-0000"></div>
+            <div class="form-row"><label>Nome do cliente <span style="color:var(--accent)">*</span></label><input type="text" id="at-nome" placeholder="Nome completo"></div>
+            <div class="form-row"><label>Telefone / WhatsApp <span style="color:var(--accent)">*</span></label><input type="text" id="at-tel" placeholder="(21) 99999-0000"></div>
           </div>
           <div class="form-grid">
-            <div class="form-row"><label>E-mail</label><input type="email" id="at-email" placeholder="cliente@email.com"></div>
-            <div class="form-row"><label>Ambiente desejado</label><input type="text" id="at-ambiente" placeholder="Ex: Cozinha, quarto..."></div>
+            <div class="form-row"><label>E-mail <span style="color:var(--accent)">*</span></label><input type="email" id="at-email" placeholder="cliente@email.com"></div>
+            <div class="form-row"><label>Ambiente desejado <span style="color:var(--accent)">*</span></label><input type="text" id="at-ambiente" placeholder="Ex: Cozinha, quarto..."></div>
           </div>
           <div class="form-row">
-            <label>Estimativa de orçamento (R$)</label>
+            <label>Estimativa de orçamento (R$) <span style="color:var(--accent)">*</span></label>
             <input type="text" id="at-estimativa" placeholder="Ex: 25000" style="max-width:260px;">
             <div style="font-size:11px;color:var(--text3);margin-top:4px;">Usado para distribuir o atendimento ao vendedor mais disponível.</div>
           </div>
 
           <div class="divider"></div>
-          <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores</div>
+          <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">Ambientes e valores <span style="color:var(--accent)">*</span> <span style="font-size:11px;font-weight:400;color:var(--text3);">(obrigatório adicionar ao menos 1)</span></div>
           <div id="at-amb-list"></div>
           <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
@@ -1395,6 +1395,18 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         </div>
         <div id="sol-equipe-content"><div class="loader">Carregando...</div></div>
       </div>
+      <!-- Correção: criar projetos faltantes para atendimentos sem projeto_id -->
+      <div class="card" id="admin-corrigir-projetos-card" style="display:none;">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div class="card-title">🔧 Atendimentos sem projeto vinculado</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px;">Atendimentos que não tiveram projeto criado automaticamente.</div>
+          </div>
+          <button onclick="criarProjetosFaltantes()" id="btn-corrigir-projetos" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;white-space:nowrap;">✨ Criar projetos</button>
+        </div>
+        <div id="admin-corrigir-projetos-list" style="margin-top:8px;"></div>
+      </div>
+
       <div class="card">
         <div class="card-header"><div class="card-title">Todos os projetos</div></div>
         <div id="admin-projetos"><div class="loader">Carregando...</div></div>
@@ -2048,7 +2060,15 @@ async function enviarOrcamento(){
   const ambiente=document.getElementById('orc-ambiente').value;
   const investimento=document.getElementById('orc-prazo').value;
   const desc=document.getElementById('orc-desc').value.trim();
-  if(!nome||!ambiente){setAlert('orc-alert','Preencha nome e ambiente.','error');return}
+  const camposOrc = [
+    [!nome, 'Nome completo é obrigatório.'],
+    [!tel, 'Telefone / WhatsApp é obrigatório.'],
+    [!ambiente, 'Informe o ambiente desejado.'],
+    [!investimento, 'Selecione a faixa de investimento.'],
+    [!desc, 'Descreva o seu projeto.'],
+  ];
+  const erroOrc = camposOrc.find(([cond]) => cond);
+  if(erroOrc){setAlert('orc-alert', erroOrc[1], 'error'); return}
   const btn=document.getElementById('btn-orc');btn.disabled=true;btn.textContent='Enviando...';
   setAlert('orc-alert','','');
   const {data:proj,error}=await db.from('projetos').insert({titulo:ambiente+(desc?' — '+desc.substring(0,40):''),ambiente,descricao:desc,prazo_desejado:investimento,etapa_atual:1,cliente_email:currentUser.email,cliente_nome:nome,cliente_tel:tel,user_id:currentUser.id}).select().single();
@@ -3148,6 +3168,27 @@ async function loadAdmin(){
   }
   loadSolicitacoesEquipe();
 
+  // Verificar atendimentos sem projeto vinculado
+  const {data:atsSemProj}=await db.from('atendimentos').select('id,numero,cliente_nome,created_at,empresa,ambiente_desejado,cliente_email,cliente_tel,vendedor_id,vendedor_nome').is('projeto_id',null).eq('status','em_andamento');
+  const corrigirCard=document.getElementById('admin-corrigir-projetos-card');
+  if(atsSemProj&&atsSemProj.length>0){
+    corrigirCard.style.display='block';
+    const listEl=document.getElementById('admin-corrigir-projetos-list');
+    listEl.innerHTML=atsSemProj.map(a=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <div>
+          <strong>${a.cliente_nome}</strong>
+          ${a.numero?`<span style="font-size:11px;color:var(--text3);margin-left:6px;">#${a.numero}</span>`:''}
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">${a.ambiente_desejado||'—'} · ${new Date(a.created_at).toLocaleDateString('pt-BR')}</div>
+        </div>
+        <span style="font-size:10px;background:#fce8e8;color:#8a1a1a;padding:2px 7px;border-radius:4px;font-weight:600;">⚠️ Sem projeto</span>
+      </div>`).join('');
+    window._atsSemProj = atsSemProj;
+  } else {
+    corrigirCard.style.display='none';
+    window._atsSemProj = [];
+  }
+
   const cont=document.getElementById('admin-projetos');
   if(!data.length){cont.innerHTML='<div class="empty-state"><p>Nenhum projeto.</p></div>';return}
   cont.innerHTML=data.map(p=>{
@@ -3161,6 +3202,45 @@ async function loadAdmin(){
       <span class="badge ${badgeClass}">${badgeText}</span>
     </div>`;
   }).join('');
+}
+
+async function criarProjetosFaltantes(){
+  const ats = window._atsSemProj || [];
+  if(!ats.length){ notify('Nenhum atendimento sem projeto.'); return; }
+  const btn=document.getElementById('btn-corrigir-projetos');
+  btn.disabled=true; btn.textContent='Criando...';
+  let criados=0, erros=0;
+  for(const a of ats){
+    const titulo=(a.ambiente_desejado||'Orçamento')+' (atendimento #'+(a.numero||a.id.slice(0,8))+')';
+    let userId=null;
+    if(a.cliente_email){
+      const {data:perfil}=await db.from('perfis').select('id').eq('email',a.cliente_email).maybeSingle();
+      userId=perfil?.id||null;
+    }
+    const {data:proj,error:projErr}=await db.from('projetos').insert({
+      titulo,
+      ambiente: a.ambiente_desejado||'',
+      descricao: '',
+      etapa_atual: 1,
+      cliente_email: a.cliente_email||'',
+      cliente_nome: a.cliente_nome,
+      cliente_tel: a.cliente_tel||'',
+      user_id: userId,
+      empresa: a.empresa||'marcenario',
+      vendedor_id: a.vendedor_id||null,
+      vendedor_nome: a.vendedor_nome||null
+    }).select().single();
+    if(!projErr && proj?.id){
+      await db.from('atendimentos').update({projeto_id:proj.id}).eq('id',a.id);
+      criados++;
+    } else {
+      console.warn('Erro ao criar projeto para atendimento',a.id,projErr);
+      erros++;
+    }
+  }
+  btn.disabled=false; btn.textContent='✨ Criar projetos';
+  notify(`${criados} projeto(s) criado(s)${erros?' · '+erros+' erro(s)':''}!`, erros?'error':'success');
+  loadAdmin();
 }
 
 function saveRDKey(){
@@ -7943,8 +8023,16 @@ async function salvarAtendimento(){
   const email=document.getElementById('at-email').value.trim();
   const ambiente=document.getElementById('at-ambiente').value.trim();
   const estimativa=parseMoney(document.getElementById('at-estimativa').value);
-  if(!nome){setAlert('at-novo-alert','Preencha o nome do cliente.','error');return}
-  if(!estimativa){setAlert('at-novo-alert','Informe a estimativa de orçamento para distribuir corretamente.','error');return}
+  const camposAt = [
+    [!nome, 'Preencha o nome do cliente.'],
+    [!tel, 'Preencha o telefone / WhatsApp.'],
+    [!email, 'Preencha o e-mail do cliente.'],
+    [!ambiente, 'Preencha o ambiente desejado.'],
+    [!estimativa, 'Informe a estimativa de orçamento.'],
+    [!atAmbs.length, 'Adicione pelo menos um ambiente na lista (botão + Add).'],
+  ];
+  const erroAt = camposAt.find(([cond]) => cond);
+  if(erroAt){setAlert('at-novo-alert', erroAt[1], 'error'); return}
   const btn=document.getElementById('btn-at-novo');btn.disabled=true;btn.textContent='Salvando...';
   const vendedor=await distribuirVendedor();
   if(!vendedor){setAlert('at-novo-alert','Cadastre pelo menos um vendedor antes.','error');btn.disabled=false;btn.textContent='Registrar e distribuir para vendedor';return}
@@ -7974,15 +8062,16 @@ async function salvarAtendimento(){
   // ── Criar login do cliente e projeto vinculado ──
   let projetoId = null;
   let loginInfo = '';
+  let clienteUserId = null;
+  let senhaCliente = null;
+
   if(email){
-    let clienteUserId = null;
-    // Senha = número do atendimento (ex: ld-00604) — mínimo 6 caracteres garantido
-    // Senha temporária segura: 3 palavras + número (fácil de digitar, difícil de adivinhar)
+    // Senha temporária segura: 3 palavras + número
     const _adj = ['azul','verde','forte','novo','belo','alto','bom','real','vivo','rico'];
     const _sub = ['casa','mesa','porta','janela','chave','pedra','campo','rio','lago','mar'];
     const _verb = ['move','sobe','abre','liga','cria','soma','usa','faz','tem','vai'];
     const _r = ()=>Math.floor(Math.random()*10);
-    const senhaCliente = _adj[_r()]+_sub[_r()]+_verb[_r()]+Math.floor(Math.random()*900+100);
+    senhaCliente = _adj[_r()]+_sub[_r()]+_verb[_r()]+Math.floor(Math.random()*900+100);
     const {data:signUpData, error:signUpErr} = await db.auth.signUp({
       email,
       password: senhaCliente,
@@ -7990,12 +8079,9 @@ async function salvarAtendimento(){
     });
     if(!signUpErr && signUpData?.user?.id){
       clienteUserId = signUpData.user.id;
-      // Inserir perfil
       await db.from('perfis').upsert({id:clienteUserId, email, nome, nivel:'cliente'});
       loginInfo = ` · Login criado (e-mail: ${email} / senha: ${senhaCliente})`;
-      // Email será enviado após criar o projeto (abaixo)
     } else {
-      // Usuário já existe — buscar o ID pelo email em perfis
       const motivo = signUpErr?.message||'erro desconhecido';
       if(motivo.includes('already registered') || motivo.includes('already been registered')){
         const {data:perfilExist}=await db.from('perfis').select('id,email').eq('email',email).maybeSingle();
@@ -8008,53 +8094,53 @@ async function salvarAtendimento(){
       } else {
         console.warn('Não foi possível criar login para', email, motivo);
         loginInfo = ` · ⚠️ Login não criado (${motivo}) — crie manualmente`;
+        senhaCliente = null;
       }
     }
+  }
 
-    // Criar projeto vinculado ao cliente
-    const tituloProj = (ambiente||'Orçamento')+' (atendimento #'+numeroAt+')';
-    const {data:proj, error:projErr} = await db.from('projetos').insert({
-      titulo: tituloProj,
-      ambiente: ambiente||'',
-      descricao: '',
-      etapa_atual: 1,
-      cliente_email: email,
-      cliente_nome: nome,
-      cliente_tel: tel,
-      user_id: clienteUserId,
-      empresa: atEmpresa,
-      vendedor_id: vendedor?.id||null,
-      vendedor_nome: vendedor?.nome||null
-    }).select().single();
+  // ── Criar projeto vinculado — SEMPRE (mesmo sem email) ──
+  const tituloProj = (ambiente||'Orçamento')+' (atendimento #'+numeroAt+')';
+  const {data:proj, error:projErr} = await db.from('projetos').insert({
+    titulo: tituloProj,
+    ambiente: ambiente||'',
+    descricao: '',
+    etapa_atual: 1,
+    cliente_email: email||'',
+    cliente_nome: nome,
+    cliente_tel: tel,
+    user_id: clienteUserId||null,
+    empresa: atEmpresa,
+    vendedor_id: vendedor?.id||null,
+    vendedor_nome: vendedor?.nome||null
+  }).select().single();
 
-    if(!projErr && proj?.id){
-      projetoId = proj.id;
-      // Vincular projeto ao atendimento
-      await db.from('atendimentos').update({projeto_id: projetoId}).eq('numero', numeroAt).eq('mes_ref', new Date().toISOString().slice(0,7));
-    }
-    // Enviar email de boas-vindas com link para o projeto (novo ou existente)
-    if(email){
-      try{
-        const emailResp = await fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-          body:JSON.stringify({
-            nome, email,
-            senha: senhaCliente||null,
-            numero_atendimento: numeroAt,
-            empresa: atEmpresa,
-            projeto_id: projetoId||null,
-            usuario_novo: !!senhaCliente
-          })
-        });
-        const emailJson = await emailResp.json().catch(()=>({}));
-        if(!emailResp.ok){
-          notify(`⚠️ Email de boas-vindas não enviado (${emailResp.status}). Verifique a edge function.`,'error');
-        } else {
-        }
-      }catch(e){
+  if(!projErr && proj?.id){
+    projetoId = proj.id;
+    await db.from('atendimentos').update({projeto_id: projetoId}).eq('numero', numeroAt).eq('mes_ref', new Date().toISOString().slice(0,7));
+  } else {
+    console.warn('Erro ao criar projeto vinculado:', projErr);
+  }
+
+  // Enviar email de boas-vindas (só se tiver email)
+  if(email){
+    try{
+      const emailResp = await fetch(`${SUPABASE_URL}/functions/v1/email-boas-vindas`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+        body:JSON.stringify({
+          nome, email,
+          senha: senhaCliente||null,
+          numero_atendimento: numeroAt,
+          empresa: atEmpresa,
+          projeto_id: projetoId||null,
+          usuario_novo: !!senhaCliente
+        })
+      });
+      if(!emailResp.ok){
+        notify(`⚠️ Email de boas-vindas não enviado (${emailResp.status}). Verifique a edge function.`,'error');
       }
-    }
+    }catch(e){}
   }
   setAlert('at-novo-alert',`Atendimento distribuído para ${vendedor.nome}!${loginInfo}`,'success');
   notify(`Distribuído para ${vendedor.nome}!`);
@@ -8213,7 +8299,7 @@ function renderFunilCard(a, cor){
     ${ambResumo?`<div class="funil-card-sub">🏠 ${ambResumo}</div>`:''}
     <div class="funil-card-sub">👤 ${a.vendedor_nome||'Sem vendedor'}</div>
     <div class="funil-card-sub">${tipoCodHtml}${tipoIcon} ${tipoLabel}</div>
-    ${a._etapa_projeto?`<div style="font-size:10px;color:var(--text2);background:var(--bg);padding:2px 7px;border-radius:4px;margin-top:3px;">📍 ${a._etapa_projeto}</div>`:''}
+    ${a._etapa_projeto?`<div style="font-size:10px;color:var(--text2);background:var(--bg);padding:2px 7px;border-radius:4px;margin-top:3px;">📍 ${a._etapa_projeto}</div>`:(!a.projeto_id?`<div style="font-size:10px;font-weight:600;color:#8a1a1a;background:#fce8e8;padding:2px 7px;border-radius:4px;margin-top:3px;">⚠️ Sem projeto vinculado</div>`:)}
     ${totalVal?`<div class="funil-card-val">${fmt(totalVal)}</div>`:''}
     ${conferenteHtml}
     ${timerHtml}
