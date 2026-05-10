@@ -357,6 +357,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <button class="nav-item" id="nav-rh" style="display:none" onclick="showSection('rh',this)">RH</button>
     <button class="nav-item" id="nav-financeiro" style="display:none" onclick="showSection('financeiro',this)">Financeiro</button>
     <button class="nav-item" id="nav-agenda" style="display:none" onclick="showSection('agenda',this)">Agenda</button>
+    <button class="nav-item" id="nav-inbox" style="display:none" onclick="showSection('inbox',this)">📥 Caixa de entrada <span id="inbox-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;"></span></button>
     <button class="nav-item" id="nav-dashboard" style="display:none" onclick="showSection('dashboard',this)">Dashboard</button>
     <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin',this)">Painel admin</button>
     <button class="nav-item" id="nav-usuarios" style="display:none" onclick="showSection('usuarios',this)">Usuários</button>
@@ -1734,6 +1735,68 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
   </div>
 </div>
 
+<!-- SECTION CAIXA DE ENTRADA -->
+<div id="inbox" class="section">
+  <div style="padding:16px 20px 8px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--text);">📥 Caixa de entrada</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Mensagens recebidas via WhatsApp e Email aguardando vinculação</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="inbox-filtro-canal" onchange="loadInbox()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);outline:none;">
+          <option value="">Todos os canais</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="email">Email</option>
+        </select>
+        <select id="inbox-filtro-status" onchange="loadInbox()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);outline:none;">
+          <option value="pendente">Pendentes</option>
+          <option value="todos">Todos</option>
+          <option value="vinculado">Vinculados</option>
+        </select>
+        <button onclick="loadInbox()" style="padding:6px 12px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;">↻ Atualizar</button>
+      </div>
+    </div>
+    <div id="inbox-content"><div class="loader">Carregando...</div></div>
+  </div>
+</div>
+
+<!-- MODAL VINCULAR MENSAGEM -->
+<div id="modal-vincular" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalVincular()">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">🔗 Vincular mensagem ao atendimento</div>
+      <button class="modal-close" onclick="fecharModalVincular()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="vincular-msg-preview" style="background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;max-height:120px;overflow-y:auto;"></div>
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;">Buscar atendimento</div>
+      <input type="text" id="vincular-busca" placeholder="Nome do cliente, telefone ou número do atendimento..." oninput="buscarAtendimentosVincular(this.value)" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--bg2);color:var(--text);outline:none;box-sizing:border-box;">
+      <div id="vincular-resultados" style="margin-top:8px;max-height:280px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-step-back" onclick="fecharModalVincular()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL OUVIR ÁUDIO -->
+<div id="modal-audio-inbox" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🎤 Áudio da mensagem</div>
+      <button class="modal-close" onclick="document.getElementById('modal-audio-inbox').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;">
+      <audio id="inbox-audio-player" controls style="width:100%;margin-bottom:12px;"></audio>
+      <div id="inbox-audio-transcricao" style="font-size:13px;color:var(--text2);line-height:1.5;text-align:left;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:12px;white-space:pre-wrap;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-step-back" onclick="document.getElementById('modal-audio-inbox').style.display='none'">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL AUDITORIA -->
 <div id="modal-auditoria" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalAuditoria()">
   <div class="modal-box">
@@ -1926,6 +1989,7 @@ async function onLogin(user){
   document.getElementById('nav-dashboard').style.display=isAdmin()?'block':'none'; // só admin
   document.getElementById('nav-rh').style.display=isStaff?'block':'none';
   document.getElementById('nav-agenda').style.display=isStaff?'block':'none';
+  document.getElementById('nav-inbox').style.display=isStaff?'block':'none';
   document.getElementById('nav-financeiro').style.display=admOuGer?'block':'none';
   document.getElementById('nav-admin').style.display=isAdmin()?'block':'none'; // só admin
   document.getElementById('nav-usuarios').style.display=admOuGer?'block':'none';
@@ -2004,6 +2068,7 @@ function showSection(id,btn){
   }
   if(id==='ocorrencias'){loadOcorrencias();carregarPedidosSelect()}
   if(id==='vistoria'){loadVistorias();carregarPedidosSelectVistoria()}
+  if(id==='inbox'){loadInbox()}
 }
 
 function showSubMontagem(id,btn){
@@ -8790,6 +8855,14 @@ async function abrirModalAt(id){
     </div>`}
     <div id="modal-at-alert" style="margin-top:8px;"></div>
 
+    <!-- MENSAGENS WHATSAPP / EMAIL -->
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;">💬 Mensagens recebidas</div>
+      <button onclick="carregarMensagensAt('${id}')" style="padding:3px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;font-size:11px;color:var(--text2);cursor:pointer;">↻ Atualizar</button>
+    </div>
+    <div id="at-msgs-${id}" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px;"></div>
+
     <!-- ANOTAÇÕES / FEED DE ATIVIDADES -->
     <div class="divider"></div>
     <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📝 Anotações</div>
@@ -8940,6 +9013,7 @@ async function abrirModalAt(id){
     carregarFeedAnotacoes(id);
     carregarTarefasAt(id);
     carregarHistoricoAnexos('atendimento', id, 'at-historico-anexos-'+id);
+    carregarMensagensAt(id);
     // Carregar funcionários no select de responsável (só admin)
     if(isAdmin()){
       const sel = document.getElementById(`at-tarefa-resp-${id}`);
@@ -12344,6 +12418,319 @@ function fecharModalAuditoria(){
 async function enviarParaAssinatura(id){
   notify('Use o botão "Enviar e-mail" para enviar o relatório ao cliente.','info');
 }
+
+// ============================================================
+// MÓDULO: CAIXA DE ENTRADA (mensagens não vinculadas)
+// ============================================================
+
+let inboxMsgIdAtual = null;
+
+async function loadInbox(){
+  const el = document.getElementById('inbox-content');
+  if(!el) return;
+  el.innerHTML = '<div class="loader">Carregando...</div>';
+
+  const canal = document.getElementById('inbox-filtro-canal')?.value || '';
+  const status = document.getElementById('inbox-filtro-status')?.value || 'pendente';
+
+  let query = db.from('integracoes_mensagens')
+    .select('*')
+    .order('created_at', {ascending: false})
+    .limit(100);
+
+  if(canal) query = query.eq('canal', canal);
+  if(status === 'pendente') query = query.is('atendimento_id', null);
+  else if(status === 'vinculado') query = query.not('atendimento_id', 'is', null);
+
+  const {data, error} = await query;
+
+  // Atualizar badge no nav
+  const {data: pendentes} = await db.from('integracoes_mensagens').select('id').is('atendimento_id', null);
+  const badge = document.getElementById('inbox-badge');
+  if(badge){
+    const qtd = pendentes?.length || 0;
+    if(qtd > 0){ badge.textContent = qtd; badge.style.display='inline'; }
+    else { badge.style.display='none'; }
+  }
+
+  if(error){ el.innerHTML = `<div class="card" style="color:var(--danger);">Erro ao carregar: ${error.message}</div>`; return; }
+  if(!data || !data.length){
+    el.innerHTML = '<div class="card" style="text-align:center;padding:32px;color:var(--text3);">Nenhuma mensagem encontrada.</div>';
+    return;
+  }
+
+  el.innerHTML = data.map(m => renderInboxCard(m)).join('');
+}
+
+function renderInboxCard(m){
+  const dt = new Date(m.created_at);
+  const dataFmt = dt.toLocaleDateString('pt-BR');
+  const horaFmt = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const canalCor = m.canal==='whatsapp'?'#25d366':'#1a4a8a';
+  const canalIcon = m.canal==='whatsapp'?'💬':'📧';
+  const canalLabel = m.canal==='whatsapp'?'WhatsApp':'Email';
+  const vinculado = !!m.atendimento_id;
+  const ehAudio = m.mensagem_tipo === 'audio';
+  const textoPreview = m.mensagem ? m.mensagem.substring(0,120)+(m.mensagem.length>120?'…':'') : '(sem texto)';
+  const textoEsc = (m.mensagem||textoPreview).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+  const transEsc = (m.transcricao_audio||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+  const audioUrl = (m.audio_url||'').replace(/'/g,"\\'");
+
+  return `<div class="card" style="margin-bottom:10px;border-left:3px solid ${canalCor};opacity:${vinculado?'0.65':'1'};">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0;">
+        <div style="width:38px;height:38px;border-radius:50%;background:${canalCor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${canalIcon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-size:13px;font-weight:700;color:var(--text);">${m.contato_nome || m.contato_telefone || m.contato_email || 'Desconhecido'}</span>
+            ${m.contato_telefone ? `<span style="font-size:11px;color:var(--text3);">${m.contato_telefone}</span>` : ''}
+            <span style="font-size:10px;background:${canalCor};color:#fff;padding:1px 7px;border-radius:8px;">${canalLabel}</span>
+            ${ehAudio ? '<span style="font-size:10px;background:#805ad5;color:#fff;padding:1px 7px;border-radius:8px;">🎤 Áudio</span>' : ''}
+            ${vinculado ? '<span style="font-size:10px;background:#38a169;color:#fff;padding:1px 7px;border-radius:8px;">✓ Vinculado</span>' : '<span style="font-size:10px;background:#e53e3e;color:#fff;padding:1px 7px;border-radius:8px;">● Pendente</span>'}
+          </div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:4px;">${textoPreview}</div>
+          <div style="font-size:11px;color:var(--text3);">${dataFmt} às ${horaFmt}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+        ${ehAudio ? `<button onclick="abrirAudioInbox('${m.id}','${textoEsc}','${transEsc}','${audioUrl}')" style="padding:6px 10px;background:#805ad5;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500;">🎤 Ouvir</button>` : ''}
+        ${!vinculado ? `<button onclick="abrirModalVincular('${m.id}','${textoEsc}')" style="padding:6px 12px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500;">🔗 Vincular</button>` : `<button onclick="desvincularMensagem('${m.id}')" style="padding:6px 10px;background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;font-size:11px;cursor:pointer;">Desvincular</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function abrirAudioInbox(id, mensagem, transcricao, audioUrl){
+  const modal = document.getElementById('modal-audio-inbox');
+  const player = document.getElementById('inbox-audio-player');
+  const trans = document.getElementById('inbox-audio-transcricao');
+  if(audioUrl && audioUrl !== 'undefined' && audioUrl !== ''){
+    player.src = audioUrl;
+    player.style.display = 'block';
+  } else {
+    player.style.display = 'none';
+  }
+  trans.textContent = transcricao.replace(/\\n/g,'\n') || mensagem.replace(/\\n/g,'\n') || 'Sem transcrição disponível.';
+  modal.style.display = 'flex';
+}
+
+function abrirModalVincular(msgId, textoMsg){
+  inboxMsgIdAtual = msgId;
+  const modal = document.getElementById('modal-vincular');
+  const preview = document.getElementById('vincular-msg-preview');
+  const busca = document.getElementById('vincular-busca');
+  const resultados = document.getElementById('vincular-resultados');
+  preview.textContent = textoMsg.replace(/\\n/g,'\n');
+  busca.value = '';
+  resultados.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Digite para buscar...</div>';
+  modal.style.display = 'flex';
+  setTimeout(()=>busca.focus(), 100);
+}
+
+function fecharModalVincular(){
+  document.getElementById('modal-vincular').style.display = 'none';
+  inboxMsgIdAtual = null;
+}
+
+async function buscarAtendimentosVincular(q){
+  const el = document.getElementById('vincular-resultados');
+  if(!q || q.length < 2){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Digite pelo menos 2 caracteres...</div>';
+    return;
+  }
+  el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Buscando...</div>';
+  const {data} = await db.from('atendimentos')
+    .select('id, numero, cliente_nome, cliente_tel, cliente_email, status')
+    .or(`cliente_nome.ilike.%${q}%,cliente_tel.ilike.%${q}%,numero.ilike.%${q}%`)
+    .eq('status','em_andamento')
+    .limit(10);
+
+  if(!data || !data.length){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Nenhum atendimento encontrado.</div>';
+    return;
+  }
+  el.innerHTML = data.map(at => {
+    const nomeEsc = (at.cliente_nome||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div onclick="vincularMensagem('${at.id}','${nomeEsc}','${at.numero||''}')"
+      style="padding:10px 12px;border:1px solid var(--border2);border-radius:8px;margin-bottom:6px;cursor:pointer;background:var(--bg);transition:background 0.15s;"
+      onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg)'">
+      <div style="font-size:13px;font-weight:600;color:var(--text);">${at.cliente_nome || '—'}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">${at.numero ? '#'+at.numero+' · ' : ''}${at.cliente_tel || at.cliente_email || ''}</div>
+    </div>`;
+  }).join('');
+}
+
+async function vincularMensagem(atendimentoId, clienteNome, numero){
+  if(!inboxMsgIdAtual) return;
+  const {error} = await db.from('integracoes_mensagens')
+    .update({atendimento_id: atendimentoId, processado: true})
+    .eq('id', inboxMsgIdAtual);
+  if(error){ notify('Erro ao vincular: '+error.message,'error'); return; }
+
+  const {data: msg} = await db.from('integracoes_mensagens').select('*').eq('id',inboxMsgIdAtual).single();
+  if(msg){
+    const canalIcon = msg.canal==='whatsapp'?'💬':'📧';
+    const contatoLabel = msg.contato_nome || msg.contato_telefone || msg.contato_email || 'cliente';
+    let textoAnotacao = `${canalIcon} Mensagem recebida de ${contatoLabel}\n\n`;
+    if(msg.mensagem_tipo==='audio' && msg.transcricao_audio){
+      textoAnotacao += `🎤 Áudio transcrito:\n${msg.transcricao_audio}`;
+    } else {
+      textoAnotacao += msg.mensagem || '';
+    }
+    await db.from('at_anotacoes').insert({
+      atendimento_id: atendimentoId,
+      texto: textoAnotacao,
+      canal: msg.canal,
+      autor_nome: 'Sistema'
+    });
+  }
+
+  fecharModalVincular();
+  notify(`Mensagem vinculada ao atendimento de ${clienteNome||'#'+numero}!`, 'success');
+  loadInbox();
+}
+
+async function desvincularMensagem(msgId){
+  if(!confirm('Desvincular esta mensagem do atendimento?')) return;
+  const {error} = await db.from('integracoes_mensagens')
+    .update({atendimento_id: null, processado: false})
+    .eq('id', msgId);
+  if(error){ notify('Erro: '+error.message,'error'); return; }
+  notify('Mensagem desvinculada.','success');
+  loadInbox();
+}
+
+setInterval(async()=>{
+  const badge = document.getElementById('inbox-badge');
+  if(!badge || !db) return;
+  const {data} = await db.from('integracoes_mensagens').select('id').is('atendimento_id',null);
+  const qtd = data?.length || 0;
+  if(qtd > 0){ badge.textContent = qtd; badge.style.display='inline'; }
+  else { badge.style.display='none'; }
+}, 60000);
+
+// ── MENSAGENS NO CARD DO ATENDIMENTO ──
+
+async function carregarMensagensAt(atId){
+  const el = document.getElementById(`at-msgs-${atId}`);
+  if(!el) return;
+  el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Carregando mensagens...</div>';
+
+  const {data: at} = await db.from('atendimentos')
+    .select('cliente_tel, cliente_nome, cliente_email')
+    .eq('id', atId).single();
+
+  const {data: vinculadas} = await db.from('integracoes_mensagens')
+    .select('*')
+    .eq('atendimento_id', atId)
+    .order('created_at', {ascending: false})
+    .limit(30);
+
+  let naoVinculadas = [];
+  if(at?.cliente_tel){
+    const tel = at.cliente_tel.replace(/\D/g,'');
+    const {data: msgs} = await db.from('integracoes_mensagens')
+      .select('*')
+      .is('atendimento_id', null)
+      .order('created_at', {ascending: false})
+      .limit(50);
+    if(msgs){
+      naoVinculadas = msgs.filter(m => {
+        if(!m.contato_telefone) return false;
+        const mTel = m.contato_telefone.replace(/\D/g,'');
+        return mTel === tel ||
+          mTel === '55'+tel ||
+          tel === '55'+mTel ||
+          mTel.slice(-8) === tel.slice(-8);
+      });
+    }
+  }
+
+  const todas = [...(naoVinculadas||[]), ...(vinculadas||[])];
+  const seen = new Set();
+  const unicas = todas.filter(m => { if(seen.has(m.id)) return false; seen.add(m.id); return true; });
+  unicas.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+  if(!unicas.length){
+    el.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center;">
+      Nenhuma mensagem encontrada para este cliente.<br>
+      <span style="font-size:11px;">As mensagens aparecem aqui quando o cliente entrar em contato via WhatsApp ou Email.</span>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = unicas.map(m => renderMsgCardAt(m, atId)).join('');
+}
+
+function renderMsgCardAt(m, atId){
+  const dt = new Date(m.created_at);
+  const dataFmt = dt.toLocaleDateString('pt-BR');
+  const horaFmt = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const canalCor = m.canal==='whatsapp'?'#25d366':'#1a4a8a';
+  const canalIcon = m.canal==='whatsapp'?'💬':'📧';
+  const canalLabel = m.canal==='whatsapp'?'WhatsApp':'Email';
+  const vinculado = !!m.atendimento_id;
+  const ehAudio = m.mensagem_tipo === 'audio';
+  const textoPreview = m.mensagem ? m.mensagem.substring(0,200)+(m.mensagem.length>200?'…':'') : '';
+  const textoEsc = (m.mensagem||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+  const transEsc = (m.transcricao_audio||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+  const audioUrl = (m.audio_url||'').replace(/'/g,"\\'");
+
+  return `<div style="border:1px solid var(--border2);border-left:3px solid ${canalCor};border-radius:8px;padding:10px 12px;background:var(--bg);${vinculado?'opacity:0.7':''}">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
+          <span style="font-size:14px;">${canalIcon}</span>
+          <span style="font-size:11px;background:${canalCor};color:#fff;padding:1px 7px;border-radius:8px;">${canalLabel}</span>
+          ${ehAudio ? '<span style="font-size:11px;background:#805ad5;color:#fff;padding:1px 7px;border-radius:8px;">🎤 Áudio</span>' : ''}
+          ${vinculado ? '<span style="font-size:11px;background:#38a169;color:#fff;padding:1px 7px;border-radius:8px;">✓ Salvo</span>' : '<span style="font-size:11px;background:#e53e3e;color:#fff;padding:1px 7px;border-radius:8px;">● Não salvo</span>'}
+          <span style="font-size:11px;color:var(--text3);">${dataFmt} às ${horaFmt}</span>
+        </div>
+        ${textoPreview ? `<div style="font-size:13px;color:var(--text);line-height:1.5;">${textoPreview}</div>` : ''}
+        ${(ehAudio && m.transcricao_audio) ? `<div style="font-size:12px;color:var(--text2);margin-top:5px;font-style:italic;">🎤 "${m.transcricao_audio.substring(0,100)}${m.transcricao_audio.length>100?'…':''}"</div>` : ''}
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0;flex-direction:column;align-items:flex-end;">
+        ${ehAudio ? `<button onclick="abrirAudioInbox('${m.id}','${textoEsc}','${transEsc}','${audioUrl}')" style="padding:5px 9px;background:#805ad5;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer;white-space:nowrap;">🎤 Ouvir</button>` : ''}
+        ${!vinculado ? `<button onclick="salvarMsgComoAnotacao('${m.id}','${atId}')" style="padding:5px 10px;background:var(--brand);color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap;">💾 Salvar</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function salvarMsgComoAnotacao(msgId, atId){
+  const {data: msg, error} = await db.from('integracoes_mensagens').select('*').eq('id', msgId).single();
+  if(error || !msg){ notify('Erro ao buscar mensagem.','error'); return; }
+
+  const canalIcon = msg.canal==='whatsapp'?'💬':'📧';
+  const contatoLabel = msg.contato_nome || msg.contato_telefone || msg.contato_email || 'cliente';
+  let textoAnotacao = `${canalIcon} Mensagem recebida de ${contatoLabel}\n\n`;
+  if(msg.mensagem_tipo==='audio' && msg.transcricao_audio){
+    textoAnotacao += `🎤 Áudio transcrito:\n${msg.transcricao_audio}`;
+  } else {
+    textoAnotacao += msg.mensagem || '';
+  }
+
+  const {error: errAnn} = await db.from('at_anotacoes').insert({
+    atendimento_id: atId,
+    texto: textoAnotacao,
+    canal: msg.canal,
+    autor_nome: 'Sistema'
+  });
+  if(errAnn){ notify('Erro ao salvar anotação: '+errAnn.message,'error'); return; }
+
+  await db.from('integracoes_mensagens')
+    .update({atendimento_id: atId, processado: true})
+    .eq('id', msgId);
+
+  notify('Mensagem salva nas anotações!','success');
+  carregarMensagensAt(atId);
+  carregarFeedAnotacoes(atId);
+}
+
+
+
+// ============================================================
+
 </script>
 </body>
 </html>
