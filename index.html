@@ -12642,7 +12642,10 @@ async function vincularMensagem(atendimentoId, clienteNome, numero){
   fecharModalVincular();
   const qtd = ids.length;
   notify(`${qtd} mensagem${qtd>1?'ns':''} vinculada${qtd>1?'s':''} ao atendimento de ${clienteNome||'#'+numero}!`, 'success');
-  loadInbox();
+  // Voltar para filtro pendentes e recarregar
+  const filtroStatus = document.getElementById('inbox-filtro-status');
+  if(filtroStatus) filtroStatus.value = 'pendente';
+  await loadInbox();
 }
 
 async function desvincularMensagem(msgId){
