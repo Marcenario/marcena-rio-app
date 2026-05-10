@@ -1765,7 +1765,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 <div id="modal-vincular" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalVincular()">
   <div class="modal-box" style="max-width:520px;">
     <div class="modal-header">
-      <div class="modal-title">🔗 Vincular mensagem ao atendimento</div>
+      <div class="modal-title" id="vincular-modal-title">🔗 Vincular mensagem ao atendimento</div>
       <button class="modal-close" onclick="fecharModalVincular()">✕</button>
     </div>
     <div class="modal-body">
@@ -12459,7 +12459,40 @@ async function loadInbox(){
     return;
   }
 
-  el.innerHTML = data.map(m => renderInboxCard(m)).join('');
+  const temPendentes = data.some(m => !m.atendimento_id);
+
+  el.innerHTML = `
+    ${temPendentes ? `
+    <div id="inbox-toolbar" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;">
+        <input type="checkbox" id="inbox-select-all" onchange="toggleSelecionarTodos(this.checked)" style="width:16px;height:16px;accent-color:var(--brand);cursor:pointer;">
+        Selecionar todas as pendentes
+      </label>
+      <span id="inbox-sel-count" style="font-size:12px;color:var(--text3);display:none;">0 selecionadas</span>
+      <button id="inbox-btn-vincular-multi" onclick="abrirModalVincularMulti()" style="display:none;padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">🔗 Vincular selecionadas</button>
+    </div>` : ''}
+    ${data.map(m => renderInboxCard(m)).join('')}
+  `;
+}
+
+function toggleSelecionarTodos(checked){
+  document.querySelectorAll('.inbox-checkbox').forEach(cb => {
+    cb.checked = checked;
+  });
+  atualizarToolbarInbox();
+}
+
+function atualizarToolbarInbox(){
+  const selecionadas = document.querySelectorAll('.inbox-checkbox:checked');
+  const count = document.getElementById('inbox-sel-count');
+  const btn = document.getElementById('inbox-btn-vincular-multi');
+  const selectAll = document.getElementById('inbox-select-all');
+  const total = document.querySelectorAll('.inbox-checkbox');
+  if(count) count.textContent = `${selecionadas.length} selecionada${selecionadas.length!==1?'s':''}`;
+  if(count) count.style.display = selecionadas.length > 0 ? 'inline' : 'none';
+  if(btn) btn.style.display = selecionadas.length > 0 ? 'inline-block' : 'none';
+  if(selectAll) selectAll.indeterminate = selecionadas.length > 0 && selecionadas.length < total.length;
+  if(selectAll && selecionadas.length === total.length && total.length > 0) selectAll.checked = true;
 }
 
 function renderInboxCard(m){
@@ -12476,25 +12509,24 @@ function renderInboxCard(m){
   const transEsc = (m.transcricao_audio||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
   const audioUrl = (m.audio_url||'').replace(/'/g,"\\'");
 
-  return `<div class="card" style="margin-bottom:10px;border-left:3px solid ${canalCor};opacity:${vinculado?'0.65':'1'};">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0;">
-        <div style="width:38px;height:38px;border-radius:50%;background:${canalCor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${canalIcon}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-            <span style="font-size:13px;font-weight:700;color:var(--text);">${m.contato_nome || m.contato_telefone || m.contato_email || 'Desconhecido'}</span>
-            ${m.contato_telefone ? `<span style="font-size:11px;color:var(--text3);">${m.contato_telefone}</span>` : ''}
-            <span style="font-size:10px;background:${canalCor};color:#fff;padding:1px 7px;border-radius:8px;">${canalLabel}</span>
-            ${ehAudio ? '<span style="font-size:10px;background:#805ad5;color:#fff;padding:1px 7px;border-radius:8px;">🎤 Áudio</span>' : ''}
-            ${vinculado ? '<span style="font-size:10px;background:#38a169;color:#fff;padding:1px 7px;border-radius:8px;">✓ Vinculado</span>' : '<span style="font-size:10px;background:#e53e3e;color:#fff;padding:1px 7px;border-radius:8px;">● Pendente</span>'}
-          </div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:4px;">${textoPreview}</div>
-          <div style="font-size:11px;color:var(--text3);">${dataFmt} às ${horaFmt}</div>
+  return `<div class="card" style="margin-bottom:8px;border-left:3px solid ${canalCor};opacity:${vinculado?'0.6':'1'};">
+    <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+      ${!vinculado ? `<input type="checkbox" class="inbox-checkbox" data-id="${m.id}" onchange="atualizarToolbarInbox()" style="width:16px;height:16px;margin-top:3px;flex-shrink:0;accent-color:var(--brand);cursor:pointer;">` : '<div style="width:16px;flex-shrink:0;"></div>'}
+      <div style="width:36px;height:36px;border-radius:50%;background:${canalCor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${canalIcon}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+          <span style="font-size:13px;font-weight:700;color:var(--text);">${m.contato_nome || m.contato_telefone || m.contato_email || 'Desconhecido'}</span>
+          ${m.contato_telefone ? `<span style="font-size:11px;color:var(--text3);">${m.contato_telefone}</span>` : ''}
+          <span style="font-size:10px;background:${canalCor};color:#fff;padding:1px 7px;border-radius:8px;">${canalLabel}</span>
+          ${ehAudio ? '<span style="font-size:10px;background:#805ad5;color:#fff;padding:1px 7px;border-radius:8px;">🎤 Áudio</span>' : ''}
+          ${vinculado ? '<span style="font-size:10px;background:#38a169;color:#fff;padding:1px 7px;border-radius:8px;">✓ Vinculado</span>' : '<span style="font-size:10px;background:#e53e3e;color:#fff;padding:1px 7px;border-radius:8px;">● Pendente</span>'}
         </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:3px;">${textoPreview}</div>
+        <div style="font-size:11px;color:var(--text3);">${dataFmt} às ${horaFmt}</div>
       </div>
-      <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
-        ${ehAudio ? `<button onclick="abrirAudioInbox('${m.id}','${textoEsc}','${transEsc}','${audioUrl}')" style="padding:6px 10px;background:#805ad5;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500;">🎤 Ouvir</button>` : ''}
-        ${!vinculado ? `<button onclick="abrirModalVincular('${m.id}','${textoEsc}')" style="padding:6px 12px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500;">🔗 Vincular</button>` : `<button onclick="desvincularMensagem('${m.id}')" style="padding:6px 10px;background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:6px;font-size:11px;cursor:pointer;">Desvincular</button>`}
+      <div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;align-items:flex-start;">
+        ${ehAudio ? `<button onclick="abrirAudioInbox('${m.id}','${textoEsc}','${transEsc}','${audioUrl}')" style="padding:5px 9px;background:#805ad5;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer;">🎤 Ouvir</button>` : ''}
+        ${!vinculado ? `<button onclick="abrirModalVincular('${m.id}','${textoEsc}')" style="padding:5px 11px;background:var(--brand);color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600;">🔗 Vincular</button>` : `<button onclick="desvincularMensagem('${m.id}')" style="padding:5px 9px;background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:5px;font-size:11px;cursor:pointer;">Desvincular</button>`}
       </div>
     </div>
   </div>`;
@@ -12514,13 +12546,32 @@ function abrirAudioInbox(id, mensagem, transcricao, audioUrl){
   modal.style.display = 'flex';
 }
 
+// Vincular mensagem única
 function abrirModalVincular(msgId, textoMsg){
-  inboxMsgIdAtual = msgId;
+  inboxMsgIdAtual = [msgId];
   const modal = document.getElementById('modal-vincular');
   const preview = document.getElementById('vincular-msg-preview');
   const busca = document.getElementById('vincular-busca');
   const resultados = document.getElementById('vincular-resultados');
   preview.textContent = textoMsg.replace(/\\n/g,'\n');
+  document.getElementById('vincular-modal-title').textContent = '🔗 Vincular mensagem ao atendimento';
+  busca.value = '';
+  resultados.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Digite para buscar...</div>';
+  modal.style.display = 'flex';
+  setTimeout(()=>busca.focus(), 100);
+}
+
+// Vincular múltiplas mensagens
+function abrirModalVincularMulti(){
+  const selecionadas = Array.from(document.querySelectorAll('.inbox-checkbox:checked')).map(cb => cb.dataset.id);
+  if(!selecionadas.length){ notify('Selecione pelo menos uma mensagem.','error'); return; }
+  inboxMsgIdAtual = selecionadas;
+  const modal = document.getElementById('modal-vincular');
+  const preview = document.getElementById('vincular-msg-preview');
+  const busca = document.getElementById('vincular-busca');
+  const resultados = document.getElementById('vincular-resultados');
+  preview.textContent = `${selecionadas.length} mensagem(ns) selecionada(s) serão vinculadas ao mesmo atendimento.`;
+  document.getElementById('vincular-modal-title').textContent = `🔗 Vincular ${selecionadas.length} mensagens`;
   busca.value = '';
   resultados.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Digite para buscar...</div>';
   modal.style.display = 'flex';
@@ -12561,32 +12612,36 @@ async function buscarAtendimentosVincular(q){
 }
 
 async function vincularMensagem(atendimentoId, clienteNome, numero){
-  if(!inboxMsgIdAtual) return;
-  const {error} = await db.from('integracoes_mensagens')
-    .update({atendimento_id: atendimentoId, processado: true})
-    .eq('id', inboxMsgIdAtual);
-  if(error){ notify('Erro ao vincular: '+error.message,'error'); return; }
+  if(!inboxMsgIdAtual || !inboxMsgIdAtual.length) return;
+  const ids = Array.isArray(inboxMsgIdAtual) ? inboxMsgIdAtual : [inboxMsgIdAtual];
 
-  const {data: msg} = await db.from('integracoes_mensagens').select('*').eq('id',inboxMsgIdAtual).single();
-  if(msg){
-    const canalIcon = msg.canal==='whatsapp'?'💬':'📧';
-    const contatoLabel = msg.contato_nome || msg.contato_telefone || msg.contato_email || 'cliente';
-    let textoAnotacao = `${canalIcon} Mensagem recebida de ${contatoLabel}\n\n`;
-    if(msg.mensagem_tipo==='audio' && msg.transcricao_audio){
-      textoAnotacao += `🎤 Áudio transcrito:\n${msg.transcricao_audio}`;
-    } else {
-      textoAnotacao += msg.mensagem || '';
+  for(const msgId of ids){
+    await db.from('integracoes_mensagens')
+      .update({atendimento_id: atendimentoId, processado: true})
+      .eq('id', msgId);
+
+    const {data: msg} = await db.from('integracoes_mensagens').select('*').eq('id', msgId).single();
+    if(msg){
+      const canalIcon = msg.canal==='whatsapp'?'💬':'📧';
+      const contatoLabel = msg.contato_nome || msg.contato_telefone || msg.contato_email || 'cliente';
+      let textoAnotacao = `${canalIcon} Mensagem recebida de ${contatoLabel}\n\n`;
+      if(msg.mensagem_tipo==='audio' && msg.transcricao_audio){
+        textoAnotacao += `🎤 Áudio transcrito:\n${msg.transcricao_audio}`;
+      } else {
+        textoAnotacao += msg.mensagem || '';
+      }
+      await db.from('at_anotacoes').insert({
+        atendimento_id: atendimentoId,
+        texto: textoAnotacao,
+        canal: msg.canal,
+        autor_nome: 'Sistema'
+      });
     }
-    await db.from('at_anotacoes').insert({
-      atendimento_id: atendimentoId,
-      texto: textoAnotacao,
-      canal: msg.canal,
-      autor_nome: 'Sistema'
-    });
   }
 
   fecharModalVincular();
-  notify(`Mensagem vinculada ao atendimento de ${clienteNome||'#'+numero}!`, 'success');
+  const qtd = ids.length;
+  notify(`${qtd} mensagem${qtd>1?'ns':''} vinculada${qtd>1?'s':''} ao atendimento de ${clienteNome||'#'+numero}!`, 'success');
   loadInbox();
 }
 
