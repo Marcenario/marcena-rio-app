@@ -12936,42 +12936,31 @@ Ajuste as datas sequencialmente a partir de ${dataInicio}.
 RESPONDA APENAS COM JSON, SEM NADA MAIS.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Chama edge function para evitar CORS
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/gerar-posts-marketing`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON}`
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }]
+        campanha_id: campanhaId || null,
+        empresa,
+        empresaNome,
+        tema,
+        tom,
+        dias,
+        info,
+        acervoTexto: acervoTxt
       })
     });
 
     const data = await response.json();
-    let texto = data.content[0].text.trim()
-      .replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-
-    const resultado = JSON.parse(texto);
-    const posts = resultado.posts || [];
-
-    // Salvar posts no Supabase
-    const inserts = posts.map(p => ({
-      campanha_id: campanhaId || null,
-      empresa,
-      tipo: p.tipo,
-      titulo: p.titulo,
-      legenda: p.legenda,
-      hashtags: p.hashtags,
-      horario_publicacao: p.horario,
-      data_publicacao: p.data_publicacao,
-      status: 'pendente'
-    }));
-
-    const { error } = await db.from('marketing_posts').insert(inserts);
-    if (error) throw new Error(error.message);
+    if (!response.ok) throw new Error(data.error || 'Erro ao gerar posts');
 
     statusEl.style.color = 'var(--green)';
-    statusEl.textContent = `✅ ${posts.length} posts gerados e salvos para aprovação!`;
-    notify(`${posts.length} posts gerados! Vá para "Aprovar posts" para revisar.`);
+    statusEl.textContent = `✅ ${data.total} posts gerados e salvos para aprovação!`;
+    notify(`${data.total} posts gerados! Vá para "Aprovar posts" para revisar.`);
 
     setTimeout(() => {
       mudarTabMkt('aprovacao', document.querySelectorAll('.mkt-tab-btn')[0]);
