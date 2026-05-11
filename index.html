@@ -357,8 +357,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <button class="nav-item" id="nav-rh" style="display:none" onclick="showSection('rh',this)">RH</button>
     <button class="nav-item" id="nav-financeiro" style="display:none" onclick="showSection('financeiro',this)">Financeiro</button>
     <button class="nav-item" id="nav-agenda" style="display:none" onclick="showSection('agenda',this)">Agenda</button>
-    <button class="nav-item" id="nav-inbox" style="display:none" onclick="showSection('inbox',this)">📥 Caixa de entrada <span id="inbox-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;"></span></button>
-    <button class="nav-item" id="nav-dashboard" style="display:none" onclick="showSection('dashboard',this)">Dashboard</button>
+    <button class="nav-item" id="nav-marketing" style="display:none" onclick="showSection('marketing',this)">✨ Marketing IA</button>
+        <button class="nav-item" id="nav-dashboard" style="display:none" onclick="showSection('dashboard',this)">Dashboard</button>
     <button class="nav-item" id="nav-admin" style="display:none" onclick="showSection('admin',this)">Painel admin</button>
     <button class="nav-item" id="nav-usuarios" style="display:none" onclick="showSection('usuarios',this)">Usuários</button>
   </div>
@@ -1190,6 +1190,198 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       </div>
     </div>
 
+
+<div id="marketing" class="section">
+  <div style="padding:0 0 20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+      <div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);">✨ Marketing IA</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Piloto automático + campanhas específicas</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="abrirModalNovaCampanha()" style="padding:8px 16px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">+ Nova campanha</button>
+        <button onclick="loadMarketing()" style="padding:8px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">↻ Atualizar</button>
+      </div>
+    </div>
+
+    <!-- ABAS -->
+    <div style="display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:20px;">
+      <button class="mkt-tab-btn active" onclick="mudarTabMkt('aprovacao',this)" style="flex:1;padding:8px;border:none;border-radius:7px;background:var(--bg2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;font-weight:500;box-shadow:var(--shadow);">📋 Aprovar posts</button>
+      <button class="mkt-tab-btn" onclick="mudarTabMkt('campanhas',this)" style="flex:1;padding:8px;border:none;border-radius:7px;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--text2);">📅 Campanhas</button>
+      <button class="mkt-tab-btn" onclick="mudarTabMkt('acervo',this)" style="flex:1;padding:8px;border:none;border-radius:7px;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--text2);">🖼️ Acervo de fotos</button>
+      <button class="mkt-tab-btn" onclick="mudarTabMkt('gerar',this)" style="flex:1;padding:8px;border:none;border-radius:7px;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--text2);">⚡ Gerar agora</button>
+    </div>
+
+    <!-- TAB: APROVAÇÃO -->
+    <div id="mkt-tab-aprovacao">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <select id="mkt-filtro-status" onchange="carregarPostsPendentes()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);outline:none;">
+          <option value="pendente">Pendentes</option>
+          <option value="aprovado">Aprovados</option>
+          <option value="rejeitado">Rejeitados</option>
+          <option value="todos">Todos</option>
+        </select>
+        <select id="mkt-filtro-empresa" onchange="carregarPostsPendentes()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);outline:none;">
+          <option value="">Todas empresas</option>
+          <option value="marcenario">Marcena Rio</option>
+          <option value="conceptus">Conceptus Italínea</option>
+        </select>
+        <select id="mkt-filtro-tipo" onchange="carregarPostsPendentes()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);outline:none;">
+          <option value="">Feed + Story</option>
+          <option value="feed">Só Feed</option>
+          <option value="story">Só Story</option>
+        </select>
+        <button onclick="aprovarTodosPendentes()" style="padding:6px 14px;background:var(--green-bg);color:var(--green);border:1px solid rgba(45,122,79,0.2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✓ Aprovar todos</button>
+      </div>
+      <div id="mkt-posts-lista"><div class="loader">Carregando posts...</div></div>
+    </div>
+
+    <!-- TAB: CAMPANHAS -->
+    <div id="mkt-tab-campanhas" style="display:none;">
+      <div id="mkt-campanhas-lista"><div class="loader">Carregando campanhas...</div></div>
+    </div>
+
+    <!-- TAB: ACERVO -->
+    <div id="mkt-tab-acervo" style="display:none;">
+      <div style="background:var(--bg2);border-radius:12px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Acervo de fotos e vídeos</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">Adicione links do Google Drive. A IA usa estes materiais para criar conteúdo mais autêntico.</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <select id="acervo-empresa" style="padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);outline:none;flex:1;">
+            <option value="marcenario">Marcena Rio</option>
+            <option value="conceptus">Conceptus Italínea</option>
+          </select>
+          <input type="text" id="acervo-nome" placeholder="Nome da foto/vídeo" style="padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);outline:none;flex:2;">
+          <input type="text" id="acervo-url" placeholder="Link do Google Drive" style="padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);outline:none;flex:3;">
+          <input type="text" id="acervo-tags" placeholder="Tags: cozinha, closet..." style="padding:8px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);outline:none;flex:2;">
+          <button onclick="adicionarAcervo()" style="padding:8px 16px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Adicionar</button>
+        </div>
+      </div>
+      <div id="mkt-acervo-lista"><div class="loader">Carregando acervo...</div></div>
+    </div>
+
+    <!-- TAB: GERAR AGORA -->
+    <div id="mkt-tab-gerar" style="display:none;">
+      <div style="background:var(--bg2);border-radius:12px;padding:24px;box-shadow:var(--shadow);">
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Gerar conteúdo agora</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:20px;">Configure e a IA gera posts imediatamente para sua aprovação.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div>
+            <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px;">Empresa</label>
+            <select id="g-empresa" style="width:100%;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+              <option value="marcenario">Marcena Rio</option>
+              <option value="conceptus">Conceptus Italínea</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px;">Campanha</label>
+            <select id="g-campanha" style="width:100%;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+              <option value="">Carregando...</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div>
+            <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px;">Tema</label>
+            <select id="g-tema" style="width:100%;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+              <option>Posicionamento de marca</option>
+              <option>Lançamento de projeto</option>
+              <option>Antes e depois</option>
+              <option>Dicas de decoração</option>
+              <option>Promoção especial</option>
+              <option>Depoimento de cliente</option>
+              <option>Processo de fabricação</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px;">Tom de voz</label>
+            <select id="g-tom" style="width:100%;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+              <option>Sofisticado e refinado</option>
+              <option>Próximo e acolhedor</option>
+              <option>Moderno e direto</option>
+              <option>Inspirador e aspiracional</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px;">Dias de conteúdo</label>
+            <select id="g-dias" style="width:100%;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+              <option value="3">3 dias</option>
+              <option value="5" selected>5 dias</option>
+              <option value="7">7 dias</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px;">Informações adicionais (opcional)</label>
+          <textarea id="g-info" rows="3" placeholder="Ex: Entregamos um projeto de closet em MDF Pérola em Ipanema. Cliente adorou..." style="width:100%;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;resize:none;"></textarea>
+        </div>
+
+        <button id="btn-gerar-mkt" onclick="gerarPostsIA()" style="width:100%;padding:13px;background:var(--brand);color:#fff;border:none;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          ✨ Gerar posts com IA
+        </button>
+        <div id="mkt-gerar-status" style="text-align:center;font-size:12px;color:var(--text3);min-height:20px;margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVA CAMPANHA -->
+<div id="modal-nova-campanha" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:520px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-size:17px;font-weight:700;">Nova campanha específica</div>
+      <button class="modal-close" onclick="document.getElementById('modal-nova-campanha').style.display='none'">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px;">Empresa</label>
+        <select id="nc-empresa" style="width:100%;padding:9px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+          <option value="marcenario">Marcena Rio</option>
+          <option value="conceptus">Conceptus Italínea</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px;">Nome da campanha</label>
+        <input type="text" id="nc-nome" placeholder="Ex: Dia das Mães 2026" style="width:100%;padding:9px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px;">Data início</label>
+        <input type="date" id="nc-inicio" style="width:100%;padding:9px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px;">Data fim</label>
+        <input type="date" id="nc-fim" style="width:100%;padding:9px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px;">Tema</label>
+      <select id="nc-tema" style="width:100%;padding:9px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;">
+        <option>Lançamento de projeto</option>
+        <option>Antes e depois</option>
+        <option>Datas comemorativas</option>
+        <option>Promoção especial</option>
+        <option>Depoimento de cliente</option>
+        <option>Processo de fabricação</option>
+        <option>Diferenciais da empresa</option>
+      </select>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px;">Briefing da campanha</label>
+      <textarea id="nc-briefing" rows="4" placeholder="Descreva o objetivo, o produto em destaque, promoção, data comemorativa..." style="width:100%;padding:9px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;resize:none;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="salvarNovaCampanha()" style="flex:1;padding:11px;background:var(--brand);color:#fff;border:none;border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Criar campanha</button>
+      <button onclick="document.getElementById('modal-nova-campanha').style.display='none'" style="padding:11px 20px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+
     <div id="financeiro" class="section">
       <!-- Seletor de empresa -->
       <div style="display:flex;align-items:center;gap:10px;padding:10px 0 0 0;margin-bottom:0;">
@@ -1735,68 +1927,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
   </div>
 </div>
 
-<!-- SECTION CAIXA DE ENTRADA -->
-<div id="inbox" class="section">
-  <div style="padding:16px 20px 8px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-      <div>
-        <div style="font-size:18px;font-weight:700;color:var(--text);">📥 Caixa de entrada</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Mensagens recebidas via WhatsApp e Email aguardando vinculação</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <select id="inbox-filtro-canal" onchange="loadInbox()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);outline:none;">
-          <option value="">Todos os canais</option>
-          <option value="whatsapp">WhatsApp</option>
-          <option value="email">Email</option>
-        </select>
-        <select id="inbox-filtro-status" onchange="loadInbox()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);outline:none;">
-          <option value="pendente">Pendentes</option>
-          <option value="todos">Todos</option>
-          <option value="vinculado">Vinculados</option>
-        </select>
-        <button onclick="loadInbox()" style="padding:6px 12px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;">↻ Atualizar</button>
-      </div>
-    </div>
-    <div id="inbox-content"><div class="loader">Carregando...</div></div>
-  </div>
-</div>
-
-<!-- MODAL VINCULAR MENSAGEM -->
-<div id="modal-vincular" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalVincular()">
-  <div class="modal-box" style="max-width:520px;">
-    <div class="modal-header">
-      <div class="modal-title" id="vincular-modal-title">🔗 Vincular mensagem ao atendimento</div>
-      <button class="modal-close" onclick="fecharModalVincular()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="vincular-msg-preview" style="background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;max-height:120px;overflow-y:auto;"></div>
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;">Buscar atendimento</div>
-      <input type="text" id="vincular-busca" placeholder="Nome do cliente, telefone ou número do atendimento..." oninput="buscarAtendimentosVincular(this.value)" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--bg2);color:var(--text);outline:none;box-sizing:border-box;">
-      <div id="vincular-resultados" style="margin-top:8px;max-height:280px;overflow-y:auto;"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-step-back" onclick="fecharModalVincular()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL OUVIR ÁUDIO -->
-<div id="modal-audio-inbox" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box" style="max-width:420px;">
-    <div class="modal-header">
-      <div class="modal-title">🎤 Áudio da mensagem</div>
-      <button class="modal-close" onclick="document.getElementById('modal-audio-inbox').style.display='none'">✕</button>
-    </div>
-    <div class="modal-body" style="text-align:center;">
-      <audio id="inbox-audio-player" controls style="width:100%;margin-bottom:12px;"></audio>
-      <div id="inbox-audio-transcricao" style="font-size:13px;color:var(--text2);line-height:1.5;text-align:left;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:12px;white-space:pre-wrap;"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-step-back" onclick="document.getElementById('modal-audio-inbox').style.display='none'">Fechar</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL AUDITORIA -->
 <div id="modal-auditoria" class="modal-overlay" style="display:none;" onclick="if(event.target===this)fecharModalAuditoria()">
   <div class="modal-box">
@@ -1986,10 +2117,12 @@ async function onLogin(user){
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
-  document.getElementById('nav-dashboard').style.display=isAdmin()?'block':'none'; // só admin
+  document.getElementById('nav-marketing').style.display=(isAdmin()||isGerente())?'block':'none';
+    document.getElementById('nav-marketing').style.display=(isAdmin()||isGerente())?'block':'none';
+        document.getElementById('nav-dashboard').style.display=isAdmin()?'block':'none'; // só admin
   document.getElementById('nav-rh').style.display=isStaff?'block':'none';
   document.getElementById('nav-agenda').style.display=isStaff?'block':'none';
-  document.getElementById('nav-inbox').style.display=isStaff?'block':'none';
+
   document.getElementById('nav-financeiro').style.display=admOuGer?'block':'none';
   document.getElementById('nav-admin').style.display=isAdmin()?'block':'none'; // só admin
   document.getElementById('nav-usuarios').style.display=admOuGer?'block':'none';
@@ -2025,6 +2158,7 @@ function showSection(id,btn){
   if(id==='montagem')loadFilaMt();
   if(id==='conferencia')loadConferencia();
   if(id==='agenda')loadAgenda();
+  if(id==='marketing')loadMarketing();
   if(id==='usuarios')loadUsuarios();
   if(id==='dashboard')loadDashboard();
   if(id==='rh'){
@@ -2068,7 +2202,7 @@ function showSection(id,btn){
   }
   if(id==='ocorrencias'){loadOcorrencias();carregarPedidosSelect()}
   if(id==='vistoria'){loadVistorias();carregarPedidosSelectVistoria()}
-  if(id==='inbox'){loadInbox()}
+
 }
 
 function showSubMontagem(id,btn){
@@ -12420,370 +12554,24 @@ async function enviarParaAssinatura(id){
 }
 
 // ============================================================
-// MÓDULO: CAIXA DE ENTRADA (mensagens não vinculadas)
+
 // ============================================================
 
-let inboxMsgIdAtual = null;
 
-async function loadInbox(){
-  const el = document.getElementById('inbox-content');
-  if(!el) return;
-  el.innerHTML = '<div class="loader">Carregando...</div>';
 
-  const canal = document.getElementById('inbox-filtro-canal')?.value || '';
-  const status = document.getElementById('inbox-filtro-status')?.value || 'pendente';
 
-  let query = db.from('integracoes_mensagens')
-    .select('*')
-    .order('created_at', {ascending: false})
-    .limit(100);
 
-  if(canal) query = query.eq('canal', canal);
-  if(status === 'pendente') query = query.is('atendimento_id', null);
-  else if(status === 'vinculado') query = query.not('atendimento_id', 'is', null);
 
-  const {data, error} = await query;
 
-  // Atualizar badge no nav
-  const {data: pendentes} = await db.from('integracoes_mensagens').select('id').is('atendimento_id', null);
-  const badge = document.getElementById('inbox-badge');
-  if(badge){
-    const qtd = pendentes?.length || 0;
-    if(qtd > 0){ badge.textContent = qtd; badge.style.display='inline'; }
-    else { badge.style.display='none'; }
-  }
 
-  if(error){ el.innerHTML = `<div class="card" style="color:var(--danger);">Erro ao carregar: ${error.message}</div>`; return; }
-  if(!data || !data.length){
-    el.innerHTML = '<div class="card" style="text-align:center;padding:32px;color:var(--text3);">Nenhuma mensagem encontrada.</div>';
-    return;
-  }
 
-  const temPendentes = data.some(m => !m.atendimento_id);
 
-  el.innerHTML = `
-    ${temPendentes ? `
-    <div id="inbox-toolbar" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;margin-bottom:10px;flex-wrap:wrap;">
-      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;">
-        <input type="checkbox" id="inbox-select-all" onchange="toggleSelecionarTodos(this.checked)" style="width:16px;height:16px;accent-color:var(--brand);cursor:pointer;">
-        Selecionar todas as pendentes
-      </label>
-      <span id="inbox-sel-count" style="font-size:12px;color:var(--text3);display:none;">0 selecionadas</span>
-      <button id="inbox-btn-vincular-multi" onclick="abrirModalVincularMulti()" style="display:none;padding:6px 14px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">🔗 Vincular selecionadas</button>
-    </div>` : ''}
-    ${data.map(m => renderInboxCard(m)).join('')}
-  `;
-}
 
-function toggleSelecionarTodos(checked){
-  document.querySelectorAll('.inbox-checkbox').forEach(cb => {
-    cb.checked = checked;
-  });
-  atualizarToolbarInbox();
-}
 
-function atualizarToolbarInbox(){
-  const selecionadas = document.querySelectorAll('.inbox-checkbox:checked');
-  const count = document.getElementById('inbox-sel-count');
-  const btn = document.getElementById('inbox-btn-vincular-multi');
-  const selectAll = document.getElementById('inbox-select-all');
-  const total = document.querySelectorAll('.inbox-checkbox');
-  if(count) count.textContent = `${selecionadas.length} selecionada${selecionadas.length!==1?'s':''}`;
-  if(count) count.style.display = selecionadas.length > 0 ? 'inline' : 'none';
-  if(btn) btn.style.display = selecionadas.length > 0 ? 'inline-block' : 'none';
-  if(selectAll) selectAll.indeterminate = selecionadas.length > 0 && selecionadas.length < total.length;
-  if(selectAll && selecionadas.length === total.length && total.length > 0) selectAll.checked = true;
-}
 
-function renderInboxCard(m){
-  const dt = new Date(m.created_at);
-  const dataFmt = dt.toLocaleDateString('pt-BR');
-  const horaFmt = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const canalCor = m.canal==='whatsapp'?'#25d366':'#1a4a8a';
-  const canalIcon = m.canal==='whatsapp'?'💬':'📧';
-  const canalLabel = m.canal==='whatsapp'?'WhatsApp':'Email';
-  const vinculado = !!m.atendimento_id;
-  const ehAudio = m.mensagem_tipo === 'audio';
-  const textoPreview = m.mensagem ? m.mensagem.substring(0,120)+(m.mensagem.length>120?'…':'') : '(sem texto)';
-  const textoEsc = (m.mensagem||textoPreview).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
-  const transEsc = (m.transcricao_audio||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
-  const audioUrl = (m.audio_url||'').replace(/'/g,"\\'");
 
-  return `<div class="card" style="margin-bottom:8px;border-left:3px solid ${canalCor};opacity:${vinculado?'0.6':'1'};">
-    <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;">
-      ${!vinculado ? `<input type="checkbox" class="inbox-checkbox" data-id="${m.id}" onchange="atualizarToolbarInbox()" style="width:16px;height:16px;margin-top:3px;flex-shrink:0;accent-color:var(--brand);cursor:pointer;">` : '<div style="width:16px;flex-shrink:0;"></div>'}
-      <div style="width:36px;height:36px;border-radius:50%;background:${canalCor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${canalIcon}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
-          <span style="font-size:13px;font-weight:700;color:var(--text);">${m.contato_nome || m.contato_telefone || m.contato_email || 'Desconhecido'}</span>
-          ${m.contato_telefone ? `<span style="font-size:11px;color:var(--text3);">${m.contato_telefone}</span>` : ''}
-          <span style="font-size:10px;background:${canalCor};color:#fff;padding:1px 7px;border-radius:8px;">${canalLabel}</span>
-          ${ehAudio ? '<span style="font-size:10px;background:#805ad5;color:#fff;padding:1px 7px;border-radius:8px;">🎤 Áudio</span>' : ''}
-          ${vinculado ? '<span style="font-size:10px;background:#38a169;color:#fff;padding:1px 7px;border-radius:8px;">✓ Vinculado</span>' : '<span style="font-size:10px;background:#e53e3e;color:#fff;padding:1px 7px;border-radius:8px;">● Pendente</span>'}
-        </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:3px;">${textoPreview}</div>
-        <div style="font-size:11px;color:var(--text3);">${dataFmt} às ${horaFmt}</div>
-      </div>
-      <div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;align-items:flex-start;">
-        ${ehAudio ? `<button onclick="abrirAudioInbox('${m.id}','${textoEsc}','${transEsc}','${audioUrl}')" style="padding:5px 9px;background:#805ad5;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer;">🎤 Ouvir</button>` : ''}
-        ${!vinculado ? `<button onclick="abrirModalVincular('${m.id}','${textoEsc}')" style="padding:5px 11px;background:var(--brand);color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600;">🔗 Vincular</button>` : `<button onclick="desvincularMensagem('${m.id}')" style="padding:5px 9px;background:var(--bg2);color:var(--text2);border:1px solid var(--border2);border-radius:5px;font-size:11px;cursor:pointer;">Desvincular</button>`}
-      </div>
-    </div>
-  </div>`;
-}
 
-function abrirAudioInbox(id, mensagem, transcricao, audioUrl){
-  const modal = document.getElementById('modal-audio-inbox');
-  const player = document.getElementById('inbox-audio-player');
-  const trans = document.getElementById('inbox-audio-transcricao');
-  if(audioUrl && audioUrl !== 'undefined' && audioUrl !== ''){
-    player.src = audioUrl;
-    player.style.display = 'block';
-  } else {
-    player.style.display = 'none';
-  }
-  trans.textContent = transcricao.replace(/\\n/g,'\n') || mensagem.replace(/\\n/g,'\n') || 'Sem transcrição disponível.';
-  modal.style.display = 'flex';
-}
 
-// Vincular mensagem única
-function abrirModalVincular(msgId, textoMsg){
-  inboxMsgIdAtual = [msgId];
-  const modal = document.getElementById('modal-vincular');
-  const preview = document.getElementById('vincular-msg-preview');
-  const busca = document.getElementById('vincular-busca');
-  const resultados = document.getElementById('vincular-resultados');
-  preview.textContent = textoMsg.replace(/\\n/g,'\n');
-  document.getElementById('vincular-modal-title').textContent = '🔗 Vincular mensagem ao atendimento';
-  busca.value = '';
-  resultados.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Digite para buscar...</div>';
-  modal.style.display = 'flex';
-  setTimeout(()=>busca.focus(), 100);
-}
-
-// Vincular múltiplas mensagens
-function abrirModalVincularMulti(){
-  const selecionadas = Array.from(document.querySelectorAll('.inbox-checkbox:checked')).map(cb => cb.dataset.id);
-  if(!selecionadas.length){ notify('Selecione pelo menos uma mensagem.','error'); return; }
-  inboxMsgIdAtual = selecionadas;
-  const modal = document.getElementById('modal-vincular');
-  const preview = document.getElementById('vincular-msg-preview');
-  const busca = document.getElementById('vincular-busca');
-  const resultados = document.getElementById('vincular-resultados');
-  preview.textContent = `${selecionadas.length} mensagem(ns) selecionada(s) serão vinculadas ao mesmo atendimento.`;
-  document.getElementById('vincular-modal-title').textContent = `🔗 Vincular ${selecionadas.length} mensagens`;
-  busca.value = '';
-  resultados.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Digite para buscar...</div>';
-  modal.style.display = 'flex';
-  setTimeout(()=>busca.focus(), 100);
-}
-
-function fecharModalVincular(){
-  document.getElementById('modal-vincular').style.display = 'none';
-  inboxMsgIdAtual = null;
-}
-
-async function buscarAtendimentosVincular(q){
-  const el = document.getElementById('vincular-resultados');
-  if(!q || q.length < 2){
-    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Digite pelo menos 2 caracteres...</div>';
-    return;
-  }
-  el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Buscando...</div>';
-  const {data} = await db.from('atendimentos')
-    .select('id, numero, cliente_nome, cliente_tel, cliente_email, status')
-    .or(`cliente_nome.ilike.%${q}%,cliente_tel.ilike.%${q}%,numero.ilike.%${q}%`)
-    .eq('status','em_andamento')
-    .limit(10);
-
-  if(!data || !data.length){
-    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Nenhum atendimento encontrado.</div>';
-    return;
-  }
-  el.innerHTML = data.map(at => {
-    const nomeEsc = (at.cliente_nome||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return `<div onclick="vincularMensagem('${at.id}','${nomeEsc}','${at.numero||''}')"
-      style="padding:10px 12px;border:1px solid var(--border2);border-radius:8px;margin-bottom:6px;cursor:pointer;background:var(--bg);transition:background 0.15s;"
-      onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg)'">
-      <div style="font-size:13px;font-weight:600;color:var(--text);">${at.cliente_nome || '—'}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px;">${at.numero ? '#'+at.numero+' · ' : ''}${at.cliente_tel || at.cliente_email || ''}</div>
-    </div>`;
-  }).join('');
-}
-
-async function vincularMensagem(atendimentoId, clienteNome, numero){
-  if(!inboxMsgIdAtual || !inboxMsgIdAtual.length) return;
-  const ids = Array.isArray(inboxMsgIdAtual) ? inboxMsgIdAtual : [inboxMsgIdAtual];
-
-  for(const msgId of ids){
-    await db.from('integracoes_mensagens')
-      .update({atendimento_id: atendimentoId, processado: true})
-      .eq('id', msgId);
-
-    const {data: msg} = await db.from('integracoes_mensagens').select('*').eq('id', msgId).single();
-    if(msg){
-      const canalIcon = msg.canal==='whatsapp'?'💬':'📧';
-      const contatoLabel = msg.contato_nome || msg.contato_telefone || msg.contato_email || 'cliente';
-      let textoAnotacao = `${canalIcon} Mensagem recebida de ${contatoLabel}\n\n`;
-      if(msg.mensagem_tipo==='audio' && msg.transcricao_audio){
-        textoAnotacao += `🎤 Áudio transcrito:\n${msg.transcricao_audio}`;
-      } else {
-        textoAnotacao += msg.mensagem || '';
-      }
-      await db.from('at_anotacoes').insert({
-        atendimento_id: atendimentoId,
-        texto: textoAnotacao,
-        canal: msg.canal,
-        autor_nome: 'Sistema'
-      });
-    }
-  }
-
-  fecharModalVincular();
-  const qtd = ids.length;
-  notify(`${qtd} mensagem${qtd>1?'ns':''} vinculada${qtd>1?'s':''} ao atendimento de ${clienteNome||'#'+numero}!`, 'success');
-  // Voltar para filtro pendentes e recarregar
-  const filtroStatus = document.getElementById('inbox-filtro-status');
-  if(filtroStatus) filtroStatus.value = 'pendente';
-  await loadInbox();
-}
-
-async function desvincularMensagem(msgId){
-  if(!confirm('Desvincular esta mensagem do atendimento?')) return;
-  const {error} = await db.from('integracoes_mensagens')
-    .update({atendimento_id: null, processado: false})
-    .eq('id', msgId);
-  if(error){ notify('Erro: '+error.message,'error'); return; }
-  notify('Mensagem desvinculada.','success');
-  loadInbox();
-}
-
-setInterval(async()=>{
-  const badge = document.getElementById('inbox-badge');
-  if(!badge || !db) return;
-  const {data} = await db.from('integracoes_mensagens').select('id').is('atendimento_id',null);
-  const qtd = data?.length || 0;
-  if(qtd > 0){ badge.textContent = qtd; badge.style.display='inline'; }
-  else { badge.style.display='none'; }
-}, 60000);
-
-// ── MENSAGENS NO CARD DO ATENDIMENTO ──
-
-async function carregarMensagensAt(atId){
-  const el = document.getElementById(`at-msgs-${atId}`);
-  if(!el) return;
-  el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Carregando mensagens...</div>';
-
-  const {data: at} = await db.from('atendimentos')
-    .select('cliente_tel, cliente_nome, cliente_email')
-    .eq('id', atId).single();
-
-  const {data: vinculadas} = await db.from('integracoes_mensagens')
-    .select('*')
-    .eq('atendimento_id', atId)
-    .order('created_at', {ascending: false})
-    .limit(30);
-
-  let naoVinculadas = [];
-  if(at?.cliente_tel){
-    const tel = at.cliente_tel.replace(/\D/g,'');
-    const {data: msgs} = await db.from('integracoes_mensagens')
-      .select('*')
-      .is('atendimento_id', null)
-      .order('created_at', {ascending: false})
-      .limit(50);
-    if(msgs){
-      naoVinculadas = msgs.filter(m => {
-        if(!m.contato_telefone) return false;
-        const mTel = m.contato_telefone.replace(/\D/g,'');
-        return mTel === tel ||
-          mTel === '55'+tel ||
-          tel === '55'+mTel ||
-          mTel.slice(-8) === tel.slice(-8);
-      });
-    }
-  }
-
-  const todas = [...(naoVinculadas||[]), ...(vinculadas||[])];
-  const seen = new Set();
-  const unicas = todas.filter(m => { if(seen.has(m.id)) return false; seen.add(m.id); return true; });
-  unicas.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-
-  if(!unicas.length){
-    el.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center;">
-      Nenhuma mensagem encontrada para este cliente.<br>
-      <span style="font-size:11px;">As mensagens aparecem aqui quando o cliente entrar em contato via WhatsApp ou Email.</span>
-    </div>`;
-    return;
-  }
-
-  el.innerHTML = unicas.map(m => renderMsgCardAt(m, atId)).join('');
-}
-
-function renderMsgCardAt(m, atId){
-  const dt = new Date(m.created_at);
-  const dataFmt = dt.toLocaleDateString('pt-BR');
-  const horaFmt = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const canalCor = m.canal==='whatsapp'?'#25d366':'#1a4a8a';
-  const canalIcon = m.canal==='whatsapp'?'💬':'📧';
-  const canalLabel = m.canal==='whatsapp'?'WhatsApp':'Email';
-  const vinculado = !!m.atendimento_id;
-  const ehAudio = m.mensagem_tipo === 'audio';
-  const textoPreview = m.mensagem ? m.mensagem.substring(0,200)+(m.mensagem.length>200?'…':'') : '';
-  const textoEsc = (m.mensagem||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
-  const transEsc = (m.transcricao_audio||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
-  const audioUrl = (m.audio_url||'').replace(/'/g,"\\'");
-
-  return `<div style="border:1px solid var(--border2);border-left:3px solid ${canalCor};border-radius:8px;padding:10px 12px;background:var(--bg);${vinculado?'opacity:0.7':''}">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
-          <span style="font-size:14px;">${canalIcon}</span>
-          <span style="font-size:11px;background:${canalCor};color:#fff;padding:1px 7px;border-radius:8px;">${canalLabel}</span>
-          ${ehAudio ? '<span style="font-size:11px;background:#805ad5;color:#fff;padding:1px 7px;border-radius:8px;">🎤 Áudio</span>' : ''}
-          ${vinculado ? '<span style="font-size:11px;background:#38a169;color:#fff;padding:1px 7px;border-radius:8px;">✓ Salvo</span>' : '<span style="font-size:11px;background:#e53e3e;color:#fff;padding:1px 7px;border-radius:8px;">● Não salvo</span>'}
-          <span style="font-size:11px;color:var(--text3);">${dataFmt} às ${horaFmt}</span>
-        </div>
-        ${textoPreview ? `<div style="font-size:13px;color:var(--text);line-height:1.5;">${textoPreview}</div>` : ''}
-        ${(ehAudio && m.transcricao_audio) ? `<div style="font-size:12px;color:var(--text2);margin-top:5px;font-style:italic;">🎤 "${m.transcricao_audio.substring(0,100)}${m.transcricao_audio.length>100?'…':''}"</div>` : ''}
-      </div>
-      <div style="display:flex;gap:5px;flex-shrink:0;flex-direction:column;align-items:flex-end;">
-        ${ehAudio ? `<button onclick="abrirAudioInbox('${m.id}','${textoEsc}','${transEsc}','${audioUrl}')" style="padding:5px 9px;background:#805ad5;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer;white-space:nowrap;">🎤 Ouvir</button>` : ''}
-        ${!vinculado ? `<button onclick="salvarMsgComoAnotacao('${m.id}','${atId}')" style="padding:5px 10px;background:var(--brand);color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap;">💾 Salvar</button>` : ''}
-      </div>
-    </div>
-  </div>`;
-}
-
-async function salvarMsgComoAnotacao(msgId, atId){
-  const {data: msg, error} = await db.from('integracoes_mensagens').select('*').eq('id', msgId).single();
-  if(error || !msg){ notify('Erro ao buscar mensagem.','error'); return; }
-
-  const canalIcon = msg.canal==='whatsapp'?'💬':'📧';
-  const contatoLabel = msg.contato_nome || msg.contato_telefone || msg.contato_email || 'cliente';
-  let textoAnotacao = `${canalIcon} Mensagem recebida de ${contatoLabel}\n\n`;
-  if(msg.mensagem_tipo==='audio' && msg.transcricao_audio){
-    textoAnotacao += `🎤 Áudio transcrito:\n${msg.transcricao_audio}`;
-  } else {
-    textoAnotacao += msg.mensagem || '';
-  }
-
-  const {error: errAnn} = await db.from('at_anotacoes').insert({
-    atendimento_id: atId,
-    texto: textoAnotacao,
-    canal: msg.canal,
-    autor_nome: 'Sistema'
-  });
-  if(errAnn){ notify('Erro ao salvar anotação: '+errAnn.message,'error'); return; }
-
-  await db.from('integracoes_mensagens')
-    .update({atendimento_id: atId, processado: true})
-    .eq('id', msgId);
-
-  notify('Mensagem salva nas anotações!','success');
-  carregarMensagensAt(atId);
-  carregarFeedAnotacoes(atId);
-}
 
 
 
@@ -12792,3 +12580,411 @@ async function salvarMsgComoAnotacao(msgId, atId){
 </script>
 </body>
 </html>
+<script>
+// ── MÓDULO: MARKETING IA ────────────────────────────────────────────
+
+let mktTabAtual = 'aprovacao';
+
+function mudarTabMkt(tab, btn) {
+  mktTabAtual = tab;
+  document.querySelectorAll('.mkt-tab-btn').forEach(b => {
+    b.style.background = 'transparent';
+    b.style.fontWeight = '400';
+    b.style.color = 'var(--text2)';
+    b.style.boxShadow = 'none';
+  });
+  btn.style.background = 'var(--bg2)';
+  btn.style.fontWeight = '500';
+  btn.style.color = 'var(--text)';
+  btn.style.boxShadow = 'var(--shadow)';
+  btn.style.borderRadius = '7px';
+
+  ['aprovacao','campanhas','acervo','gerar'].forEach(t => {
+    const el = document.getElementById('mkt-tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+
+  if (tab === 'aprovacao') carregarPostsPendentes();
+  if (tab === 'campanhas') carregarCampanhas();
+  if (tab === 'acervo') carregarAcervo();
+  if (tab === 'gerar') carregarCampanhasSelect();
+}
+
+async function loadMarketing() {
+  carregarPostsPendentes();
+}
+
+// ── POSTS PARA APROVAÇÃO ─────────────────────────────────────────────
+
+async function carregarPostsPendentes() {
+  const el = document.getElementById('mkt-posts-lista');
+  if (!el) return;
+  el.innerHTML = '<div class="loader">Carregando posts...</div>';
+
+  const status = document.getElementById('mkt-filtro-status')?.value || 'pendente';
+  const empresa = document.getElementById('mkt-filtro-empresa')?.value || '';
+  const tipo = document.getElementById('mkt-filtro-tipo')?.value || '';
+
+  let query = db.from('marketing_posts')
+    .select('*, marketing_campanhas(nome, tipo)')
+    .order('data_publicacao', { ascending: true })
+    .order('created_at', { ascending: true })
+    .limit(50);
+
+  if (status !== 'todos') query = query.eq('status', status);
+  if (empresa) query = query.eq('empresa', empresa);
+  if (tipo) query = query.eq('tipo', tipo);
+
+  const { data, error } = await query;
+
+  if (error) { el.innerHTML = '<div style="color:var(--red)">Erro ao carregar posts.</div>'; return; }
+  if (!data || !data.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">Nenhum post encontrado.<br><span style="font-size:11px;">Gere conteúdo na aba "Gerar agora" ou aguarde o piloto automático.</span></div>';
+    return;
+  }
+
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;">' +
+    data.map(post => renderPostCard(post)).join('') + '</div>';
+}
+
+function renderPostCard(post) {
+  const statusCor = { pendente: '#e53e3e', aprovado: '#38a169', rejeitado: '#718096', publicado: '#1a4a8a' };
+  const tipoCor = post.tipo === 'feed' ? '#2d7a4f' : '#1a4a8a';
+  const dataFmt = post.data_publicacao ? new Date(post.data_publicacao + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+  const campanhaNome = post.marketing_campanhas?.nome || '—';
+  const legendaPreview = (post.legenda || '').slice(0, 150) + ((post.legenda || '').length > 150 ? '...' : '');
+
+  return `<div style="background:var(--bg2);border-radius:12px;padding:18px;box-shadow:var(--shadow);border:1px solid var(--border);border-left:3px solid ${tipoCor};">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:10px;background:${tipoCor};color:#fff;padding:2px 8px;border-radius:10px;font-weight:600;">${post.tipo === 'feed' ? '📸 Feed' : '⚡ Story'}</span>
+        <span style="font-size:10px;background:var(--bg);color:var(--text3);padding:2px 8px;border-radius:10px;">${post.empresa === 'marcenario' ? 'Marcena Rio' : 'Conceptus'}</span>
+      </div>
+      <span style="font-size:10px;color:${statusCor[post.status] || '#888'};font-weight:600;">${post.status?.toUpperCase()}</span>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">${campanhaNome} · ${dataFmt} às ${post.horario_publicacao || '—'}</div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;line-height:1.3;">${post.titulo || '—'}</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px;white-space:pre-wrap;">${legendaPreview}</div>
+    ${post.hashtags ? `<div style="font-size:11px;color:#1a4a8a;margin-bottom:10px;">${(post.hashtags || '').split(' ').slice(0,6).join(' ')}${(post.hashtags||'').split(' ').length > 6 ? ' ...' : ''}</div>` : ''}
+    ${post.status === 'pendente' ? `
+    <div style="display:flex;gap:6px;">
+      <button onclick="aprovarPost('${post.id}')" style="flex:1;padding:7px;background:var(--green-bg);color:var(--green);border:1px solid rgba(45,122,79,0.2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">✓ Aprovar</button>
+      <button onclick="editarPostMkt('${post.id}','${(post.legenda||'').replace(/'/g,"\'").replace(/\n/g,' ')}')" style="padding:7px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">✏️</button>
+      <button onclick="rejeitarPost('${post.id}')" style="padding:7px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--red);">✕</button>
+    </div>` : post.status === 'aprovado' ? `
+    <div style="display:flex;gap:6px;align-items:center;">
+      <span style="font-size:11px;color:var(--green);">✅ Aprovado por ${post.aprovado_por_nome || 'Admin'}</span>
+    </div>` : ''}
+  </div>`;
+}
+
+async function aprovarPost(id) {
+  const { error } = await db.from('marketing_posts').update({
+    status: 'aprovado',
+    aprovado_por: currentUser?.id || null,
+    aprovado_por_nome: currentUser?.nome || currentUser?.email || 'Admin',
+    aprovado_em: new Date().toISOString()
+  }).eq('id', id);
+
+  if (error) { notify('Erro ao aprovar post.', 'error'); return; }
+  notify('Post aprovado!');
+  carregarPostsPendentes();
+}
+
+async function rejeitarPost(id) {
+  if (!confirm('Rejeitar este post?')) return;
+  await db.from('marketing_posts').update({ status: 'rejeitado' }).eq('id', id);
+  notify('Post rejeitado.');
+  carregarPostsPendentes();
+}
+
+async function editarPostMkt(id, legendaAtual) {
+  const nova = prompt('Editar legenda:', legendaAtual.replace(/\\n/g, '\n'));
+  if (nova === null) return;
+  await db.from('marketing_posts').update({ legenda: nova }).eq('id', id);
+  notify('Post atualizado!');
+  carregarPostsPendentes();
+}
+
+async function aprovarTodosPendentes() {
+  const empresa = document.getElementById('mkt-filtro-empresa')?.value || '';
+  if (!confirm('Aprovar todos os posts pendentes?')) return;
+
+  let query = db.from('marketing_posts')
+    .update({
+      status: 'aprovado',
+      aprovado_por: currentUser?.id || null,
+      aprovado_por_nome: currentUser?.nome || currentUser?.email || 'Admin',
+      aprovado_em: new Date().toISOString()
+    })
+    .eq('status', 'pendente');
+
+  if (empresa) query = query.eq('empresa', empresa);
+  const { error } = await query;
+
+  if (error) { notify('Erro ao aprovar posts.', 'error'); return; }
+  notify('Todos os posts aprovados!');
+  carregarPostsPendentes();
+}
+
+// ── CAMPANHAS ─────────────────────────────────────────────────────────
+
+async function carregarCampanhas() {
+  const el = document.getElementById('mkt-campanhas-lista');
+  if (!el) return;
+  el.innerHTML = '<div class="loader">Carregando...</div>';
+
+  const { data, error } = await db.from('marketing_campanhas')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error || !data?.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text3);">Nenhuma campanha encontrada.</div>';
+    return;
+  }
+
+  el.innerHTML = data.map(c => {
+    const isPiloto = c.tipo === 'piloto';
+    const statusCor = c.status === 'ativa' ? '#38a169' : c.status === 'pausada' ? '#e5900a' : '#718096';
+    const dataInicio = c.data_inicio ? new Date(c.data_inicio + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const dataFim = c.data_fim ? new Date(c.data_fim + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem fim';
+
+    return `<div style="background:var(--bg2);border-radius:12px;padding:18px;box-shadow:var(--shadow);margin-bottom:12px;border:1px solid var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:10px;background:${isPiloto ? 'var(--accent-light)' : 'var(--blue-bg)'};color:${isPiloto ? 'var(--accent)' : 'var(--blue)'};padding:2px 8px;border-radius:10px;font-weight:600;">${isPiloto ? '🔄 Piloto automático' : '⚡ Campanha específica'}</span>
+          <span style="font-size:10px;color:${statusCor};font-weight:600;">${c.status?.toUpperCase()}</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          ${c.status === 'ativa' ? `<button onclick="pausarCampanha('${c.id}')" style="padding:4px 10px;border:1px solid var(--border2);border-radius:5px;font-size:11px;cursor:pointer;background:var(--bg);">Pausar</button>` : `<button onclick="ativarCampanha('${c.id}')" style="padding:4px 10px;border:1px solid var(--border2);border-radius:5px;font-size:11px;cursor:pointer;background:var(--bg);">Ativar</button>`}
+        </div>
+      </div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${c.nome}</div>
+      <div style="font-size:12px;color:var(--text3);">${c.empresa === 'marcenario' ? 'Marcena Rio' : 'Conceptus Italínea'} · ${c.tema || '—'} · ${dataInicio} → ${dataFim}</div>
+    </div>`;
+  }).join('');
+}
+
+async function pausarCampanha(id) {
+  await db.from('marketing_campanhas').update({ status: 'pausada' }).eq('id', id);
+  notify('Campanha pausada.');
+  carregarCampanhas();
+}
+
+async function ativarCampanha(id) {
+  await db.from('marketing_campanhas').update({ status: 'ativa' }).eq('id', id);
+  notify('Campanha ativada.');
+  carregarCampanhas();
+}
+
+function abrirModalNovaCampanha() {
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('nc-inicio').value = hoje;
+  document.getElementById('modal-nova-campanha').style.display = 'flex';
+}
+
+async function salvarNovaCampanha() {
+  const nome = document.getElementById('nc-nome').value.trim();
+  const empresa = document.getElementById('nc-empresa').value;
+  const tema = document.getElementById('nc-tema').value;
+  const inicio = document.getElementById('nc-inicio').value;
+  const fim = document.getElementById('nc-fim').value;
+  const briefing = document.getElementById('nc-briefing').value.trim();
+
+  if (!nome) { notify('Digite o nome da campanha.', 'error'); return; }
+
+  const { error } = await db.from('marketing_campanhas').insert({
+    tipo: 'especifica',
+    empresa,
+    nome,
+    tema,
+    data_inicio: inicio || null,
+    data_fim: fim || null,
+    tom: 'Sofisticado e refinado',
+    status: 'ativa',
+    criado_por: currentUser?.id || null,
+    criado_por_nome: currentUser?.nome || currentUser?.email || 'Admin'
+  });
+
+  if (error) { notify('Erro ao criar campanha.', 'error'); return; }
+  notify('Campanha criada!');
+  document.getElementById('modal-nova-campanha').style.display = 'none';
+  mudarTabMkt('campanhas', document.querySelectorAll('.mkt-tab-btn')[1]);
+}
+
+// ── ACERVO ────────────────────────────────────────────────────────────
+
+async function carregarAcervo() {
+  const el = document.getElementById('mkt-acervo-lista');
+  if (!el) return;
+  el.innerHTML = '<div class="loader">Carregando acervo...</div>';
+
+  const { data, error } = await db.from('marketing_acervo')
+    .select('*').order('created_at', { ascending: false });
+
+  if (!data?.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px;">Nenhum material no acervo ainda.<br><span style="font-size:11px;">Adicione links do Google Drive acima.</span></div>';
+    return;
+  }
+
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">' +
+    data.map(item => `
+      <div style="background:var(--bg2);border-radius:10px;padding:14px;box-shadow:var(--shadow);border:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:11px;background:var(--bg);color:var(--text3);padding:2px 8px;border-radius:10px;">${item.empresa === 'marcenario' ? 'Marcena Rio' : 'Conceptus'}</span>
+          <button onclick="removerAcervo('${item.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;">✕</button>
+        </div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">${item.nome}</div>
+        ${item.tags ? `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">${item.tags}</div>` : ''}
+        ${item.drive_url ? `<a href="${item.drive_url}" target="_blank" style="font-size:11px;color:#1a4a8a;text-decoration:none;">🔗 Ver no Drive</a>` : ''}
+      </div>
+    `).join('') + '</div>';
+}
+
+async function adicionarAcervo() {
+  const empresa = document.getElementById('acervo-empresa').value;
+  const nome = document.getElementById('acervo-nome').value.trim();
+  const url = document.getElementById('acervo-url').value.trim();
+  const tags = document.getElementById('acervo-tags').value.trim();
+
+  if (!nome || !url) { notify('Preencha o nome e o link do Drive.', 'error'); return; }
+
+  const { error } = await db.from('marketing_acervo').insert({ empresa, nome, drive_url: url, tags });
+  if (error) { notify('Erro ao adicionar.', 'error'); return; }
+
+  document.getElementById('acervo-nome').value = '';
+  document.getElementById('acervo-url').value = '';
+  document.getElementById('acervo-tags').value = '';
+  notify('Material adicionado ao acervo!');
+  carregarAcervo();
+}
+
+async function removerAcervo(id) {
+  if (!confirm('Remover este material do acervo?')) return;
+  await db.from('marketing_acervo').delete().eq('id', id);
+  notify('Material removido.');
+  carregarAcervo();
+}
+
+// ── GERAR POSTS COM IA ────────────────────────────────────────────────
+
+async function carregarCampanhasSelect() {
+  const empresa = document.getElementById('g-empresa')?.value;
+  const sel = document.getElementById('g-campanha');
+  if (!sel) return;
+
+  const { data } = await db.from('marketing_campanhas')
+    .select('id, nome, tipo').eq('status', 'ativa').order('tipo');
+
+  sel.innerHTML = data?.map(c =>
+    `<option value="${c.id}">${c.tipo === 'piloto' ? '🔄 ' : '⚡ '}${c.nome}</option>`
+  ).join('') || '<option>Nenhuma campanha ativa</option>';
+}
+
+async function gerarPostsIA() {
+  const empresa = document.getElementById('g-empresa').value;
+  const empresaNome = empresa === 'marcenario' ? 'Marcena Rio' : 'Conceptus Italínea';
+  const campanhaId = document.getElementById('g-campanha').value;
+  const tema = document.getElementById('g-tema').value;
+  const tom = document.getElementById('g-tom').value;
+  const dias = parseInt(document.getElementById('g-dias').value);
+  const info = document.getElementById('g-info').value;
+
+  const btn = document.getElementById('btn-gerar-mkt');
+  const statusEl = document.getElementById('mkt-gerar-status');
+  btn.disabled = true;
+  btn.innerHTML = '<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;margin-right:8px;"></div> Gerando...';
+  statusEl.textContent = 'A IA está criando seu conteúdo...';
+
+  // Buscar acervo para contexto
+  const { data: acervo } = await db.from('marketing_acervo')
+    .select('nome, tags').eq('empresa', empresa).limit(10);
+  const acervoTxt = acervo?.length
+    ? `\nAcervo de fotos disponíveis: ${acervo.map(a => a.nome + (a.tags ? ' (' + a.tags + ')' : '')).join(', ')}`
+    : '';
+
+  const hoje = new Date();
+  const dataInicio = hoje.toISOString().split('T')[0];
+
+  const prompt = `Você é um especialista em marketing digital para empresas de móveis planejados e marcenarias no Brasil.
+
+Crie posts para a empresa "${empresaNome}".
+Tema: ${tema}
+Tom de voz: ${tom}
+Quantidade de dias: ${dias}
+${info ? 'Informações adicionais: ' + info : ''}${acervoTxt}
+
+Responda APENAS com JSON válido (sem markdown) com esta estrutura:
+{
+  "posts": [
+    {
+      "dia": 1,
+      "tipo": "feed",
+      "titulo": "Título chamativo",
+      "legenda": "Legenda completa com emojis e chamada para ação. Mínimo 4 linhas.",
+      "hashtags": "#tag1 #tag2 #tag3 #tag4 #tag5 #tag6 #tag7 #tag8 #tag9 #tag10",
+      "horario": "12:00",
+      "data_publicacao": "${dataInicio}"
+    }
+  ]
+}
+
+Gere para todos os ${dias} dias: 1 feed + 2 stories por dia (total ${dias * 3} posts).
+Para stories: legenda curta e impactante (2-3 linhas), horários 09:00 e 19:00.
+Para feeds: legenda completa, horário 12:00.
+Ajuste as datas sequencialmente a partir de ${dataInicio}.
+RESPONDA APENAS COM JSON, SEM NADA MAIS.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    let texto = data.content[0].text.trim()
+      .replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+
+    const resultado = JSON.parse(texto);
+    const posts = resultado.posts || [];
+
+    // Salvar posts no Supabase
+    const inserts = posts.map(p => ({
+      campanha_id: campanhaId || null,
+      empresa,
+      tipo: p.tipo,
+      titulo: p.titulo,
+      legenda: p.legenda,
+      hashtags: p.hashtags,
+      horario_publicacao: p.horario,
+      data_publicacao: p.data_publicacao,
+      status: 'pendente'
+    }));
+
+    const { error } = await db.from('marketing_posts').insert(inserts);
+    if (error) throw new Error(error.message);
+
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✅ ${posts.length} posts gerados e salvos para aprovação!`;
+    notify(`${posts.length} posts gerados! Vá para "Aprovar posts" para revisar.`);
+
+    setTimeout(() => {
+      mudarTabMkt('aprovacao', document.querySelectorAll('.mkt-tab-btn')[0]);
+    }, 2000);
+
+  } catch (e) {
+    console.error(e);
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = 'Erro ao gerar posts. Tente novamente.';
+    notify('Erro ao gerar posts: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✨ Gerar posts com IA';
+  }
+}
+</script>
