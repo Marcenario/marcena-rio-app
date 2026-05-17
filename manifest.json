@@ -1,14 +1,15 @@
 {
-  "name": "Marcena Rio",
-  "short_name": "MarcenaRio",
-  "description": "Portal do cliente — Móveis planejados",
+  "name": "Planeja.ai",
+  "short_name": "Planeja.ai",
+  "description": "Gestão e marketplace de móveis planejados",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#1a1a2e",
+  "background_color": "#1a3a2e",
+  "theme_color": "#1a3a2e",
   "orientation": "portrait",
   "icons": [
-    {"src":"/logo_basic (1).png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"/logo_basic (1).png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {"src": "/app_icon_192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/app_icon_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/app_icon_1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any"}
   ]
 }
