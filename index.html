@@ -5690,16 +5690,50 @@ async function loadPontoHoje() {
     return;
   }
 
-  // Verifica folga
+  // Verifica folga ou feriado
   const {data: folga} = await db.from('rh_folgas')
     .select('*').eq('data', hojeStr)
     .or(`funcionario_id.eq.${func.id},funcionario_id.is.null`)
     .limit(1);
   if(folga && folga.length) {
+    const eFeriado = !folga[0].funcionario_id;
     cont.innerHTML = `<div class="ponto-card" style="text-align:center;padding:2rem;">
-      <div style="font-size:32px;margin-bottom:8px;">🌴</div>
-      <div style="font-size:16px;font-weight:500;">Dia de folga!</div>
-      <div style="font-size:13px;color:var(--text2);margin-top:4px;">${folga[0].motivo||'Folga cadastrada pelo administrador'}</div>
+      <div style="font-size:32px;margin-bottom:8px;">${eFeriado?'🏖️':'🌴'}</div>
+      <div style="font-size:16px;font-weight:500;">${eFeriado?'Feriado!':'Dia de folga!'}</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:4px;">${folga[0].motivo||'Registrado pelo administrador'}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;">Registro de ponto não permitido neste dia.</div>
+    </div>`;
+    loadHistoricoPonto(func.id);
+    return;
+  }
+
+  // Verifica atestado médico aprovado
+  const {data: atestado} = await db.from('rh_atestados')
+    .select('*').eq('funcionario_id', func.id).eq('status','aprovado')
+    .lte('data_inicio', hojeStr).gte('data_fim', hojeStr)
+    .limit(1);
+  if(atestado && atestado.length) {
+    cont.innerHTML = `<div class="ponto-card" style="text-align:center;padding:2rem;">
+      <div style="font-size:32px;margin-bottom:8px;">🏥</div>
+      <div style="font-size:16px;font-weight:500;">Atestado médico</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:4px;">Atestado aprovado — ${atestado[0].dias} dia(s) a partir de ${new Date(atestado[0].data_inicio+'T12:00').toLocaleDateString('pt-BR')}.</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;">Registro de ponto não permitido neste dia.</div>
+    </div>`;
+    loadHistoricoPonto(func.id);
+    return;
+  }
+
+  // Verifica abono no cartão de ponto
+  const {data: abono} = await db.from('rh_abonos')
+    .select('*').eq('funcionario_id', func.id).eq('data', hojeStr)
+    .limit(1);
+  if(abono && abono.length) {
+    const tipoAbono = {feriado:'🏖️ Feriado', folga:'🌴 Folga', atestado:'🏥 Atestado médico'}[abono[0].tipo]||'📄 Abono';
+    cont.innerHTML = `<div class="ponto-card" style="text-align:center;padding:2rem;">
+      <div style="font-size:32px;margin-bottom:8px;">${tipoAbono.split(' ')[0]}</div>
+      <div style="font-size:16px;font-weight:500;">${tipoAbono.slice(3)}</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:4px;">${abono[0].motivo||''}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;">Registro de ponto não permitido neste dia.</div>
     </div>`;
     loadHistoricoPonto(func.id);
     return;
@@ -5779,6 +5813,22 @@ async function confirmarBatida(tipo) {
   const input = document.getElementById('rh-foto-input');
   const file = input.files[0];
   if(!file) return;
+
+  // Verificação de segurança: bloquear se há folga, feriado ou atestado hoje
+  const hojeGuard = dataHojeBR();
+  const funcIdGuard = rhFuncAtual?.id;
+  if(funcIdGuard){
+    const [{data:folgaG},{data:atestadoG},{data:abonoG}] = await Promise.all([
+      db.from('rh_folgas').select('id').eq('data',hojeGuard).or(`funcionario_id.eq.${funcIdGuard},funcionario_id.is.null`).limit(1),
+      db.from('rh_atestados').select('id').eq('funcionario_id',funcIdGuard).eq('status','aprovado').lte('data_inicio',hojeGuard).gte('data_fim',hojeGuard).limit(1),
+      db.from('rh_abonos').select('id').eq('funcionario_id',funcIdGuard).eq('data',hojeGuard).limit(1)
+    ]);
+    if((folgaG&&folgaG.length)||(atestadoG&&atestadoG.length)||(abonoG&&abonoG.length)){
+      notify('Registro de ponto não permitido: há folga, feriado ou atestado para hoje.','error');
+      input.value='';
+      return;
+    }
+  }
 
   const btn = document.querySelector('.btn-bater-ponto');
   if(btn) { btn.disabled = true; btn.textContent = 'Registrando...'; }
