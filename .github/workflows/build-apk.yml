@@ -99,21 +99,15 @@ jobs:
             "enableSidecar": false
           }
           EOF
-          echo "twa-manifest.json criado com sucesso"
-          cat twa-project/twa-manifest.json
 
       - name: Build APK e AAB
         run: |
           cd twa-project
-          printf 'n\n' | bubblewrap build --skipPwaValidation
-        env:
-          SIGNING_KEY_PATH: ../keystore.jks
-          SIGNING_KEY_ALIAS: planejaai
-          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          SIGNING_STORE_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          printf 'no\n${{ secrets.KEY_PASSWORD }}\n${{ secrets.KEY_PASSWORD }}\n' | \
+            bubblewrap build --skipPwaValidation
 
       - name: Listar arquivos gerados
-        run: find twa-project -name "*.apk" -o -name "*.aab" 2>/dev/null || echo "Nenhum APK/AAB encontrado"
+        run: find twa-project -name "*.apk" -o -name "*.aab" 2>/dev/null || echo "Nenhum arquivo encontrado"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
