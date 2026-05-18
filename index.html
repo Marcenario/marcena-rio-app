@@ -8900,7 +8900,7 @@ async function abrirModalAt(id){
       ${a.etapa_funil_nome?`<span class="badge" style="background:var(--bg);border:1px solid var(--border2);color:var(--text2);">📍 ${a.etapa_funil_nome}</span>`:''}
       <span style="font-size:12px;color:var(--text3);">Registrado em ${dataStr}</span>
     </div>
-    ${userNivel==='admin'&&vendedores?.length?`
+    ${isStaffGeral()&&vendedores?.length?`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
       <label style="font-size:12px;color:var(--text2);font-weight:500;">👤 Vendedor:</label>
       <select id="select-vendedor-${id}" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
