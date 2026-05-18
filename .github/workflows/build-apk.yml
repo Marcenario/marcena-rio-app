@@ -11,73 +11,92 @@ jobs:
 
     steps:
       - name: Checkout código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Instalar Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar Android SDK
-        uses: android-actions/setup-android@v2
+      - name: Gerar Keystore
+        run: |
+          keytool -genkey -v \
+            -keystore keystore.jks \
+            -alias planejaai \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass ${{ secrets.KEY_PASSWORD }} \
+            -keypass ${{ secrets.KEY_PASSWORD }} \
+            -dname "CN=Planeja.ai, OU=App, O=Marcena Rio, L=Rio de Janeiro, ST=RJ, C=BR"
 
-      - name: Inicializar projeto TWA
+      - name: Criar twa-manifest.json e inicializar projeto
         run: |
           mkdir -p twa-project
           cd twa-project
-          bubblewrap init \
-            --manifest=https://appplanejaai.com.br/manifest.json \
-            --directory=. \
-            --skip-pwa-validation \
-            --jdk-path=$JAVA_HOME \
-            --android-sdk-path=$ANDROID_SDK_ROOT \
-            --package-id=br.com.planejaai.app \
-            --name="Planeja.ai" \
-            --launcher-name="Planeja.ai" \
-            --display=standalone \
-            --orientation=portrait \
-            --theme-color=#1a3a2e \
-            --background-color=#1a3a2e \
-            --start-url=/ \
-            --icon-url=https://appplanejaai.com.br/app_icon_512.png \
-            --maskable-icon-url=https://appplanejaai.com.br/app_icon_512.png \
-            --app-version=1.0.0 \
-            --app-version-code=1 \
-            --min-sdk-version=19 \
-            --key-path=../keystore.jks \
-            --key-alias=planejaai \
-            --key-password=${{ secrets.KEY_PASSWORD }} \
-            --store-password=${{ secrets.KEY_PASSWORD }}
+          cat > twa-manifest.json << 'EOF'
+          {
+            "packageId": "br.com.planejaai.app",
+            "host": "appplanejaai.com.br",
+            "name": "Planeja.ai",
+            "launcherName": "Planeja.ai",
+            "display": "standalone",
+            "orientation": "portrait",
+            "themeColor": "#1a3a2e",
+            "navigationColor": "#1a3a2e",
+            "navigationColorDark": "#1a3a2e",
+            "navigationDividerColor": "#1a3a2e",
+            "navigationDividerColorDark": "#1a3a2e",
+            "backgroundColor": "#1a3a2e",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "iconUrl": "https://appplanejaai.com.br/app_icon_512.png",
+            "maskableIconUrl": "https://appplanejaai.com.br/app_icon_512.png",
+            "monochromeIconUrl": "https://appplanejaai.com.br/app_icon_512.png",
+            "appVersion": "1.0.0",
+            "appVersionCode": 1,
+            "signingKey": {
+              "path": "../keystore.jks",
+              "alias": "planejaai"
+            },
+            "splashScreenFadeOutDuration": 300,
+            "enableSiteSettingsShortcut": true,
+            "isChromeOSOnly": false,
+            "isMetaQuest": false,
+            "fullScopeUrl": "https://appplanejaai.com.br/",
+            "minSdkVersion": 19,
+            "shortcuts": [],
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "https://appplanejaai.com.br/manifest.json",
+            "fallbackType": "customtabs",
+            "features": {},
+            "alphaDependencies": false,
+            "enableSidecar": false
+          }
+          EOF
 
-      - name: Gerar Keystore (primeira vez)
-        run: |
-          if [ ! -f keystore.jks ]; then
-            keytool -genkey -v \
-              -keystore keystore.jks \
-              -alias planejaai \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -storepass ${{ secrets.KEY_PASSWORD }} \
-              -keypass ${{ secrets.KEY_PASSWORD }} \
-              -dname "CN=Planeja.ai, OU=App, O=Marcena Rio, L=Rio de Janeiro, ST=RJ, C=BR"
-          fi
-
-      - name: Build APK
+      - name: Build APK e AAB
         run: |
           cd twa-project
-          bubblewrap build \
-            --jdk-path=$JAVA_HOME \
-            --android-sdk-path=$ANDROID_SDK_ROOT
+          bubblewrap build --skipPwaValidation
+        env:
+          BUBBLEWRAP_DISABLE_TELEMETRY: true
+          SIGNING_KEY_PATH: ../keystore.jks
+          SIGNING_KEY_ALIAS: planejaai
+          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
