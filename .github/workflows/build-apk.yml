@@ -80,13 +80,13 @@ jobs:
             --android-sdk-path=$ANDROID_SDK_ROOT
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: planejaai-apk
           path: twa-project/app-release-signed.apk
 
       - name: Upload AAB (Play Store)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: planejaai-aab
           path: twa-project/app-release-bundle.aab
