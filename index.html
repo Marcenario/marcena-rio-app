@@ -1188,10 +1188,14 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <button onclick="document.getElementById('ag-modal-reuniao').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);">✕</button>
           </div>
           <div class="form-row"><label>Título</label><input type="text" id="ag-r-titulo" placeholder="Ex: Reunião de alinhamento"></div>
-          <div class="form-row"><label>Funcionário</label>
-            <select id="ag-r-funcionario" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);">
-              <option value="">Selecione...</option>
-            </select>
+          <div class="form-row">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <label style="margin:0;">Participantes</label>
+              <button type="button" onclick="selecionarTodosReuniao()" style="font-size:11px;padding:3px 10px;background:var(--brand);color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✓ Todos</button>
+            </div>
+            <div id="ag-r-participantes" style="max-height:150px;overflow-y:auto;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg2);padding:8px 10px;display:flex;flex-direction:column;gap:5px;">
+              <div style="font-size:12px;color:var(--text3);">Carregando...</div>
+            </div>
           </div>
           <div class="form-grid">
             <div class="form-row"><label>Data início</label><input type="datetime-local" id="ag-r-inicio"></div>
@@ -10008,11 +10012,18 @@ async function loadAgenda(){
   const sel = document.getElementById('ag-filtro-func');
   const selR = document.getElementById('ag-r-funcionario');
   sel.innerHTML = '<option value="">Todos os funcionários</option>';
-  selR.innerHTML = '<option value="">Selecione...</option>';
+  // Popular checkboxes de participantes
+  const contPart = document.getElementById('ag-r-participantes');
+  if(contPart){
+    contPart.innerHTML = _agFuncionarios.map(f=>
+      `<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:2px 0;">`
+      +`<input type="checkbox" class="ag-r-check" value="${f.id}|${f.tipo}|${encodeURIComponent(f.nome)}" style="width:15px;height:15px;cursor:pointer;">`
+      +`${f.nome}</label>`
+    ).join('') || '<div style="font-size:12px;color:var(--text3);">Nenhum participante.</div>';
+  }
   _agFuncionarios.forEach(f=>{
     const tipoLabel = f.tipo==='equipe'?'Equipe':f.tipo==='conferente'?'Conferente':'Vendedor';
     sel.innerHTML += `<option value="${f.id}">${f.nome} (${tipoLabel})</option>`;
-    selR.innerHTML += `<option value="${f.id}|${f.tipo}|${encodeURIComponent(f.nome)}">${f.nome}</option>`;
   });
   // Adicionar criadores de reuniões/tarefas que ainda não estão na lista (fallback)
   reunioes.forEach(r=>{
@@ -10542,39 +10553,49 @@ function toggleRecorrenciaFim(){
 
 async function salvarReuniao(){
   const titulo = document.getElementById('ag-r-titulo').value.trim();
-  const funcVal = document.getElementById('ag-r-funcionario').value;
   const inicio = document.getElementById('ag-r-inicio').value;
   const fim = document.getElementById('ag-r-fim').value;
   const desc = document.getElementById('ag-r-desc').value.trim();
   const rec = document.getElementById('ag-r-recorrencia').value;
   const recFim = document.getElementById('ag-r-recorrencia-fim').value;
-  if(!titulo||!funcVal||!inicio||!fim){ setAlert('ag-r-alert','Preencha título, funcionário e datas.','error'); return; }
-  const [funcId, funcTipo, funcNomeEnc] = funcVal.split('|');
-  const funcNome = decodeURIComponent(funcNomeEnc||'');
-  const {error} = await db.from('agenda_reunioes').insert({
-    titulo, descricao:desc,
-    funcionario_id:funcId, funcionario_nome:funcNome, funcionario_tipo:funcTipo,
-    data_inicio:new Date(inicio).toISOString(), data_fim:new Date(fim).toISOString(),
-    recorrencia_tipo:rec||null, recorrencia_fim:recFim||null,
-    criado_por:currentUser.id
-  });
-  if(error){ setAlert('ag-r-alert','Erro ao salvar: '+error.message,'error'); return; }
-
-  // Email de notificação
-  const func = _agFuncionarios.find(f=>f.id===funcId);
-  // Buscar email do funcionário nos perfis
-  const {data:perfil} = await db.from('perfis').select('email').eq('id',funcId).maybeSingle();
-  if(perfil?.email){
-    fetch(`${SUPABASE_URL}/functions/v1/email-reuniao`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
-      body:JSON.stringify({ titulo, descricao:desc, funcionario_nome:funcNome, email:perfil.email, data_inicio:inicio, data_fim:fim })
-    }).catch(e=>console.warn('Email reunião não enviado:',e));
+  const checks = document.querySelectorAll('.ag-r-check:checked');
+  if(!titulo||!checks.length||!inicio||!fim){ setAlert('ag-r-alert','Preencha título, selecione ao menos um participante e as datas.','error'); return; }
+  // Inserir um evento por participante selecionado
+  const nomes = [];
+  for(const cb of checks){
+    const [funcId, funcTipo, funcNomeEnc] = cb.value.split('|');
+    const funcNome = decodeURIComponent(funcNomeEnc||'');
+    const {error} = await db.from('agenda_reunioes').insert({
+      titulo, descricao:desc,
+      funcionario_id:funcId, funcionario_nome:funcNome, funcionario_tipo:funcTipo,
+      data_inicio:new Date(inicio).toISOString(), data_fim:new Date(fim).toISOString(),
+      recorrencia_tipo:rec||null, recorrencia_fim:recFim||null,
+      criado_por:currentUser.id
+    });
+    if(error){ setAlert('ag-r-alert','Erro ao salvar para '+funcNome+': '+error.message,'error'); continue; }
+    nomes.push(funcNome);
+    // Email de notificação
+    const {data:perfil} = await db.from('perfis').select('email').eq('id',funcId).maybeSingle();
+    if(perfil?.email){
+      fetch(`${SUPABASE_URL}/functions/v1/email-reuniao`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+        body:JSON.stringify({ titulo, descricao:desc, funcionario_nome:funcNome, email:perfil.email, data_inicio:inicio, data_fim:fim })
+      }).catch(e=>console.warn('Email reunião não enviado:',e));
+    }
   }
 
-  notify('Reunião agendada!');
+  notify('Reunião agendada para: '+nomes.join(', ')+'!');
   document.getElementById('ag-modal-reuniao').style.display='none';
+  // Desmarcar checkboxes
+  document.querySelectorAll('.ag-r-check').forEach(cb=>cb.checked=false);
   loadAgenda();
+}
+
+function selecionarTodosReuniao(){
+  const checks = document.querySelectorAll('.ag-r-check');
+  const todosM = Array.from(checks).every(c=>c.checked);
+  checks.forEach(c=>c.checked=!todosM);
 }
 
 /* ── ENDEREÇO ── */
