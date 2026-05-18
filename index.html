@@ -45,6 +45,15 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .store-btn-text span{font-size:13px;color:#fff;font-family:'DM Sans',sans-serif;font-weight:600}
 .store-coming{text-align:center;font-size:11px;color:var(--text3);margin-top:10px;font-family:'DM Sans',sans-serif;letter-spacing:0.5px}
 #app-screen{display:none;min-height:100vh}
+/* ── AVISOS DE TAREFAS ── */
+#painel-avisos{position:fixed;bottom:70px;right:16px;z-index:800;display:flex;flex-direction:column;gap:8px;max-width:320px;pointer-events:none;}
+.aviso-card{background:#1e3a2f;color:#fff;border-radius:10px;padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:13px;box-shadow:0 4px 18px rgba(0,0,0,0.25);pointer-events:all;cursor:pointer;border-left:4px solid var(--green);animation:slideInRight 0.3s ease;}
+.aviso-card.urgente{background:#5a1a1a;border-left-color:#ff6b6b;animation:piscar 1s ease-in-out infinite;}
+.aviso-card-titulo{font-weight:600;margin-bottom:4px;}
+.aviso-card-sub{font-size:11px;opacity:0.8;}
+.aviso-card-fechar{float:right;background:none;border:none;color:#fff;cursor:pointer;font-size:14px;opacity:0.7;margin-left:8px;pointer-events:all;}
+@keyframes slideInRight{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes piscar{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(1.02)}}
 .topbar{background:var(--brand);color:#fff;padding:0 2rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .topbar-logo{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:-0.3px;display:flex;align-items:center;gap:10px}
 .topbar-logo-icon{width:32px;height:32px;background:rgba(240,232,220,0.12);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
@@ -293,6 +302,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 </head>
 <body>
 <div id="notif"></div>
+<div id="painel-avisos"></div>
 
 <div id="auth-screen">
   <div class="auth-box">
@@ -381,6 +391,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <div class="topbar-right">
       <span class="topbar-nivel" id="topbar-nivel"></span>
       <span class="topbar-user" id="topbar-email"></span>
+      <button id="btn-tarefas-hoje" onclick="verTarefasHoje()" style="display:none;background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;" title="Ver tarefas de hoje">📋 Hoje</button>
       <button class="btn-logout" onclick="doLogout()">Sair</button>
     </div>
   </div>
@@ -2169,6 +2180,158 @@ async function onLogin(user){
   else if(isGerente()){showSection('atendimento',document.getElementById('nav-atendimento'))}
   else if(isStaff){showSection('rh',document.getElementById('nav-rh'))}
   else{showSection('solicitar',document.getElementById('nav-solicitar'));prefillOrcamento()}
+  // Iniciar sistema de avisos de tarefas (só para staff)
+  if(isStaffGeral()){
+    iniciarAvisosTarefas();
+    const btnHoje = document.getElementById('btn-tarefas-hoje');
+    if(btnHoje) btnHoje.style.display='block';
+  }
+}
+
+// ══════════════════════════════════════════
+//  SISTEMA DE AVISOS DE TAREFAS
+// ══════════════════════════════════════════
+
+let _avisoInterval = null;
+let _avisosExibidos = new Set(); // IDs já exibidos nesta sessão
+let _resumoDiarioExibido = false;
+
+async function iniciarAvisosTarefas(){
+  // Executar imediatamente ao logar
+  await verificarAvisosTarefas();
+
+  // Checar a cada minuto
+  if(_avisoInterval) clearInterval(_avisoInterval);
+  _avisoInterval = setInterval(verificarAvisosTarefas, 60000);
+}
+
+async function verificarAvisosTarefas(){
+  if(!currentUser) return;
+
+  const agora = new Date();
+  const hojeStr = agora.toISOString().slice(0,10);
+  const horaAtual = agora.getHours();
+  const minAtual  = agora.getMinutes();
+
+  // Buscar funcionário logado em rh_funcionarios
+  const {data:funcAtual} = await db.from('rh_funcionarios')
+    .select('id,nome').eq('user_id', currentUser.id).maybeSingle();
+  const funcId = funcAtual?.id || currentUser.id;
+
+  // Buscar tarefas do dia para este funcionário
+  const {data:tarefasHoje} = await db.from('at_tarefas')
+    .select('*')
+    .eq('data_tarefa', hojeStr)
+    .eq('responsavel_id', funcId)
+    .eq('concluida', false)
+    .order('horario');
+
+  if(!tarefasHoje || !tarefasHoje.length) return;
+
+  // ── Resumo das 9h: mostrar lista de todas as tarefas do dia
+  if(horaAtual === 9 && minAtual < 5 && !_resumoDiarioExibido){
+    _resumoDiarioExibido = true;
+    exibirResumoDiario(tarefasHoje);
+  }
+  // Reset flag no dia seguinte
+  if(horaAtual === 0) _resumoDiarioExibido = false;
+
+  // ── Aviso piscante 1h antes de cada tarefa
+  for(const tarefa of tarefasHoje){
+    if(!tarefa.horario) continue;
+    const [h,m] = tarefa.horario.split(':').map(Number);
+    const minutosParaTarefa = (h*60+m) - (horaAtual*60+minAtual);
+
+    // Entre 55min e 65min antes — janela de 10min para garantir que aparece
+    if(minutosParaTarefa >= 55 && minutosParaTarefa <= 65){
+      const avisoId = 'urgente-'+tarefa.id;
+      if(!_avisosExibidos.has(avisoId)){
+        _avisosExibidos.add(avisoId);
+        exibirAvisoUrgente(tarefa);
+      }
+    }
+  }
+}
+
+function exibirResumoDiario(tarefas){
+  const lista = tarefas.map(t=>
+    `<div style="display:flex;align-items:baseline;gap:6px;margin:3px 0;">
+      <span style="font-weight:600;white-space:nowrap;">${t.horario||'--:--'}</span>
+      <span style="opacity:0.9;">${t.titulo}</span>
+    </div>`
+  ).join('');
+
+  const card = document.createElement('div');
+  card.className = 'aviso-card';
+  card.id = 'aviso-resumo-diario';
+  card.innerHTML =
+    `<button class="aviso-card-fechar" onclick="this.closest('.aviso-card').remove()">✕</button>
+    <div class="aviso-card-titulo">📋 Suas tarefas de hoje</div>
+    <div style="margin-top:6px;font-size:12px;">${lista}</div>
+    <div class="aviso-card-sub" style="margin-top:8px;">Clique para fechar</div>`;
+  card.onclick = function(e){ if(!e.target.classList.contains('aviso-card-fechar')) card.remove(); };
+
+  // Remover resumo anterior se existir
+  const anterior = document.getElementById('aviso-resumo-diario');
+  if(anterior) anterior.remove();
+
+  document.getElementById('painel-avisos').prepend(card);
+
+  // Auto-fechar após 30 segundos
+  setTimeout(()=>{ if(card.parentNode) card.remove(); }, 30000);
+}
+
+function exibirAvisoUrgente(tarefa){
+  const card = document.createElement('div');
+  card.className = 'aviso-card urgente';
+  card.id = 'aviso-urgente-'+tarefa.id;
+  card.innerHTML =
+    `<button class="aviso-card-fechar" onclick="this.closest('.aviso-card').remove()">✕</button>
+    <div class="aviso-card-titulo">⏰ Em 1 hora!</div>
+    <div style="margin:4px 0;font-size:14px;font-weight:600;">${tarefa.titulo}</div>
+    <div class="aviso-card-sub">${tarefa.horario} · Toque para fechar</div>`;
+  card.onclick = function(e){ if(!e.target.classList.contains('aviso-card-fechar')) card.remove(); };
+
+  document.getElementById('painel-avisos').prepend(card);
+
+  // Auto-fechar após 10 minutos
+  setTimeout(()=>{ if(card.parentNode) card.remove(); }, 600000);
+
+  // Notificação nativa do browser (se permitida)
+  if(Notification?.permission === 'granted'){
+    new Notification('⏰ Tarefa em 1 hora!', {
+      body: tarefa.titulo + ' — ' + tarefa.horario,
+      icon: '/favicon.ico',
+      tag: 'tarefa-'+tarefa.id
+    });
+  } else if(Notification?.permission === 'default'){
+    Notification.requestPermission().then(perm=>{
+      if(perm==='granted'){
+        new Notification('⏰ Tarefa em 1 hora!', {
+          body: tarefa.titulo + ' — ' + tarefa.horario,
+          icon: '/favicon.ico',
+          tag: 'tarefa-'+tarefa.id
+        });
+      }
+    });
+  }
+}
+
+// Exibir resumo diário manualmente (para testar ou exibir a qualquer hora)
+async function verTarefasHoje(){
+  const hojeStr = new Date().toISOString().slice(0,10);
+  const {data:funcAtual} = await db.from('rh_funcionarios')
+    .select('id').eq('user_id', currentUser.id).maybeSingle();
+  const funcId = funcAtual?.id || currentUser.id;
+  const {data:tarefas} = await db.from('at_tarefas')
+    .select('*').eq('data_tarefa', hojeStr).eq('responsavel_id', funcId)
+    .eq('concluida', false).order('horario');
+  if(!tarefas || !tarefas.length){
+    notify('Nenhuma tarefa para hoje!', 'info');
+    return;
+  }
+  _resumoDiarioExibido = false;
+  exibirResumoDiario(tarefas);
 }
 
 function prefillOrcamento(){
