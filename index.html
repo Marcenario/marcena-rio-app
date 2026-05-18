@@ -4439,7 +4439,7 @@ async function voltarEtapaAt(id, etapaAnteriorId){
 
 async function abrirModalDistribuir(atId){
   const {data:at}=await db.from('atendimentos').select('id,numero,cliente_nome,estimativa').eq('id',atId).single();
-  const {data:vends}=await db.from('perfis').select('id,nome').eq('nivel','funcionario').order('nome');
+  const {data:vends}=await db.from('vendedores').select('id,nome').order('nome');
   const mes=new Date().toISOString().slice(0,7);
   const {data:ativos}=await db.from('atendimentos').select('vendedor_id,estimativa').eq('mes_ref',mes).eq('status','em_andamento');
   const carga={};
