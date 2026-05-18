@@ -13,11 +13,6 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -27,15 +22,9 @@ jobs:
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Instalar Bubblewrap e expect
+      - name: Instalar dependências Android
         run: |
-          npm install -g @bubblewrap/cli
-          sudo apt-get install -y expect
-
-      - name: Configurar Bubblewrap
-        run: |
-          mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\": \"$JAVA_HOME\", \"androidSdkPath\": \"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
+          sdkmanager "build-tools;34.0.0" "platforms;android-34" "platform-tools"
 
       - name: Gerar Keystore
         run: |
@@ -49,88 +38,145 @@ jobs:
             -keypass ${{ secrets.KEY_PASSWORD }} \
             -dname "CN=Planeja.ai, OU=App, O=Marcena Rio, L=Rio de Janeiro, ST=RJ, C=BR"
 
-      - name: Inicializar projeto TWA
+      - name: Criar projeto Android TWA
         run: |
-          mkdir -p twa-project
-          cd twa-project
-          printf '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' | \
-            bubblewrap init \
-              --manifest=https://appplanejaai.com.br/manifest.json \
-              --directory=. \
-              --skip-pwa-validation 2>&1 || true
+          mkdir -p twa-app/app/src/main/res/xml
+          mkdir -p twa-app/app/src/main/res/drawable
+          mkdir -p twa-app/app/src/main/java/br/com/planejaai/app
 
-      - name: Criar twa-manifest.json
-        run: |
-          cat > twa-project/twa-manifest.json << 'EOF'
-          {
-            "packageId": "br.com.planejaai.app",
-            "host": "appplanejaai.com.br",
-            "name": "Planeja.ai",
-            "launcherName": "Planeja.ai",
-            "display": "standalone",
-            "orientation": "portrait",
-            "themeColor": "#1a3a2e",
-            "navigationColor": "#1a3a2e",
-            "navigationColorDark": "#1a3a2e",
-            "navigationDividerColor": "#1a3a2e",
-            "navigationDividerColorDark": "#1a3a2e",
-            "backgroundColor": "#1a3a2e",
-            "enableNotifications": false,
-            "startUrl": "/",
-            "iconUrl": "https://appplanejaai.com.br/app_icon_512.png",
-            "maskableIconUrl": "https://appplanejaai.com.br/app_icon_512.png",
-            "monochromeIconUrl": "https://appplanejaai.com.br/app_icon_512.png",
-            "appVersion": "1.0.0",
-            "appVersionCode": 1,
-            "signingKey": {
-              "path": "../keystore.jks",
-              "alias": "planejaai"
-            },
-            "splashScreenFadeOutDuration": 300,
-            "enableSiteSettingsShortcut": true,
-            "isChromeOSOnly": false,
-            "isMetaQuest": false,
-            "fullScopeUrl": "https://appplanejaai.com.br/",
-            "minSdkVersion": 19,
-            "shortcuts": [],
-            "generatorApp": "bubblewrap-cli",
-            "webManifestUrl": "https://appplanejaai.com.br/manifest.json",
-            "fallbackType": "customtabs",
-            "features": {},
-            "alphaDependencies": false,
-            "enableSidecar": false
+          # settings.gradle
+          cat > twa-app/settings.gradle << 'EOF'
+          rootProject.name = "PlanejaAi"
+          include ':app'
+          EOF
+
+          # build.gradle (root)
+          cat > twa-app/build.gradle << 'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.0'
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
           }
           EOF
 
-      - name: Build APK e AAB via expect
+          # gradle wrapper properties
+          mkdir -p twa-app/gradle/wrapper
+          cat > twa-app/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+
+          # gradlew
+          cat > twa-app/gradlew << 'EOF'
+          #!/bin/sh
+          exec gradle "$@"
+          EOF
+          chmod +x twa-app/gradlew
+
+          # app/build.gradle
+          cat > twa-app/app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+          android {
+              compileSdk 34
+              namespace "br.com.planejaai.app"
+              defaultConfig {
+                  applicationId "br.com.planejaai.app"
+                  minSdk 19
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0.0"
+              }
+              signingConfigs {
+                  release {
+                      storeFile file("../../keystore.jks")
+                      storePassword System.getenv("KEY_PASSWORD")
+                      keyAlias "planejaai"
+                      keyPassword System.getenv("KEY_PASSWORD")
+                  }
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }
+          dependencies {
+              implementation 'androidx.browser:browser:1.6.0'
+              implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+          }
+          EOF
+
+          # AndroidManifest.xml
+          cat > twa-app/app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="Planeja.ai"
+                  android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity
+                      android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+                      android:exported="true">
+                      <meta-data
+                          android:name="android.support.customtabs.trusted.DEFAULT_URL"
+                          android:value="https://appplanejaai.com.br" />
+                      <intent-filter android:autoVerify="true">
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                      <intent-filter android:autoVerify="true">
+                          <action android:name="android.intent.action.VIEW"/>
+                          <category android:name="android.intent.category.DEFAULT"/>
+                          <category android:name="android.intent.category.BROWSABLE"/>
+                          <data android:scheme="https" android:host="appplanejaai.com.br"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # strings.xml
+          mkdir -p twa-app/app/src/main/res/values
+          cat > twa-app/app/src/main/res/values/strings.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">Planeja.ai</string>
+          </resources>
+          EOF
+
+          echo "Projeto Android criado!"
+          ls twa-app/
+
+      - name: Build APK
         env:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          cd twa-project
-          expect << EOF
-          set timeout 300
-          spawn bubblewrap build --skipPwaValidation
-          expect {
-            "regenerate" { send "no\r"; exp_continue }
-            "Key Store:" { send "$env(KEY_PASSWORD)\r"; exp_continue }
-            "alias planejaai:" { send "$env(KEY_PASSWORD)\r"; exp_continue }
-            eof
-          }
-          EOF
+          cd twa-app
+          gradle assembleRelease --no-daemon
 
-      - name: Listar arquivos gerados
-        run: find twa-project -name "*.apk" -o -name "*.aab" 2>/dev/null || echo "Nenhum arquivo encontrado"
+      - name: Listar APKs gerados
+        run: find twa-app -name "*.apk" 2>/dev/null || echo "Nenhum APK encontrado"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: planejaai-apk
-          path: twa-project/**/*.apk
-          if-no-files-found: warn
-
-      - name: Upload AAB (Play Store)
-        uses: actions/upload-artifact@v4
-        with:
-          name: planejaai-aab
-          path: twa-project/**/*.aab
+          path: twa-app/app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
