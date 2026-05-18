@@ -36,6 +36,14 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .auth-msg{font-size:13px;text-align:center;margin-top:10px;min-height:18px}
 .auth-msg.error{color:var(--red)}
 .auth-msg.success{color:var(--green)}
+.store-buttons{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+.store-btn{display:flex;align-items:center;gap:10px;background:#000;border:1px solid #000;border-radius:12px;padding:10px 16px;cursor:pointer;text-decoration:none;transition:all 0.2s;min-width:142px}
+.store-btn:hover{background:#222;border-color:#222;transform:translateY(-1px)}
+.store-btn svg{flex-shrink:0}
+.store-btn-text{display:flex;flex-direction:column;line-height:1.2}
+.store-btn-text small{font-size:10px;color:rgba(255,255,255,0.65);font-family:'DM Sans',sans-serif;letter-spacing:0.3px}
+.store-btn-text span{font-size:13px;color:#fff;font-family:'DM Sans',sans-serif;font-weight:600}
+.store-coming{text-align:center;font-size:11px;color:var(--text3);margin-top:10px;font-family:'DM Sans',sans-serif;letter-spacing:0.5px}
 #app-screen{display:none;min-height:100vh}
 .topbar{background:var(--brand);color:#fff;padding:0 2rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .topbar-logo{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:-0.3px;display:flex;align-items:center;gap:10px}
@@ -325,6 +333,36 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <button class="btn-main" onclick="doSignup()" id="btn-signup">Criar conta</button>
       <p class="auth-msg" id="signup-msg"></p>
     </div>
+
+    <!-- Baixar o app -->
+    <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);">
+      <p style="text-align:center;font-size:11px;color:var(--text3);font-family:'DM Sans',sans-serif;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:12px;">Baixar o aplicativo</p>
+      <div class="store-buttons" style="margin-top:0;">
+        <a href="#" class="store-btn" id="btn-playstore" title="Em breve na Google Play">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3.18 1.16C2.83 1.51 2.63 2.08 2.63 2.82v18.36c0 .74.2 1.31.55 1.66l.09.08 10.28-10.28v-.24L3.27 1.08l-.09.08Z" fill="#EA4335"/>
+            <path d="M17.09 15.97l-3.43-3.43v-.24l3.43-3.43.08.04 4.06 2.31c1.16.66 1.16 1.73 0 2.39l-4.06 2.31-.08.05Z" fill="#FBBC04"/>
+            <path d="M17.17 15.92 13.65 12.3 3.18 22.84c.38.4 1.01.45 1.72.05l12.27-6.97Z" fill="#34A853"/>
+            <path d="M17.17 8.08 4.9 1.11C4.19.71 3.56.76 3.18 1.16L13.65 11.7l3.52-3.62Z" fill="#4285F4"/>
+          </svg>
+          <div class="store-btn-text">
+            <small>Disponível no</small>
+            <span>Google Play</span>
+          </div>
+        </a>
+        <a href="#" class="store-btn" id="btn-appstore" title="Em breve na App Store">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.14-2.19 1.28-2.17 3.83.02 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.36 2.75ZM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11Z"/>
+          </svg>
+          <div class="store-btn-text">
+            <small>Baixar na</small>
+            <span>App Store</span>
+          </div>
+        </a>
+      </div>
+      <p class="store-coming" style="margin-top:8px;">Em breve nas lojas</p>
+    </div>
+
   </div>
 </div>
 
