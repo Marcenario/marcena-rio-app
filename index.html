@@ -4434,6 +4434,29 @@ async function voltarEtapaMt(id, statusAnterior, labelAnterior){
   loadFilaMt();
 }
 
+async function voltarEtapaAt(id, etapaAnteriorId){
+  if(!confirm('Desfazer e voltar este atendimento para a etapa anterior?')) return;
+  // Buscar dados atuais para saber se estava fechado
+  const {data:at} = await db.from('atendimentos').select('status,etapa_funil_id').eq('id',id).single();
+  const updateData = {
+    etapa_funil_id: etapaAnteriorId,
+    etapa_funil_id_anterior: null
+  };
+  // Se estava concluido_fechado, reabrir
+  if(at?.status === 'concluido_fechado' || at?.status === 'concluido_perdido'){
+    updateData.status = 'em_andamento';
+    updateData.data_conclusao = null;
+  }
+  const {error} = await db.from('atendimentos').update(updateData).eq('id',id);
+  if(error){ notify('Erro ao voltar etapa: '+error.message,'error'); return; }
+  // Atualizar cache local
+  const atLocal = window._todosAtendimentos?.find(a=>a.id===id);
+  if(atLocal){ Object.assign(atLocal, updateData); }
+  notify('↩ Atendimento voltou para etapa anterior.');
+  const cont = document.getElementById('at-funil-content');
+  renderFunilDinamico(window._todosAtendimentos||[], cont);
+}
+
 async function moverParaVistoriaMt(id){
   await db.from('pedidos_montagem').update({status:'vistoria'}).eq('id',id);
   notify('Movido para Vistoria Final!'); loadFilaMt();
@@ -8554,6 +8577,7 @@ function renderFunilCard(a, cor){
     <div class="funil-card-footer">
       <span style="font-size:11px;color:var(--text3);">${new Date(a.created_at).toLocaleDateString('pt-BR')}</span>
       <div style="display:flex;gap:4px;align-items:center;">
+        ${a.etapa_funil_id_anterior ? `<button onclick="event.stopPropagation();voltarEtapaAt('${a.id}','${a.etapa_funil_id_anterior}')" style="font-size:10px;background:#fff3e0;color:#a05c00;border:1px solid #f0c060;border-radius:6px;padding:2px 7px;cursor:pointer;font-weight:500;" title="Desfazer">↩ Voltar</button>` : ''}
         <button onclick="event.stopPropagation();abrirTrocarConferente('${a.id}','${(a.conferente_nome||'').replace(/'/g,"\\'")}','${a.conferente_id||''}')" style="font-size:10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:2px 7px;cursor:pointer;color:var(--text2);">👤 Trocar</button>
         <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;${corDias}">${dias}d</span>
       </div>
@@ -8677,11 +8701,28 @@ async function drop(event, etapaId){
     Object.assign(at, atFull);
   }
 
-  // Atualizar no banco
-  const {error} = await db.from('atendimentos').update({etapa_funil_id: etapaId}).eq('id', atId);
+  // Verificar se destino é coluna de Vendas → fechar atendimento
+  const {data:etapaDestObj} = await db.from('funis_etapas').select('nome').eq('id',etapaId).single();
+  const nomeDestFinal = (etapaDestObj?.nome||'').toLowerCase();
+  const isVendaFinal = nomeDestFinal.includes('venda')||nomeDestFinal.includes('fechamento')||nomeDestFinal.includes('ganho')||nomeDestFinal.includes('fechado');
+
+  const updateData = {
+    etapa_funil_id: etapaId,
+    etapa_funil_id_anterior: at?.etapa_funil_id || null
+  };
+  if(isVendaFinal){
+    updateData.status = 'concluido_fechado';
+    updateData.data_conclusao = new Date().toISOString();
+  } else if(at?.status === 'concluido_fechado'){
+    // Voltou de Vendas para etapa normal → reabrir
+    updateData.status = 'em_andamento';
+    updateData.data_conclusao = null;
+  }
+
+  const {error} = await db.from('atendimentos').update(updateData).eq('id', atId);
   if(error){ notify('Erro ao mover card.','error'); return; }
 
-  if(at) at.etapa_funil_id = etapaId;
+  if(at){ Object.assign(at, updateData); }
   const cont = document.getElementById('at-funil-content');
   renderFunilDinamico(window._todosAtendimentos||[], cont);
   _dragAtId = null;
