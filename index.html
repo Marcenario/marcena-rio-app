@@ -2136,7 +2136,7 @@ async function onLogin(user){
   document.getElementById('nav-projetos').textContent=isStaff?'Projetos':'Meus projetos';
   document.getElementById('nav-atendimento').style.display=isStaff?'block':'none';
   document.getElementById('nav-conferencia').style.display=isStaff?'block':'none';
-  document.getElementById('rh-nav-pasta').style.display=isStaff?'block':'none';
+  document.getElementById('rh-nav-pasta').style.display=isAdmOuGer()?'block':'none';
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
@@ -6265,13 +6265,114 @@ async function excluirFuncionarioRH(id, userId, nome) {
 }
 
 /* ── FOLGAS (admin) ── */
+// ════════════════════════════════════════
+//  RH — INTEGRAÇÃO COM AGENDA E PONTO
+// ════════════════════════════════════════
+
+async function registrarRHnaAgenda({tipo, titulo, data, funcionario_id, motivo}){
+  // Se for feriado geral (funcionario_id null), inserir um evento por funcionário
+  if(!funcionario_id){
+    const {data:funcs} = await db.from('rh_funcionarios').select('id,nome').eq('ativo',true);
+    for(const func of (funcs||[])){
+      const dataInicio = new Date(data+'T08:00:00').toISOString();
+      const dataFim    = new Date(data+'T18:00:00').toISOString();
+      await db.from('agenda_reunioes').insert({
+        titulo,
+        descricao: motivo||titulo,
+        funcionario_id:   func.id,
+        funcionario_nome: func.nome,
+        funcionario_tipo: 'funcionario',
+        data_inicio: dataInicio,
+        data_fim:    dataFim,
+        recorrencia_tipo: null,
+        criado_por: currentUser?.id||null
+      }).then(()=>{}).catch(e=>console.warn('Agenda RH erro:', e));
+    }
+  } else {
+    // Buscar nome do funcionário
+    const {data:func} = await db.from('rh_funcionarios').select('nome').eq('id',funcionario_id).single();
+    const dataInicio = new Date(data+'T08:00:00').toISOString();
+    const dataFim    = new Date(data+'T18:00:00').toISOString();
+    await db.from('agenda_reunioes').insert({
+      titulo,
+      descricao: motivo||titulo,
+      funcionario_id,
+      funcionario_nome: func?.nome||'',
+      funcionario_tipo: 'funcionario',
+      data_inicio: dataInicio,
+      data_fim:    dataFim,
+      recorrencia_tipo: null,
+      criado_por: currentUser?.id||null
+    }).catch(e=>console.warn('Agenda RH erro:', e));
+  }
+}
+
+async function registrarAbonoPonto({funcionario_id, data, tipo, motivo}){
+  const mesRef = data.slice(0,7);
+  const abonoLabel = {feriado:'🏖️ Feriado', folga:'🌴 Folga', atestado:'🏥 Atestado'};
+
+  if(!funcionario_id){
+    // Feriado geral — abono para todos os funcionários
+    const {data:funcs} = await db.from('rh_funcionarios').select('id').eq('ativo',true);
+    for(const func of (funcs||[])){
+      // Só inserir se não existir abono para esse dia/funcionário
+      const {data:existing} = await db.from('rh_abonos')
+        .select('id').eq('funcionario_id',func.id).eq('data',data).maybeSingle();
+      if(!existing){
+        await db.from('rh_abonos').insert({
+          funcionario_id: func.id,
+          data,
+          mes_ref: mesRef,
+          tipo,
+          motivo: motivo||abonoLabel[tipo]||tipo,
+          concedido_por: currentUser?.id||null,
+          concedido_em: new Date().toISOString()
+        }).catch(e=>console.warn('Abono ponto erro:', e));
+      }
+    }
+  } else {
+    const {data:existing} = await db.from('rh_abonos')
+      .select('id').eq('funcionario_id',funcionario_id).eq('data',data).maybeSingle();
+    if(!existing){
+      await db.from('rh_abonos').insert({
+        funcionario_id,
+        data,
+        mes_ref: mesRef,
+        tipo,
+        motivo: motivo||abonoLabel[tipo]||tipo,
+        concedido_por: currentUser?.id||null,
+        concedido_em: new Date().toISOString()
+      }).catch(e=>console.warn('Abono ponto erro:', e));
+    }
+  }
+}
+
 async function cadastrarFolga() {
   const funcId = document.getElementById('rh-folga-func').value || null;
   const data = document.getElementById('rh-folga-data').value;
   const motivo = document.getElementById('rh-folga-motivo').value.trim();
   if(!data) { notify('Selecione a data.', 'error'); return; }
-  await db.from('rh_folgas').insert({funcionario_id: funcId, data, motivo});
-  notify('Folga cadastrada!');
+  const {data:folgaData, error:folgaErr} = await db.from('rh_folgas').insert({funcionario_id: funcId, data, motivo, mes_ref: data.slice(0,7)}).select().single();
+  if(folgaErr){ notify('Erro ao cadastrar folga: '+folgaErr.message,'error'); return; }
+
+  // Inserir na agenda para cada funcionário afetado
+  await registrarRHnaAgenda({
+    tipo: funcId ? 'folga' : 'feriado',
+    titulo: funcId ? ('🌴 Folga — '+(motivo||'')) : ('🏖️ Feriado — '+(motivo||'')),
+    data,
+    funcionario_id: funcId||null,
+    motivo
+  });
+
+  // Inserir abono no cartão de ponto
+  await registrarAbonoPonto({
+    funcionario_id: funcId||null,
+    data,
+    tipo: funcId ? 'folga' : 'feriado',
+    motivo
+  });
+
+  notify('Folga cadastrada e registrada na agenda e cartão de ponto!');
   document.getElementById('rh-folga-data').value = '';
   document.getElementById('rh-folga-motivo').value = '';
   loadFolgasRH();
@@ -6684,18 +6785,39 @@ async function regerarRelatorioRH(funcId, mes){
 /* ── ATESTADOS ADMIN ── */
 async function aprovarAtestado(id, acao) {
   await db.from('rh_atestados').update({status: acao}).eq('id', id);
-  // Arquivar atestado na pasta do funcionário quando aprovado
   if(acao==='aprovado'){
     const {data:at}=await db.from('rh_atestados').select('funcionario_id,data_inicio,dias,foto_url').eq('id',id).single();
     if(at){
-      const titulo=`Atestado médico — ${new Date(at.data_inicio+'T12:00').toLocaleDateString('pt-BR')} (${at.dias} dia${at.dias>1?'s':''})`;
+      // Arquivar na pasta
+      const tituloDoc=`Atestado médico — ${new Date(at.data_inicio+'T12:00').toLocaleDateString('pt-BR')} (${at.dias} dia${at.dias>1?'s':''})`;
       await db.from('rh_documentos_funcionario').insert({
-        funcionario_id:at.funcionario_id, tipo:'atestado', titulo,
+        funcionario_id:at.funcionario_id, tipo:'atestado', titulo:tituloDoc,
         arquivo_url:at.foto_url||null, criado_por:currentUser.id, criado_em:new Date().toISOString()
       });
+      // Inserir na agenda para cada dia do atestado
+      const diasAt = at.dias||1;
+      for(let d=0; d<diasAt; d++){
+        const dataD = new Date(at.data_inicio+'T12:00:00');
+        dataD.setDate(dataD.getDate()+d);
+        const dataStr = dataD.toISOString().slice(0,10);
+        await registrarRHnaAgenda({
+          tipo: 'atestado',
+          titulo: `🏥 Atestado médico${diasAt>1?' (dia '+(d+1)+'/'+diasAt+')':''}`,
+          data: dataStr,
+          funcionario_id: at.funcionario_id,
+          motivo: tituloDoc
+        });
+        // Abono no cartão de ponto
+        await registrarAbonoPonto({
+          funcionario_id: at.funcionario_id,
+          data: dataStr,
+          tipo: 'atestado',
+          motivo: tituloDoc
+        });
+      }
     }
   }
-  notify(acao === 'aprovado' ? '✅ Atestado aprovado e arquivado na pasta!' : '❌ Atestado rejeitado.');
+  notify(acao === 'aprovado' ? '✅ Atestado aprovado, arquivado e registrado na agenda!' : '❌ Atestado rejeitado.');
   loadMeusAtestados();
 }
 
