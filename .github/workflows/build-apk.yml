@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -29,6 +29,16 @@ jobs:
 
       - name: Instalar Bubblewrap
         run: npm install -g @bubblewrap/cli
+
+      - name: Configurar Bubblewrap (evitar prompts interativos)
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json << EOF
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_SDK_ROOT"
+          }
+          EOF
 
       - name: Gerar Keystore
         run: |
@@ -42,57 +52,20 @@ jobs:
             -keypass ${{ secrets.KEY_PASSWORD }} \
             -dname "CN=Planeja.ai, OU=App, O=Marcena Rio, L=Rio de Janeiro, ST=RJ, C=BR"
 
-      - name: Criar twa-manifest.json e inicializar projeto
+      - name: Inicializar projeto TWA
         run: |
           mkdir -p twa-project
           cd twa-project
-          cat > twa-manifest.json << 'EOF'
-          {
-            "packageId": "br.com.planejaai.app",
-            "host": "appplanejaai.com.br",
-            "name": "Planeja.ai",
-            "launcherName": "Planeja.ai",
-            "display": "standalone",
-            "orientation": "portrait",
-            "themeColor": "#1a3a2e",
-            "navigationColor": "#1a3a2e",
-            "navigationColorDark": "#1a3a2e",
-            "navigationDividerColor": "#1a3a2e",
-            "navigationDividerColorDark": "#1a3a2e",
-            "backgroundColor": "#1a3a2e",
-            "enableNotifications": false,
-            "startUrl": "/",
-            "iconUrl": "https://appplanejaai.com.br/app_icon_512.png",
-            "maskableIconUrl": "https://appplanejaai.com.br/app_icon_512.png",
-            "monochromeIconUrl": "https://appplanejaai.com.br/app_icon_512.png",
-            "appVersion": "1.0.0",
-            "appVersionCode": 1,
-            "signingKey": {
-              "path": "../keystore.jks",
-              "alias": "planejaai"
-            },
-            "splashScreenFadeOutDuration": 300,
-            "enableSiteSettingsShortcut": true,
-            "isChromeOSOnly": false,
-            "isMetaQuest": false,
-            "fullScopeUrl": "https://appplanejaai.com.br/",
-            "minSdkVersion": 19,
-            "shortcuts": [],
-            "generatorApp": "bubblewrap-cli",
-            "webManifestUrl": "https://appplanejaai.com.br/manifest.json",
-            "fallbackType": "customtabs",
-            "features": {},
-            "alphaDependencies": false,
-            "enableSidecar": false
-          }
-          EOF
+          bubblewrap init \
+            --manifest=https://appplanejaai.com.br/manifest.json \
+            --directory=. \
+            --skip-pwa-validation
 
       - name: Build APK e AAB
         run: |
           cd twa-project
           bubblewrap build --skipPwaValidation
         env:
-          BUBBLEWRAP_DISABLE_TELEMETRY: true
           SIGNING_KEY_PATH: ../keystore.jks
           SIGNING_KEY_ALIAS: planejaai
           SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
