@@ -27,8 +27,10 @@ jobs:
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Instalar Bubblewrap
-        run: npm install -g @bubblewrap/cli
+      - name: Instalar Bubblewrap e expect
+        run: |
+          npm install -g @bubblewrap/cli
+          sudo apt-get install -y expect
 
       - name: Configurar Bubblewrap
         run: |
@@ -57,7 +59,7 @@ jobs:
               --directory=. \
               --skip-pwa-validation 2>&1 || true
 
-      - name: Criar twa-manifest.json manualmente
+      - name: Criar twa-manifest.json
         run: |
           cat > twa-project/twa-manifest.json << 'EOF'
           {
@@ -100,11 +102,21 @@ jobs:
           }
           EOF
 
-      - name: Build APK e AAB
+      - name: Build APK e AAB via expect
+        env:
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd twa-project
-          printf 'no\n${{ secrets.KEY_PASSWORD }}\n${{ secrets.KEY_PASSWORD }}\n' | \
-            bubblewrap build --skipPwaValidation
+          expect << EOF
+          set timeout 300
+          spawn bubblewrap build --skipPwaValidation
+          expect {
+            "regenerate" { send "no\r"; exp_continue }
+            "Key Store:" { send "$env(KEY_PASSWORD)\r"; exp_continue }
+            "alias planejaai:" { send "$env(KEY_PASSWORD)\r"; exp_continue }
+            eof
+          }
+          EOF
 
       - name: Listar arquivos gerados
         run: find twa-project -name "*.apk" -o -name "*.aab" 2>/dev/null || echo "Nenhum arquivo encontrado"
