@@ -9521,12 +9521,12 @@ async function abrirModalAt(id){
             style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
         </div>
       </div>
-      ${isAdmOuGer()?`
+      ${isStaffGeral()?`
       <div style="margin-bottom:8px;">
-        <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">👤 Responsável pela tarefa</label>
-        <select id="at-tarefa-resp-${id}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
-          <option value="">Carregando funcionários...</option>
-        </select>
+        <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">👥 Responsáveis pela tarefa <span style="font-size:10px;font-weight:400;color:var(--text3);">(selecione um ou mais)</span></label>
+        <div id="at-tarefa-resp-${id}" style="max-height:140px;overflow-y:auto;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg2);padding:6px 8px;display:flex;flex-direction:column;gap:4px;">
+          <div style="font-size:12px;color:var(--text3);">Carregando funcionários...</div>
+        </div>
       </div>`:''}
       <button onclick="salvarTarefaAt('${id}')" style="width:100%;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">+ Criar tarefa</button>
     </div>
@@ -9628,20 +9628,26 @@ async function abrirModalAt(id){
     carregarFeedAnotacoes(id);
     carregarTarefasAt(id);
     carregarHistoricoAnexos('atendimento', id, 'at-historico-anexos-'+id);
-    // Carregar funcionários no select de responsável (admin e gerente)
-    if(isAdmOuGer()){
-      const sel = document.getElementById(`at-tarefa-resp-${id}`);
-      if(sel){
+    // Carregar funcionários nos checkboxes de responsável (todos os níveis staff)
+    if(isStaffGeral()){
+      const cont = document.getElementById(`at-tarefa-resp-${id}`);
+      if(cont){
         db.from('rh_funcionarios').select('id,nome,user_id').eq('ativo',true).order('nome').then(({data})=>{
-          if(!data||!data.length){
-            // Fallback: buscar de perfis
+          const lista = data && data.length ? data : [];
+          if(!lista.length){
             db.from('perfis').select('id,nome,email').not('nivel','eq','cliente').order('nome').then(({data:p})=>{
-              sel.innerHTML = '<option value="">Selecionar responsável...</option>' +
-                (p||[]).map(f=>`<option value="${f.id}" data-nome="${f.nome||f.email}">${f.nome||f.email}</option>`).join('');
+              cont.innerHTML = (p||[]).map(f=>
+                `<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:3px 0;">`
+                +`<input type="checkbox" class="at-tarefa-check-${id}" value="${f.id}" data-nome="${f.nome||f.email}" style="width:15px;height:15px;cursor:pointer;">`
+                +`${f.nome||f.email}</label>`
+              ).join('')||'<div style="font-size:12px;color:var(--text3);">Nenhum funcionário.</div>';
             });
           } else {
-            sel.innerHTML = '<option value="">Selecionar responsável...</option>' +
-              data.map(f=>`<option value="${f.user_id||f.id}" data-nome="${f.nome}">${f.nome}</option>`).join('');
+            cont.innerHTML = lista.map(f=>
+              `<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:3px 0;">`
+              +`<input type="checkbox" class="at-tarefa-check-${id}" value="${f.user_id||f.id}" data-nome="${f.nome}" style="width:15px;height:15px;cursor:pointer;">`
+              +`${f.nome}</label>`
+            ).join('');
           }
         });
       }
@@ -10788,62 +10794,65 @@ async function salvarTarefaAt(atId){
   if(!data){ notify('Informe a data.','error'); return; }
   if(!hora){ notify('Informe o horário.','error'); return; }
 
-  // Responsável — admin pode escolher, outros usam o próprio usuário
-  const respSel = document.getElementById(`at-tarefa-resp-${atId}`);
-  let respId = currentUser?.id||null;
-  let respNome = currentUser?.nome || currentUser?.email || 'Usuário';
-  if(isAdmin() && respSel && respSel.value){
-    respId = respSel.value;
-    const opt = respSel.options[respSel.selectedIndex];
-    respNome = opt?.dataset?.nome || opt?.text || respNome;
-  }
-
   const autor = currentUser?.nome || currentUser?.email || 'Usuário';
-
-  // Salvar tarefa
-  const {data:tarefa, error} = await db.from('at_tarefas').insert({
-    atendimento_id: atId,
-    titulo,
-    data_tarefa: data,
-    horario: hora,
-    responsavel_id: respId,
-    responsavel_nome: respNome
-  }).select().single();
-  if(error){ notify('Erro ao salvar tarefa: '+error.message,'error'); return; }
-
-  // Registrar como anotação automática
   const dataFmt = new Date(data+'T12:00:00').toLocaleDateString('pt-BR');
-  await db.from('at_anotacoes').insert({
-    atendimento_id: atId,
-    texto: `📌 Tarefa criada: "${titulo}"
-📅 ${dataFmt} às ${hora}
-👤 Responsável: ${respNome}`,
-    autor_id: currentUser?.id||null,
-    autor_nome: autor
-  });
-
-  // Adicionar na agenda do responsável
   const dataInicio = new Date(`${data}T${hora}:00`);
   const dataFim = new Date(dataInicio.getTime() + 60*60*1000);
-  await db.from('agenda_reunioes').insert({
-    titulo: `✅ ${titulo}`,
-    descricao: `Tarefa do atendimento — criada por ${autor}`,
-    funcionario_id: respId,
-    funcionario_nome: respNome,
-    funcionario_tipo: 'vendedor',
-    data_inicio: dataInicio.toISOString(),
-    data_fim: dataFim.toISOString(),
-    recorrencia_tipo: null,
-    criado_por: currentUser?.id||null
+
+  // Coletar responsáveis selecionados (checkboxes)
+  let responsaveis = [];
+  if(isStaffGeral()){
+    const checks = document.querySelectorAll(`.at-tarefa-check-${atId}:checked`);
+    checks.forEach(cb=>{ responsaveis.push({id: cb.value, nome: cb.dataset.nome||cb.value}); });
+  }
+  // Se nenhum selecionado, usar o próprio usuário
+  if(!responsaveis.length){
+    responsaveis = [{id: currentUser?.id||null, nome: currentUser?.nome||currentUser?.email||'Usuário'}];
+  }
+
+  const nomesResp = responsaveis.map(r=>r.nome).join(', ');
+
+  // Salvar uma tarefa por responsável
+  for(const resp of responsaveis){
+    const {error} = await db.from('at_tarefas').insert({
+      atendimento_id: atId,
+      titulo,
+      data_tarefa: data,
+      horario: hora,
+      responsavel_id: resp.id,
+      responsavel_nome: resp.nome
+    });
+    if(error){ notify('Erro ao salvar tarefa para '+resp.nome+': '+error.message,'error'); continue; }
+
+    // Agenda de cada responsável
+    await db.from('agenda_reunioes').insert({
+      titulo: `✅ ${titulo}`,
+      descricao: `Tarefa do atendimento — criada por ${autor}`,
+      funcionario_id: resp.id,
+      funcionario_nome: resp.nome,
+      funcionario_tipo: 'vendedor',
+      data_inicio: dataInicio.toISOString(),
+      data_fim: dataFim.toISOString(),
+      recorrencia_tipo: null,
+      criado_por: currentUser?.id||null
+    });
+  }
+
+  // Anotação única resumindo todos os responsáveis
+  await db.from('at_anotacoes').insert({
+    atendimento_id: atId,
+    texto: `📌 Tarefa criada: "${titulo}"\n📅 ${dataFmt} às ${hora}\n👥 Responsáveis: ${nomesResp}`,
+    autor_id: currentUser?.id||null,
+    autor_nome: autor
   });
 
   // Limpar campos
   document.getElementById(`at-tarefa-titulo-${atId}`).value='';
   document.getElementById(`at-tarefa-data-${atId}`).value='';
   document.getElementById(`at-tarefa-hora-${atId}`).value='';
-  if(respSel) respSel.value='';
+  document.querySelectorAll(`.at-tarefa-check-${atId}`).forEach(cb=>cb.checked=false);
 
-  notify(`✅ Tarefa criada na agenda de ${respNome}!`);
+  notify(`✅ Tarefa criada para: ${nomesResp}!`);
   carregarTarefasAt(atId);
   carregarFeedAnotacoes(atId);
 }
