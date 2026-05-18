@@ -4651,6 +4651,37 @@ async function substituirClienteAt(atId){
   setTimeout(()=>abrirModalAt(atId), 1500);
 }
 
+async function abrirEditarValorAmb(atId, ambIdx, valorAtual, nomeAmb){
+  const novoValorStr = prompt(`Novo valor para "${nomeAmb}"\nAtual: ${fmt(valorAtual)}\n\nDigite o novo valor (somente números):`, valorAtual||'');
+  if(novoValorStr === null) return; // cancelou
+  const novoValor = parseMoney(novoValorStr);
+  if(isNaN(novoValor) || novoValor < 0){ notify('Valor inválido.','error'); return; }
+  if(novoValor === valorAtual){ notify('Nenhuma alteração.','info'); return; }
+
+  // Buscar ambientes atuais
+  const {data:at} = await db.from('atendimentos').select('ambientes').eq('id',atId).single();
+  let ambs = [];
+  try{ ambs = JSON.parse(at?.ambientes||'[]'); } catch(e){ ambs = []; }
+
+  const valorAnterior = ambs[ambIdx]?.valor || 0;
+  ambs[ambIdx].valor = novoValor;
+
+  // Salvar ambientes atualizados
+  const {error} = await db.from('atendimentos').update({ambientes: JSON.stringify(ambs)}).eq('id',atId);
+  if(error){ notify('Erro ao salvar: '+error.message,'error'); return; }
+
+  // Registrar log de auditoria nas anotações
+  await registrarLogAt(
+    atId,
+    'Valor do ambiente "'+nomeAmb+'"',
+    'R$ '+fmt(valorAnterior),
+    'R$ '+fmt(novoValor)
+  );
+
+  notify('Valor atualizado!');
+  abrirModalAt(atId);
+}
+
 async function salvarCampoAt(atId,campo,labelCampo,novoValor){
   const {data:atAtual}=await db.from('atendimentos').select('*').eq('id',atId).single();
   const valorAntes=String(atAtual?.[campo]||'');
@@ -9162,7 +9193,11 @@ async function abrirModalAt(id){
     ambsHtml=`<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin:12px 0;">
       <div style="display:grid;grid-template-columns:1fr 1fr auto;background:var(--bg);padding:8px 12px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;gap:8px;"><span>Ambiente</span><span>Valor</span><span>Vendeu?</span></div>
       ${ambs.map((am,i)=>`<div style="display:grid;grid-template-columns:1fr 1fr auto;padding:8px 12px;border-top:1px solid var(--border);font-size:13px;align-items:center;gap:8px;">
-        <span>${am.nome}</span><span style="color:var(--accent)">${fmt(am.valor)}</span>
+        <span>${am.nome}</span>
+        <span style="display:flex;align-items:center;gap:4px;">
+          <span style="color:var(--accent)">${fmt(am.valor)}</span>
+          ${isStaffGeral()?`<button onclick="abrirEditarValorAmb('${id}',${i},${am.valor||0},'${(am.nome||"").replace(/'/g,"\\'")}' )" style="font-size:9px;padding:1px 5px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;color:var(--text2);">✏️</button>`:''}
+        </span>
         <div style="display:flex;gap:4px;">
           ${am.vendeu===true
             ? (userNivel==='admin'
