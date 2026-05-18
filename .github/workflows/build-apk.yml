@@ -1,0 +1,92 @@
+name: Build Planeja.ai APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Instalar Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Inicializar projeto TWA
+        run: |
+          mkdir -p twa-project
+          cd twa-project
+          bubblewrap init \
+            --manifest=https://appplanejaai.com.br/manifest.json \
+            --directory=. \
+            --skip-pwa-validation \
+            --jdk-path=$JAVA_HOME \
+            --android-sdk-path=$ANDROID_SDK_ROOT \
+            --package-id=br.com.planejaai.app \
+            --name="Planeja.ai" \
+            --launcher-name="Planeja.ai" \
+            --display=standalone \
+            --orientation=portrait \
+            --theme-color=#1a3a2e \
+            --background-color=#1a3a2e \
+            --start-url=/ \
+            --icon-url=https://appplanejaai.com.br/app_icon_512.png \
+            --maskable-icon-url=https://appplanejaai.com.br/app_icon_512.png \
+            --app-version=1.0.0 \
+            --app-version-code=1 \
+            --min-sdk-version=19 \
+            --key-path=../keystore.jks \
+            --key-alias=planejaai \
+            --key-password=${{ secrets.KEY_PASSWORD }} \
+            --store-password=${{ secrets.KEY_PASSWORD }}
+
+      - name: Gerar Keystore (primeira vez)
+        run: |
+          if [ ! -f keystore.jks ]; then
+            keytool -genkey -v \
+              -keystore keystore.jks \
+              -alias planejaai \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass ${{ secrets.KEY_PASSWORD }} \
+              -keypass ${{ secrets.KEY_PASSWORD }} \
+              -dname "CN=Planeja.ai, OU=App, O=Marcena Rio, L=Rio de Janeiro, ST=RJ, C=BR"
+          fi
+
+      - name: Build APK
+        run: |
+          cd twa-project
+          bubblewrap build \
+            --jdk-path=$JAVA_HOME \
+            --android-sdk-path=$ANDROID_SDK_ROOT
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: planejaai-apk
+          path: twa-project/app-release-signed.apk
+
+      - name: Upload AAB (Play Store)
+        uses: actions/upload-artifact@v3
+        with:
+          name: planejaai-aab
+          path: twa-project/app-release-bundle.aab
