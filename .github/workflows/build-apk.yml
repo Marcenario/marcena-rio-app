@@ -30,15 +30,11 @@ jobs:
       - name: Instalar Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar Bubblewrap (evitar prompts interativos)
+      - name: Configurar Bubblewrap (JDK e SDK paths)
         run: |
           mkdir -p ~/.bubblewrap
-          cat > ~/.bubblewrap/config.json << EOF
-          {
-            "jdkPath": "$JAVA_HOME",
-            "androidSdkPath": "$ANDROID_SDK_ROOT"
-          }
-          EOF
+          echo "{\"jdkPath\": \"$JAVA_HOME\", \"androidSdkPath\": \"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
+          cat ~/.bubblewrap/config.json
 
       - name: Gerar Keystore
         run: |
@@ -52,33 +48,81 @@ jobs:
             -keypass ${{ secrets.KEY_PASSWORD }} \
             -dname "CN=Planeja.ai, OU=App, O=Marcena Rio, L=Rio de Janeiro, ST=RJ, C=BR"
 
-      - name: Inicializar projeto TWA
+      - name: Inicializar projeto TWA (respostas automáticas)
         run: |
           mkdir -p twa-project
           cd twa-project
-          bubblewrap init \
+          printf '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' | bubblewrap init \
             --manifest=https://appplanejaai.com.br/manifest.json \
             --directory=. \
-            --skip-pwa-validation
+            --skip-pwa-validation 2>&1 || true
+
+      - name: Verificar se twa-manifest.json foi criado
+        run: |
+          ls twa-project/
+          cat twa-project/twa-manifest.json 2>/dev/null || echo "Manifest não criado, criando manualmente..."
+          cat > twa-project/twa-manifest.json << 'EOF'
+          {
+            "packageId": "br.com.planejaai.app",
+            "host": "appplanejaai.com.br",
+            "name": "Planeja.ai",
+            "launcherName": "Planeja.ai",
+            "display": "standalone",
+            "orientation": "portrait",
+            "themeColor": "#1a3a2e",
+            "navigationColor": "#1a3a2e",
+            "navigationColorDark": "#1a3a2e",
+            "navigationDividerColor": "#1a3a2e",
+            "navigationDividerColorDark": "#1a3a2e",
+            "backgroundColor": "#1a3a2e",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "iconUrl": "https://appplanejaai.com.br/app_icon_512.png",
+            "maskableIconUrl": "https://appplanejaai.com.br/app_icon_512.png",
+            "monochromeIconUrl": "https://appplanejaai.com.br/app_icon_512.png",
+            "appVersion": "1.0.0",
+            "appVersionCode": 1,
+            "signingKey": {
+              "path": "../keystore.jks",
+              "alias": "planejaai"
+            },
+            "splashScreenFadeOutDuration": 300,
+            "enableSiteSettingsShortcut": true,
+            "isChromeOSOnly": false,
+            "isMetaQuest": false,
+            "fullScopeUrl": "https://appplanejaai.com.br/",
+            "minSdkVersion": 19,
+            "shortcuts": [],
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "https://appplanejaai.com.br/manifest.json",
+            "fallbackType": "customtabs",
+            "features": {},
+            "alphaDependencies": false,
+            "enableSidecar": false
+          }
+          EOF
 
       - name: Build APK e AAB
         run: |
           cd twa-project
-          bubblewrap build --skipPwaValidation
-        env:
-          SIGNING_KEY_PATH: ../keystore.jks
-          SIGNING_KEY_ALIAS: planejaai
-          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          SIGNING_STORE_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          bubblewrap build \
+            --skipPwaValidation \
+            --signingKeyPath=../keystore.jks \
+            --signingKeyAlias=planejaai \
+            --signingKeyPassword=${{ secrets.KEY_PASSWORD }} \
+            --signingStorePassword=${{ secrets.KEY_PASSWORD }}
+
+      - name: Listar arquivos gerados
+        run: find twa-project -name "*.apk" -o -name "*.aab" 2>/dev/null
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: planejaai-apk
-          path: twa-project/app-release-signed.apk
+          path: twa-project/**/*.apk
 
       - name: Upload AAB (Play Store)
         uses: actions/upload-artifact@v4
         with:
           name: planejaai-aab
-          path: twa-project/app-release-bundle.aab
+          path: twa-project/**/*.aab
