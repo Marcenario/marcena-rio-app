@@ -1159,7 +1159,10 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <button id="ag-view-sem" onclick="setAgendaView('semana')" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Semana</button>
             <button id="ag-view-dia" onclick="setAgendaView('dia')" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Dia</button>
           </div>
-          <button id="ag-btn-reuniao" onclick="abrirModalReuniao()" style="display:none;background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">+ Agendar reunião</button>
+          <div style="display:flex;gap:8px;">
+            <button id="ag-btn-reuniao" onclick="abrirModalReuniao()" style="display:none;background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">+ Agendar reunião</button>
+            <button id="ag-btn-pessoal" onclick="abrirModalAgendaPessoal()" style="display:none;background:#534AB7;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">📌 Agenda pessoal</button>
+          </div>
         </div>
       </div>
 
@@ -9916,6 +9919,7 @@ async function loadAgenda(){
   const cont = document.getElementById('ag-calendario');
   cont.innerHTML = '<div class="loader">Carregando agenda...</div>';
   if(isAdmOuGer()) document.getElementById('ag-btn-reuniao').style.display='block';
+  if(isStaffGeral()) document.getElementById('ag-btn-pessoal').style.display='block';
 
   // Buscar funil de conferência primeiro
   const {data:funilConf} = await db.from('funis').select('id').eq('tipo','conferencia').limit(1).single();
@@ -10291,6 +10295,8 @@ function filtrarEventos(){
 
   // Aniversários: visível apenas para o vendedor responsável, admin e gerente
   const eventos = _agEventos.filter(e=>{
+    // Eventos pessoais: só visíveis para o próprio dono, gerentes e admin
+    if(e.pessoal && !isAdmOuGer() && e.funcionario_id !== currentUser?.id) return false;
     if(e.tipo==='aniversario'){
       if(isAdminLocal) return true;
       return e.funcionario_id === currentUser?.id;
@@ -10534,6 +10540,88 @@ function abrirDiaAgenda(dStr){
 }
 
 /* ── Reuniões (admin) ── */
+// ══════════════════════════════════════════
+//  AGENDA PESSOAL
+// ══════════════════════════════════════════
+
+function abrirModalAgendaPessoal(){
+  let modal = document.getElementById('ag-modal-pessoal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'ag-modal-pessoal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;';
+    modal.onclick = function(e){ if(e.target===this) this.style.display='none'; };
+    modal.innerHTML = `
+      <div style="background:var(--surface);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:440px;margin:1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+          <h3 style="margin:0;font-size:16px;font-weight:600;">📌 Agenda pessoal</h3>
+          <button onclick="document.getElementById('ag-modal-pessoal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);">✕</button>
+        </div>
+        <div class="form-row"><label>Título <span style="color:var(--accent)">*</span></label>
+          <input type="text" id="ag-p-titulo" placeholder="Ex: Consulta médica, Reunião particular..." style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+        <div class="form-grid">
+          <div class="form-row"><label>Início <span style="color:var(--accent)">*</span></label>
+            <input type="datetime-local" id="ag-p-inicio" style="width:100%;padding:9px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+          </div>
+          <div class="form-row"><label>Fim <span style="color:var(--accent)">*</span></label>
+            <input type="datetime-local" id="ag-p-fim" style="width:100%;padding:9px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+          </div>
+        </div>
+        <div class="form-row"><label>Observação</label>
+          <textarea id="ag-p-obs" style="width:100%;height:60px;resize:none;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;" placeholder="Detalhes do compromisso..."></textarea>
+        </div>
+        <div id="ag-p-alert" style="margin-bottom:8px;"></div>
+        <button onclick="salvarAgendaPessoal()" style="width:100%;background:#534AB7;color:#fff;border:none;border-radius:var(--radius-sm);padding:11px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">💾 Salvar compromisso</button>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  // Limpar campos
+  ['ag-p-titulo','ag-p-inicio','ag-p-fim','ag-p-obs'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('ag-p-alert').innerHTML='';
+  modal.style.display='flex';
+}
+
+async function salvarAgendaPessoal(){
+  const titulo  = (document.getElementById('ag-p-titulo')?.value||'').trim();
+  const inicio  = document.getElementById('ag-p-inicio')?.value;
+  const fim     = document.getElementById('ag-p-fim')?.value;
+  const obs     = (document.getElementById('ag-p-obs')?.value||'').trim();
+  const alertEl = document.getElementById('ag-p-alert');
+
+  if(!titulo||!inicio||!fim){
+    if(alertEl) alertEl.innerHTML='<div style="color:#8a1a1a;font-size:12px;">Preencha título e datas.</div>';
+    return;
+  }
+
+  // Buscar dados do funcionário logado
+  const {data:funcAtual} = await db.from('rh_funcionarios').select('id,nome').eq('user_id',currentUser.id).maybeSingle();
+  const funcId   = funcAtual?.id || currentUser.id;
+  const funcNome = funcAtual?.nome || currentUser?.nome || currentUser?.email || 'Funcionário';
+
+  const {error} = await db.from('agenda_reunioes').insert({
+    titulo,
+    descricao: obs||null,
+    funcionario_id:   funcId,
+    funcionario_nome: funcNome,
+    funcionario_tipo: 'funcionario',
+    data_inicio: new Date(inicio).toISOString(),
+    data_fim:    new Date(fim).toISOString(),
+    recorrencia_tipo: null,
+    pessoal: true,
+    criado_por: currentUser.id
+  });
+
+  if(error){
+    if(alertEl) alertEl.innerHTML=`<div style="color:#8a1a1a;font-size:12px;">Erro: ${error.message}</div>`;
+    return;
+  }
+
+  notify('📌 Compromisso pessoal salvo!');
+  document.getElementById('ag-modal-pessoal').style.display='none';
+  loadAgenda();
+}
+
 function abrirModalReuniao(){
   const now = new Date();
   const pad = n=>String(n).padStart(2,'0');
