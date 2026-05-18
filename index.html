@@ -9521,7 +9521,7 @@ async function abrirModalAt(id){
             style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
         </div>
       </div>
-      ${isAdmin()?`
+      ${isAdmOuGer()?`
       <div style="margin-bottom:8px;">
         <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">👤 Responsável pela tarefa</label>
         <select id="at-tarefa-resp-${id}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
@@ -9628,8 +9628,8 @@ async function abrirModalAt(id){
     carregarFeedAnotacoes(id);
     carregarTarefasAt(id);
     carregarHistoricoAnexos('atendimento', id, 'at-historico-anexos-'+id);
-    // Carregar funcionários no select de responsável (só admin)
-    if(isAdmin()){
+    // Carregar funcionários no select de responsável (admin e gerente)
+    if(isAdmOuGer()){
       const sel = document.getElementById(`at-tarefa-resp-${id}`);
       if(sel){
         db.from('rh_funcionarios').select('id,nome,user_id').eq('ativo',true).order('nome').then(({data})=>{
