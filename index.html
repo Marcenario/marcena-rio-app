@@ -4445,33 +4445,43 @@ async function abrirModalDistribuir(atId){
   const carga={};
   (vends||[]).forEach(v=>{carga[v.id]=0;});
   (ativos||[]).forEach(a=>{if(carga[a.vendedor_id]!==undefined)carga[a.vendedor_id]+=(a.estimativa||0);});
-  const listHtml=(vends||[]).map(v=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;margin-bottom:8px;">
-      <div><div style="font-size:13px;font-weight:500;">${v.nome}</div>
-      <div style="font-size:11px;color:var(--text3);">Carteira: R$ ${(carga[v.id]||0).toLocaleString('pt-BR')}</div></div>
-      <button onclick="confirmarDistribuir('${atId}','${v.id}','${v.nome.replace(/'/g,\"\\\'\")}')"
-        style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:500;">Distribuir</button>
-    </div>`).join('');
+
+  // Sugestão automática (menor carteira)
   let sugHtml='';
   if(vends?.length){
     const menor=(vends||[]).reduce((m,v)=>(carga[v.id]||0)<(carga[m.id]||0)?v:m,vends[0]);
-    sugHtml=`<div style="background:#e8f8f0;border:1px solid #a8dfc0;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#1a5a3a;">`
-      +`<strong>Sugestão automática:</strong> ${menor.nome} (carteira menor: R$ ${(carga[menor.id]||0).toLocaleString('pt-BR')}) `
-      +`<button onclick="confirmarDistribuir('${atId}','${menor.id}','${menor.nome.replace(/'/g,\"\\\'\")}')"
-        style="margin-left:8px;background:#1a5a3a;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Usar</button></div>`;
+    sugHtml='<div style="background:#e8f8f0;border:1px solid #a8dfc0;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#1a5a3a;">'
+      +'<strong>Sugestao automatica:</strong> '+menor.nome+' (carteira: R$ '+(carga[menor.id]||0).toLocaleString('pt-BR')+') '
+      +'<button data-vid="'+menor.id+'" data-vnome="'+menor.nome+'" data-atid="'+atId+'" class="btn-dist-vendor" style="margin-left:8px;background:#1a5a3a;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Usar</button></div>';
   }
+
+  // Lista de vendedores
+  const listHtml=(vends||[]).map(v=>
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;margin-bottom:8px;">'
+    +'<div><div style="font-size:13px;font-weight:500;">'+v.nome+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);">Carteira: R$ '+(carga[v.id]||0).toLocaleString('pt-BR')+'</div></div>'
+    +'<button data-vid="'+v.id+'" data-vnome="'+v.nome+'" data-atid="'+atId+'" class="btn-dist-vendor" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:500;">Distribuir</button>'
+    +'</div>'
+  ).join('');
+
   let modal=document.getElementById('modal-distribuir');
   if(!modal){
     modal=document.createElement('div');
     modal.id='modal-distribuir';
     modal.className='modal-overlay';
-    modal.innerHTML=`<div class="modal" style="max-width:460px;width:100%;">`
-      +`<div class="modal-header"><div class="modal-title" id="mdist-title">Distribuir</div>`
-      +`<button class="modal-close" onclick="fecharModalDistribuir()">×</button></div>`
-      +`<div class="modal-body" id="mdist-body"></div></div>`;
+    modal.innerHTML='<div class="modal" style="max-width:460px;width:100%;"><div class="modal-header"><div class="modal-title" id="mdist-title">Distribuir</div><button class="modal-close" onclick="fecharModalDistribuir()">&times;</button></div><div class="modal-body" id="mdist-body" style="padding:1rem;max-height:70vh;overflow-y:auto;"></div></div>';
     document.body.appendChild(modal);
+    // Delegação de eventos — evita onclick inline com aspas problemáticas
+    modal.addEventListener('click', function(e){
+      const btn=e.target.closest('.btn-dist-vendor');
+      if(btn){
+        const vid=btn.dataset.vid, vnome=btn.dataset.vnome, aid=btn.dataset.atid;
+        confirmarDistribuir(aid,vid,vnome);
+        fecharModalDistribuir();
+      }
+    });
   }
-  document.getElementById('mdist-title').textContent=`Distribuir — ${at?.cliente_nome||''} (#${at?.numero||''})`;
+  document.getElementById('mdist-title').textContent='Distribuir — '+(at?.cliente_nome||'')+' (#'+(at?.numero||'')+')';
   document.getElementById('mdist-body').innerHTML=sugHtml
     +'<div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Escolher manualmente</div>'
     +(listHtml||'<p style="color:var(--text3);font-size:13px;">Nenhum vendedor ativo cadastrado.</p>');
@@ -4524,115 +4534,6 @@ async function salvarCampoAt(atId,campo,labelCampo,novoValor){
   abrirModalAt(atId);
 }
 
-// ════════════════════════════════════════
-//  ATENDIMENTOS — FUNÇÕES NOVAS
-// ════════════════════════════════════════
-
-async function voltarEtapaAt(id, etapaAnteriorId){
-  if(!confirm('Desfazer e voltar este atendimento para a etapa anterior?')) return;
-  const {data:at} = await db.from('atendimentos').select('status,etapa_funil_id').eq('id',id).single();
-  const updateData = { etapa_funil_id: etapaAnteriorId, etapa_funil_id_anterior: null };
-  if(at?.status === 'concluido_fechado' || at?.status === 'concluido_perdido'){
-    updateData.status = 'em_andamento'; updateData.data_conclusao = null;
-  }
-  const {error} = await db.from('atendimentos').update(updateData).eq('id',id);
-  if(error){ notify('Erro ao voltar etapa: '+error.message,'error'); return; }
-  const atLocal = window._todosAtendimentos?.find(a=>a.id===id);
-  if(atLocal) Object.assign(atLocal, updateData);
-  notify('Atendimento voltou para etapa anterior.');
-  const cont = document.getElementById('at-funil-content');
-  if(cont) renderFunilDinamico(window._todosAtendimentos||[], cont);
-}
-
-async function abrirModalDistribuir(atId){
-  const {data:at} = await db.from('atendimentos').select('id,numero,cliente_nome,empresa,estimativa').eq('id',atId).single();
-  const {data:vendedores} = await db.from('perfis').select('id,nome,email').eq('nivel','funcionario').eq('ativo',true).order('nome');
-  const mesAtual = new Date().toISOString().slice(0,7);
-  const {data:ativos} = await db.from('atendimentos').select('vendedor_id,estimativa').eq('mes_ref',mesAtual).eq('status','em_andamento');
-  const carga = {};
-  (vendedores||[]).forEach(v=>{ carga[v.id]=0; });
-  (ativos||[]).forEach(a=>{ if(carga[a.vendedor_id]!==undefined) carga[a.vendedor_id]+=(a.estimativa||0); });
-
-  const listHtml = (vendedores||[]).map(v=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;margin-bottom:8px;background:var(--bg);">
-      <div>
-        <div style="font-size:13px;font-weight:500;">${v.nome}</div>
-        <div style="font-size:11px;color:var(--text3);">Carteira: R$ ${(carga[v.id]||0).toLocaleString('pt-BR')}</div>
-      </div>
-      <button onclick="confirmarDistribuir('${atId}','${v.id}','${v.nome.replace(/'/g,String.fromCharCode(39))}');fecharModalDistribuir()"
-        style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">Distribuir</button>
-    </div>`).join('');
-
-  let sugestaoHtml = '';
-  if(vendedores?.length){
-    const menorCarga = (vendedores||[]).reduce((min,v)=>(carga[v.id]||0)<(carga[min.id]||0)?v:min, vendedores[0]);
-    sugestaoHtml = `<div style="background:#e8f8f0;border:1px solid #a8dfc0;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#1a5a3a;">
-      <strong>Sugestao automatica:</strong> ${menorCarga.nome} (menor carteira &mdash; R$ ${(carga[menorCarga.id]||0).toLocaleString('pt-BR')})
-      <button onclick="confirmarDistribuir('${atId}','${menorCarga.id}','${menorCarga.nome.replace(/'/g,String.fromCharCode(39))}');fecharModalDistribuir()"
-        style="margin-left:10px;background:#1a5a3a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">Usar</button>
-    </div>`;
-  }
-
-  let modal = document.getElementById('modal-distribuir');
-  if(!modal){
-    modal = document.createElement('div');
-    modal.id = 'modal-distribuir';
-    modal.className = 'modal-overlay';
-    modal.style.display = 'none';
-    modal.innerHTML = '<div class="modal" style="max-width:480px;width:100%;"><div class="modal-header"><div class="modal-title" id="modal-dist-title">Distribuir atendimento</div><button class="modal-close" onclick="fecharModalDistribuir()">&times;</button></div><div class="modal-body" id="modal-dist-body" style="padding:1rem;"></div></div>';
-    document.body.appendChild(modal);
-  }
-  document.getElementById('modal-dist-title').textContent = 'Distribuir — '+(at?.cliente_nome||'')+' (#'+(at?.numero||'')+')';
-  document.getElementById('modal-dist-body').innerHTML = sugestaoHtml + '<div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Escolher manualmente</div>' + (listHtml||'<p style="color:var(--text3);font-size:13px;">Nenhum vendedor cadastrado.</p>');
-  modal.style.display = 'flex';
-}
-
-function fecharModalDistribuir(){
-  const m = document.getElementById('modal-distribuir');
-  if(m) m.style.display = 'none';
-}
-
-async function confirmarDistribuir(atId, vendedorId, vendedorNome){
-  const {error} = await db.from('atendimentos').update({vendedor_id:vendedorId,vendedor_nome:vendedorNome}).eq('id',atId);
-  if(error){ notify('Erro ao distribuir: '+error.message,'error'); return; }
-  const {data:atPrj} = await db.from('atendimentos').select('projeto_id').eq('id',atId).single();
-  if(atPrj?.projeto_id) await db.from('projetos').update({vendedor_id:vendedorId,vendedor_nome:vendedorNome}).eq('id',atPrj.projeto_id);
-  await registrarLogAt(atId,'Vendedor','Sem vendedor',vendedorNome);
-  const atLocal = window._todosAtendimentos?.find(a=>a.id===atId);
-  if(atLocal){ atLocal.vendedor_id=vendedorId; atLocal.vendedor_nome=vendedorNome; }
-  notify('Distribuido para '+vendedorNome+'!');
-  const cont = document.getElementById('at-funil-content');
-  if(cont) renderFunilDinamico(window._todosAtendimentos||[], cont);
-  fecharModalDistribuir();
-}
-
-async function registrarLogAt(atId, campo, valorAntes, valorDepois){
-  if(String(valorAntes||'')===String(valorDepois||'')) return;
-  try {
-    await db.from('at_anotacoes').insert({
-      atendimento_id: atId,
-      tipo: 'log_alteracao',
-      texto: '[ALTERACAO] '+campo+': "'+String(valorAntes||'(vazio)')+'" -> "'+String(valorDepois||'(vazio)')+'"',
-      criado_por: currentUser?.id||null,
-      criado_por_nome: currentUser?.email||'Sistema'
-    });
-  } catch(e){ console.warn('Log error:', e); }
-}
-
-async function salvarCampoAt(atId, campo, labelCampo, novoValor){
-  const {data:atAtual} = await db.from('atendimentos').select('*').eq('id',atId).single();
-  const valorAntes = String(atAtual?.[campo]||'');
-  const valNovo = String(novoValor||'').trim();
-  if(valorAntes===valNovo){ notify('Nenhuma alteracao.','info'); return; }
-  const {error} = await db.from('atendimentos').update({[campo]:valNovo}).eq('id',atId);
-  if(error){ notify('Erro ao salvar: '+error.message,'error'); return; }
-  await registrarLogAt(atId, labelCampo, valorAntes, valNovo);
-  if(atAtual?.projeto_id && ['cliente_nome','cliente_tel','cliente_email'].includes(campo)){
-    await db.from('projetos').update({[campo]:valNovo}).eq('id',atAtual.projeto_id);
-  }
-  notify(labelCampo+' atualizado!');
-  abrirModalAt(atId);
-}
 
 async function moverParaVistoriaMt(id){
   await db.from('pedidos_montagem').update({status:'vistoria'}).eq('id',id);
