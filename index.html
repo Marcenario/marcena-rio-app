@@ -4525,6 +4525,125 @@ async function carregarMensagensAt(id){
   if(el) el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Nenhuma mensagem registrada.</div>';
 }
 
+async function substituirClienteAt(atId){
+  const novoNome  = (document.getElementById('subst-nome-'+atId)?.value||'').trim();
+  const novoTel   = (document.getElementById('subst-tel-'+atId)?.value||'').trim();
+  const novoEmail = (document.getElementById('subst-email-'+atId)?.value||'').trim();
+  const alertEl   = document.getElementById('subst-alert-'+atId);
+
+  if(!novoNome||!novoTel||!novoEmail){
+    if(alertEl) alertEl.innerHTML='<div style="color:#8a1a1a;font-size:12px;">Preencha todos os campos do novo cliente.</div>';
+    return;
+  }
+  if(!novoEmail.includes('@')){
+    if(alertEl) alertEl.innerHTML='<div style="color:#8a1a1a;font-size:12px;">E-mail inválido.</div>';
+    return;
+  }
+  if(!confirm('Confirmar substituição de cliente?\nAtendimento e projeto serão transferidos para '+novoNome+'.\nO cliente anterior terá o acesso revogado.')) return;
+
+  if(alertEl) alertEl.innerHTML='<div style="color:var(--text2);font-size:12px;">Processando...</div>';
+
+  // 1. Buscar dados atuais do atendimento
+  const {data:at} = await db.from('atendimentos').select('*').eq('id',atId).single();
+  if(!at){ notify('Atendimento não encontrado.','error'); return; }
+
+  const nomeAntigo  = at.cliente_nome;
+  const emailAntigo = at.cliente_email;
+
+  // 2. Criar/buscar login do novo cliente
+  let novoUserId = null;
+  let senhaCliente = null;
+  let usuario_novo = false;
+
+  const _adj  = ['azul','verde','forte','novo','belo','alto','bom','real','vivo','rico'];
+  const _sub  = ['casa','mesa','porta','janela','chave','pedra','campo','rio','lago','mar'];
+  const _verb = ['move','sobe','abre','liga','cria','soma','usa','faz','tem','vai'];
+  const _r    = ()=>Math.floor(Math.random()*10);
+  senhaCliente = _adj[_r()]+_sub[_r()]+_verb[_r()]+Math.floor(Math.random()*900+100);
+
+  const {data:signUpData, error:signUpErr} = await db.auth.signUp({
+    email: novoEmail,
+    password: senhaCliente,
+    options:{ data:{ nome: novoNome, telefone: novoTel } }
+  });
+
+  if(!signUpErr && signUpData?.user?.id){
+    novoUserId = signUpData.user.id;
+    await db.from('perfis').upsert({id:novoUserId, email:novoEmail, nome:novoNome, nivel:'cliente'});
+    usuario_novo = true;
+  } else {
+    const motivo = signUpErr?.message||'';
+    if(motivo.includes('already registered')||motivo.includes('already been registered')){
+      const {data:perfExist} = await db.from('perfis').select('id').eq('email',novoEmail).maybeSingle();
+      if(perfExist?.id){ novoUserId = perfExist.id; senhaCliente = null; }
+    } else {
+      console.warn('Erro ao criar login:', motivo);
+      senhaCliente = null;
+    }
+  }
+
+  // 3. Revogar acesso do cliente antigo ao projeto (remover user_id do projeto)
+  if(at.projeto_id){
+    await db.from('projetos').update({ user_id: novoUserId||null }).eq('id', at.projeto_id);
+  }
+
+  // 4. Atualizar atendimento com novos dados do cliente
+  await db.from('atendimentos').update({
+    cliente_nome:  novoNome,
+    cliente_tel:   novoTel,
+    cliente_email: novoEmail,
+  }).eq('id', atId);
+
+  // 5. Atualizar projeto vinculado
+  if(at.projeto_id){
+    await db.from('projetos').update({
+      cliente_nome:  novoNome,
+      cliente_tel:   novoTel,
+      cliente_email: novoEmail,
+      user_id:       novoUserId||null,
+    }).eq('id', at.projeto_id);
+  }
+
+  // 6. Registrar log nas anotações
+  await registrarLogAt(atId, 'Substituição de cliente',
+    nomeAntigo+' ('+emailAntigo+')',
+    novoNome+' ('+novoEmail+')'
+  );
+
+  // 7. Buscar situação atual do projeto para incluir no email
+  let etapaAtual = '';
+  if(at.projeto_id){
+    const {data:proj} = await db.from('projetos').select('etapa_atual').eq('id',at.projeto_id).single();
+    const ETAPAS_NOMES = typeof ETAPAS !== 'undefined' ? ETAPAS.map(e=>e.nome) : [];
+    etapaAtual = proj?.etapa_atual ? (ETAPAS_NOMES[proj.etapa_atual-1]||'Etapa '+proj.etapa_atual) : '';
+  }
+
+  // 8. Enviar email de boas-vindas ao novo cliente
+  try{
+    await fetch(SUPABASE_URL+'/functions/v1/email-boas-vindas', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+      body: JSON.stringify({
+        nome:                novoNome,
+        email:               novoEmail,
+        senha:               senhaCliente||null,
+        numero_atendimento:  at.numero||null,
+        empresa:             at.empresa||null,
+        projeto_id:          at.projeto_id||null,
+        usuario_novo:        usuario_novo,
+        etapa_atual:         etapaAtual||null,
+        mensagem_extra:      'Você foi adicionado como titular deste projeto. Todas as informações e histórico anteriores foram preservados.'
+      })
+    });
+  }catch(e){ console.warn('Erro ao enviar email:', e); }
+
+  notify('Cliente substituído com sucesso! Email enviado para '+novoEmail);
+  if(alertEl) alertEl.innerHTML='<div style="color:var(--green);font-size:12px;">✅ Cliente substituído e email enviado!</div>';
+
+  // Recarregar modal
+  setTimeout(()=>abrirModalAt(atId), 1500);
+}
+
 async function salvarCampoAt(atId,campo,labelCampo,novoValor){
   const {data:atAtual}=await db.from('atendimentos').select('*').eq('id',atId).single();
   const valorAntes=String(atAtual?.[campo]||'');
@@ -8958,7 +9077,27 @@ async function abrirModalAt(id){
           </div>
         </div>
       </div>
-    </div>
+      ${isAdmOuGer()?`
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--border2);">
+        <div style="font-size:11px;color:#8a1a1a;font-weight:600;margin-bottom:8px;">⚠️ Substituição de cliente — use somente quando o contrato mudar de titular</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Novo nome <span style="color:var(--accent)">*</span></label>
+            <input type="text" id="subst-nome-${id}" placeholder="Nome completo" style="width:100%;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Novo telefone <span style="color:var(--accent)">*</span></label>
+            <input type="text" id="subst-tel-${id}" placeholder="(21) 99999-0000" style="width:100%;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:var(--text2);font-weight:500;display:block;margin-bottom:3px;">Novo e-mail <span style="color:var(--accent)">*</span></label>
+          <input type="email" id="subst-email-${id}" placeholder="novo@email.com" style="width:100%;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+        </div>
+        <div id="subst-alert-${id}" style="margin-bottom:6px;"></div>
+        <button onclick="substituirClienteAt('${id}')" style="background:#8a1a1a;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:600;">🔄 Confirmar substituição de cliente</button>
+      </div>
+      `:''}\n    </div>
 
     <!-- Data de Nascimento -->
     <div style="background:${a.data_nascimento?'#fffbea':'#fff8f0'};border:1.5px solid ${a.data_nascimento?'#d4af37':'var(--accent)'};border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;">
