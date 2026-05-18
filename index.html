@@ -1482,6 +1482,25 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             </div>
             <div class="form-row"><label>Categoria</label><input type="text" id="fin-desp-cat" placeholder="Ex: Infraestrutura, RH..."></div>
           </div>
+          <!-- Código de barras / PIX -->
+          <div class="form-row">
+            <label>Código de barras / Chave PIX <span style="font-size:11px;color:var(--text3);font-weight:400;">(opcional)</span></label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="fin-desp-codbar" placeholder="Cole o código de barras ou chave PIX..." style="flex:1;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+              <button onclick="copiarCampo('fin-desp-codbar')" title="Copiar" style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;font-size:16px;">📋</button>
+            </div>
+          </div>
+          <!-- XML da nota fiscal -->
+          <div class="form-row">
+            <label>XML da nota fiscal <span style="font-size:11px;color:var(--text3);font-weight:400;">(opcional)</span></label>
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <textarea id="fin-desp-xml" placeholder="Cole o conteúdo do XML da NF aqui..." rows="3" style="flex:1;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-family:monospace;background:var(--bg);outline:none;resize:vertical;"></textarea>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <button onclick="copiarCampo('fin-desp-xml')" title="Copiar XML" style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px;cursor:pointer;font-size:16px;">📋</button>
+                <label title="Carregar arquivo XML" style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px;cursor:pointer;font-size:16px;text-align:center;">📂<input type="file" accept=".xml,text/xml" style="display:none" onchange="carregarXMLDespesa(this)"></label>
+              </div>
+            </div>
+          </div>
           <button class="btn-submit" onclick="salvarDespesa()">Adicionar despesa</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
@@ -1492,6 +1511,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <option value="variavel">Variáveis</option>
             <option value="extra">Extras</option>
           </select>
+          <button onclick="exportarXMLsMes(false)" style="padding:7px 14px;background:#1a4a8a;color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">📦 Exportar XMLs do mês</button>
+          <button onclick="exportarXMLsMes(true)" style="padding:7px 14px;background:#2d5a8a;color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">📋 Notas com XML</button>
         </div>
         <div id="fin-despesas-content"><div class="loader">Carregando...</div></div>
       </div>
@@ -7364,6 +7385,148 @@ async function loadConfigFin(){
 }
 
 /* ── DESPESAS ── */
+// ══════════════════════════════════════════
+//  FINANCEIRO — XML DE NOTAS E UTILITÁRIOS
+// ══════════════════════════════════════════
+
+function copiarCampo(id){
+  const el = document.getElementById(id);
+  if(!el){ notify('Campo não encontrado.','error'); return; }
+  const val = el.value || el.textContent || '';
+  if(!val){ notify('Campo vazio.','error'); return; }
+  navigator.clipboard.writeText(val).then(()=>notify('Copiado!')).catch(()=>{
+    // Fallback para browsers antigos
+    el.select && el.select();
+    document.execCommand('copy');
+    notify('Copiado!');
+  });
+}
+
+function carregarXMLDespesa(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const xmlArea = document.getElementById('fin-desp-xml');
+    if(xmlArea) xmlArea.value = e.target.result;
+    notify('XML carregado!');
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+async function verXMLDespesa(id){
+  const {data} = await db.from('fin_despesas').select('xml_nf,descricao').eq('id',id).single();
+  if(!data?.xml_nf){ notify('Sem XML nesta despesa.','error'); return; }
+  const win = window.open('','_blank','width=800,height:600');
+  win.document.write('<html><head><title>XML — '+data.descricao+'</title></head><body><pre style="font-family:monospace;font-size:12px;padding:20px;white-space:pre-wrap;">'
+    + data.xml_nf.replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    + '</pre><button onclick="navigator.clipboard.writeText(document.querySelector(String.fromCharCode(39)+String.fromCharCode(112,114,101)+String.fromCharCode(39)).textContent)" style="position:fixed;top:10px;right:10px;padding:8px 16px;background:#1a4a8a;color:#fff;border:none;border-radius:6px;cursor:pointer;">Copiar</button></body></html>');
+}
+
+async function baixarXMLDespesa(id, nomeBase){
+  const {data} = await db.from('fin_despesas').select('xml_nf,descricao,vencimento').eq('id',id).single();
+  if(!data?.xml_nf){ notify('Sem XML nesta despesa.','error'); return; }
+  const blob = new Blob([data.xml_nf], {type:'application/xml'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (nomeBase||'nota').replace(/[^a-zA-Z0-9_-]/g,'_') + '.xml';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function fecharModalXMLs(){
+  const m=document.getElementById("modal-xmls-mes");
+  if(m) m.style.display="none";
+}
+
+async function exportarXMLsMes(apenasListar=false){
+  const mes = document.getElementById('fin-desp-filtro-mes').value;
+  if(!mes){ notify('Selecione um mês nos filtros.','error'); return; }
+
+  const {data} = await db.from('fin_despesas')
+    .select('id,descricao,vencimento,valor,xml_nf')
+    .eq('mes_ref', mes)
+    .eq('empresa', finEmpresa)
+    .not('xml_nf','is',null)
+    .order('vencimento',{ascending:true,nullsFirst:false});
+
+  if(!data || !data.length){
+    notify('Nenhuma nota com XML encontrada para '+mes+'.','error');
+    return;
+  }
+
+  if(apenasListar){
+    // Exibir modal com lista de notas
+    const lista = data.map(d=>{
+      const v = d.vencimento ? new Date(d.vencimento+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;">'
+        +'<div><div style="font-size:13px;font-weight:500;">'+d.descricao+'</div>'
+        +'<div style="font-size:11px;color:var(--text2);">Venc: '+v+' · R$ '+fmt(d.valor)+'</div></div>'
+        +'<div style="display:flex;gap:6px;">'
+        +'<button onclick="verXMLDespesa(\"'+d.id+'\")" style="font-size:11px;padding:4px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;">Ver</button>'
+        +'<button data-xid="'+d.id+'" data-xnome="'+(d.descricao||'nota').replace(/[^a-zA-Z0-9]/g,'_').slice(0,40)+'" data-xacao="baixar" style="font-size:11px;padding:4px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;">Baixar</button>'
+        +'</div></div>';
+    }).join('');
+
+    let modal = document.getElementById('modal-xmls-mes');
+    if(!modal){
+      modal = document.createElement('div');
+      modal.id = 'modal-xmls-mes';
+      modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;';
+      modal.onclick = e=>{ if(e.target===modal) modal.style.display='none'; };
+      modal.innerHTML = '<div style="background:var(--surface);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:560px;max-height:80vh;overflow-y:auto;margin:1rem;">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">'
+        +'<h3 style="margin:0;font-size:16px;font-weight:600;" id="modal-xmls-titulo">Notas fiscais com XML</h3>'
+        +'<button onclick="fecharModalXMLs()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>'
+        +'</div>'
+        +'<div id="modal-xmls-lista"></div>'
+        +'<button onclick="exportarXMLsMes(false)" style="width:100%;margin-top:1rem;background:#1a4a8a;color:#fff;border:none;border-radius:var(--radius-sm);padding:10px;font-size:13px;font-family:DM Sans,sans-serif;cursor:pointer;font-weight:600;">📦 Exportar todos em ZIP</button>'
+        +'</div>';
+      document.body.appendChild(modal);
+    }
+    document.getElementById('modal-xmls-titulo').textContent = data.length+' nota(s) com XML — '+mes;
+    document.getElementById('modal-xmls-lista').innerHTML = lista;
+    modal.style.display = 'flex';
+    return;
+  }
+
+  // Gerar ZIP com todos os XMLs do mês
+  notify('Gerando arquivo ZIP com '+data.length+' XMLs...','info');
+
+  // Usar JSZip se disponível, senão exportar concatenado
+  if(typeof JSZip !== 'undefined'){
+    const zip = new JSZip();
+    const pasta = zip.folder('NFs_'+mes);
+    data.forEach((d,i)=>{
+      const nome = String(i+1).padStart(3,'0')+'_'+(d.descricao||'nota').replace(/[^a-zA-Z0-9]/g,'_').slice(0,40)+'.xml';
+      pasta.file(nome, d.xml_nf);
+    });
+    const blob = await zip.generateAsync({type:'blob'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'NFs_'+mes+'.zip'; a.click();
+    URL.revokeObjectURL(url);
+    notify('✅ ZIP com '+data.length+' XMLs gerado!');
+  } else {
+    // Fallback: gerar arquivo único com todos os XMLs separados por comentário
+    const conteudo = data.map((d,i)=>{
+      const nome = (d.descricao||'nota_'+i).replace(/[^a-zA-Z0-9 ]/g,' ');
+      const v = d.vencimento || '';
+      return '<!-- ========== '+nome+' | Venc: '+v+' | R$ '+fmt(d.valor)+' ========== -->\n'+d.xml_nf;
+    }).join('\n\n');
+
+
+
+    const blob = new Blob([conteudo],{type:'application/xml'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'NFs_'+mes+'.xml'; a.click();
+    URL.revokeObjectURL(url);
+    notify('✅ Arquivo com '+data.length+' XMLs exportado!');
+  }
+}
+
 async function salvarDespesa(){
   const desc=document.getElementById('fin-desp-desc').value.trim();
   const valor=parseMoney(document.getElementById('fin-desp-valor').value);
@@ -7373,13 +7536,17 @@ async function salvarDespesa(){
   const cat=document.getElementById('fin-desp-cat').value.trim();
   if(!desc||!valor){notify('Preencha descrição e valor.','error');return}
   const mes=venc?venc.slice(0,7):new Date().toISOString().slice(0,7);
-  const {error}=await db.from('fin_despesas').insert({descricao:desc,valor,tipo,vencimento:venc||null,recorrencia:recorr,categoria:cat,mes_ref:mes,pago:false,empresa:finEmpresa});
+  const codbar=(document.getElementById('fin-desp-codbar')?.value||'').trim();
+  const xmlnf=(document.getElementById('fin-desp-xml')?.value||'').trim();
+  const {error}=await db.from('fin_despesas').insert({descricao:desc,valor,tipo,vencimento:venc||null,recorrencia:recorr,categoria:cat,mes_ref:mes,pago:false,empresa:finEmpresa,codigo_barras:codbar||null,xml_nf:xmlnf||null});
   if(error){notify('Erro ao salvar.','error');return}
   notify('Despesa adicionada!');
   document.getElementById('fin-desp-desc').value='';
   document.getElementById('fin-desp-valor').value='';
   document.getElementById('fin-desp-venc').value='';
   document.getElementById('fin-desp-cat').value='';
+  if(document.getElementById('fin-desp-codbar')) document.getElementById('fin-desp-codbar').value='';
+  if(document.getElementById('fin-desp-xml')) document.getElementById('fin-desp-xml').value='';
   loadDespesas();loadAlertasDespesas();
 }
 
@@ -7422,6 +7589,11 @@ async function loadDespesas(){
         <div style="font-size:13px;font-weight:500;">${d.descricao}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px;">${tipoLabel}${d.categoria?' · '+d.categoria:''} · Venc: ${vencStr}</div>
         <div style="margin-top:4px;">${badge}</div>
+        ${d.codigo_barras?'<div style="display:flex;align-items:center;gap:6px;margin-top:6px;"><code style="font-size:10px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+d.codigo_barras+'">'+d.codigo_barras.slice(0,38)+(d.codigo_barras.length>38?'...':'')+'</code><button onclick="navigator.clipboard.writeText(this.dataset.cod)" data-cod="'+d.codigo_barras+'" style="font-size:11px;padding:2px 8px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;">📋</button></div>':''}
+        ${d.xml_nf?'<div style="margin-top:4px;font-size:11px;display:flex;gap:6px;align-items:center;"><span style="background:#e8f0fc;color:#1a3a6e;padding:2px 8px;border-radius:4px;font-weight:500;">📄 XML</span>'
+        +'<button data-xid="'+d.id+'" data-xacao="ver" style="font-size:11px;padding:2px 8px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;">👁 Ver</button>'
+        +'<button data-xid="'+d.id+'" data-xnome="'+(d.descricao||'nf').replace(/[^a-zA-Z0-9]/g,'_').slice(0,40)+'" data-xacao="baixar" style="font-size:11px;padding:2px 8px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;cursor:pointer;">⬇ Baixar</button>'
+        +'</div>':'${""}'}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         <div style="font-size:14px;font-weight:500;">${fmt(d.valor)}</div>
@@ -7433,6 +7605,13 @@ async function loadDespesas(){
     </div>`;
   });
   cont.innerHTML=html;
+  // Event delegation para botões XML
+  cont.addEventListener('click', function handler(e){
+    const btn = e.target.closest('[data-xid]');
+    if(!btn) return;
+    if(btn.dataset.xacao==='ver') verXMLDespesa(btn.dataset.xid);
+    if(btn.dataset.xacao==='baixar') baixarXMLDespesa(btn.dataset.xid, btn.dataset.xnome);
+  }, {once:true});
 }
 
 async function marcarPago(id){
