@@ -4439,7 +4439,7 @@ async function voltarEtapaAt(id, etapaAnteriorId){
 
 async function abrirModalDistribuir(atId){
   const {data:at}=await db.from('atendimentos').select('id,numero,cliente_nome,estimativa').eq('id',atId).single();
-  const {data:vends}=await db.from('perfis').select('id,nome').eq('nivel','funcionario').eq('ativo',true).order('nome');
+  const {data:vends}=await db.from('perfis').select('id,nome').eq('nivel','funcionario').order('nome');
   const mes=new Date().toISOString().slice(0,7);
   const {data:ativos}=await db.from('atendimentos').select('vendedor_id,estimativa').eq('mes_ref',mes).eq('status','em_andamento');
   const carga={};
@@ -4517,6 +4517,12 @@ async function registrarLogAt(atId,campo,valorAntes,valorDepois){
     criado_por:currentUser?.id||null,
     criado_por_nome:criadoPorNome
   });
+}
+
+async function carregarMensagensAt(id){
+  // Placeholder — integração de mensagens não implementada ainda
+  const el = document.getElementById('at-msgs-'+id);
+  if(el) el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Nenhuma mensagem registrada.</div>';
 }
 
 async function salvarCampoAt(atId,campo,labelCampo,novoValor){
@@ -9311,7 +9317,6 @@ async function abrirModalAt(id){
     carregarFeedAnotacoes(id);
     carregarTarefasAt(id);
     carregarHistoricoAnexos('atendimento', id, 'at-historico-anexos-'+id);
-    carregarMensagensAt(id);
     // Carregar funcionários no select de responsável (só admin)
     if(isAdmin()){
       const sel = document.getElementById(`at-tarefa-resp-${id}`);
