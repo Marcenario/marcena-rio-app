@@ -40,17 +40,15 @@ jobs:
 
       - name: Criar projeto Android TWA
         run: |
-          mkdir -p twa-app/app/src/main/res/xml
-          mkdir -p twa-app/app/src/main/res/drawable
+          mkdir -p twa-app/app/src/main/res/values
           mkdir -p twa-app/app/src/main/java/br/com/planejaai/app
+          mkdir -p twa-app/gradle/wrapper
 
-          # settings.gradle
           cat > twa-app/settings.gradle << 'EOF'
           rootProject.name = "PlanejaAi"
           include ':app'
           EOF
 
-          # build.gradle (root)
           cat > twa-app/build.gradle << 'EOF'
           buildscript {
               repositories {
@@ -69,8 +67,12 @@ jobs:
           }
           EOF
 
-          # gradle wrapper properties
-          mkdir -p twa-app/gradle/wrapper
+          cat > twa-app/gradle.properties << 'EOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
+          EOF
+
           cat > twa-app/gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
@@ -79,14 +81,6 @@ jobs:
           zipStorePath=wrapper/dists
           EOF
 
-          # gradlew
-          cat > twa-app/gradlew << 'EOF'
-          #!/bin/sh
-          exec gradle "$@"
-          EOF
-          chmod +x twa-app/gradlew
-
-          # app/build.gradle
           cat > twa-app/app/build.gradle << 'EOF'
           plugins {
               id 'com.android.application'
@@ -96,7 +90,7 @@ jobs:
               namespace "br.com.planejaai.app"
               defaultConfig {
                   applicationId "br.com.planejaai.app"
-                  minSdk 19
+                  minSdk 21
                   targetSdk 34
                   versionCode 1
                   versionName "1.0.0"
@@ -122,13 +116,11 @@ jobs:
           }
           EOF
 
-          # AndroidManifest.xml
           cat > twa-app/app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application
                   android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
                   android:label="Planeja.ai"
                   android:theme="@style/Theme.AppCompat.NoActionBar">
                   <activity
@@ -152,8 +144,6 @@ jobs:
           </manifest>
           EOF
 
-          # strings.xml
-          mkdir -p twa-app/app/src/main/res/values
           cat > twa-app/app/src/main/res/values/strings.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -161,8 +151,7 @@ jobs:
           </resources>
           EOF
 
-          echo "Projeto Android criado!"
-          ls twa-app/
+          echo "Projeto criado!"
 
       - name: Build APK
         env:
