@@ -1078,9 +1078,9 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
               <span style="font-size:13px;font-weight:500;">🎓 Este funcionário é estagiário</span>
             </label>
             <div id="rh-func-est-campos" style="display:none;margin-top:10px;">
-              <div class="form-grid">
-                <div class="form-row"><label>Carga horária semanal (h)</label><input type="number" id="rh-func-carga-semanal" value="30" min="1" max="40" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;"></div>
-                <div class="form-row"><label>Data fim do estágio</label><input type="date" id="rh-func-data-fim-estagio"></div>
+              <div class="form-row" style="max-width:260px;">
+                <label>Carga horária semanal (h)</label>
+                <input type="number" id="rh-func-carga-semanal" value="30" min="1" max="40" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
               </div>
               <div style="font-size:11px;color:var(--text3);margin-top:6px;">Almoço automático descontado quando turno ultrapassar 6h trabalhadas.</div>
             </div>
@@ -7129,7 +7129,6 @@ async function cadastrarFuncionario() {
       alm_fim_sab: document.getElementById('rh-func-alm-fim-sab').value,
       estagiario: document.getElementById('rh-func-estagiario')?.checked||false,
       carga_semanal: parseInt(document.getElementById('rh-func-carga-semanal')?.value||30),
-      data_fim_estagio: document.getElementById('rh-func-data-fim-estagio')?.value||null,
     })
   });
   const json = await res.json();
@@ -7137,7 +7136,6 @@ async function cadastrarFuncionario() {
   setAlert('rh-func-alert', 'Funcionário cadastrado com sucesso!', 'success');
   const estCb = document.getElementById('rh-func-estagiario');
   if(estCb){ estCb.checked=false; toggleCamposEstagiario(false); }
-  if(document.getElementById('rh-func-data-fim-estagio')) document.getElementById('rh-func-data-fim-estagio').value='';
   loadFuncionariosRH();
 }
 
@@ -7165,6 +7163,7 @@ async function loadFuncionariosRH() {
           ${!inativo
             ? `<button onclick="excluirFuncionarioRH('${f.id}','${f.user_id||''}','${nomeEsc}')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">🔴 Desligar</button>`
             : `<button onclick="reativarFuncionarioRH('${f.id}')" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">↩ Reativar</button>`
+          }${!inativo?`<button onclick="editarCondicaoFuncionario('${f.id}',${!!f.estagiario},${f.carga_semanal||30})" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">✏️ Editar</button>`:''}
           }
         </div>
       </div>
@@ -7179,6 +7178,34 @@ async function loadFuncionariosRH() {
     html += '<div class="team-grid">' + inativos.map(renderCard).join('') + '</div>';
   }
   cont.innerHTML = html;
+}
+
+function editarCondicaoFuncionario(id, estagiario, cargaSemanal){
+  const novaCondicao = !estagiario;
+  const msg = novaCondicao
+    ? `Marcar como estagiário?\nCarga horária semanal (h):` 
+    : `Remover condição de estagiário e marcar como funcionário regular?`;
+
+  if(novaCondicao){
+    const carga = prompt(msg, cargaSemanal||30);
+    if(carga === null) return;
+    const h = parseInt(carga);
+    if(isNaN(h)||h<1||h>40){ notify("Carga horária inválida.","error"); return; }
+    db.from("rh_funcionarios").update({estagiario:true, carga_semanal:h}).eq("id",id)
+      .then(({error})=>{
+        if(error){ notify("Erro: "+error.message,"error"); return; }
+        notify("✅ Condição atualizada para Estagiário!");
+        loadFuncionariosRH();
+      });
+  } else {
+    if(!confirm(msg)) return;
+    db.from("rh_funcionarios").update({estagiario:false, carga_semanal:null}).eq("id",id)
+      .then(({error})=>{
+        if(error){ notify("Erro: "+error.message,"error"); return; }
+        notify("✅ Condição atualizada para Funcionário regular!");
+        loadFuncionariosRH();
+      });
+  }
 }
 
 async function reativarFuncionarioRH(id){
