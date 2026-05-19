@@ -528,6 +528,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
       <div class="sub-nav">
         <button class="nav-item active" id="mt-nav-fila" onclick="showSubMontagem('mt-fila',this)">Fila</button>
         <button class="nav-item" id="mt-nav-novo" onclick="showSubMontagem('mt-novo',this)">Novo pedido</button>
+        <button class="nav-item" id="mt-nav-at-direta" style="display:none" onclick="showSubMontagem('mt-at-direta',this)">🔧 Assist. Técnica Direta</button>
         <button class="nav-item" id="mt-nav-equipes" style="display:none" onclick="showSubMontagem('mt-equipes',this)">Equipes</button>
         <button class="nav-item" id="mt-nav-relatorio" style="display:none" onclick="showSubMontagem('mt-relatorio',this)">Relatório</button>
       </div>
@@ -628,6 +629,88 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <button class="btn-submit" onclick="salvarPedidoMt()" id="btn-registrar-mt" style="opacity:0.5;" title="Confirme todos os ambientes antes de registrar">Registrar e distribuir para equipe</button>
         </div>
       </div>
+      <!-- ASSISTÊNCIA TÉCNICA DIRETA -->
+      <div id="mt-at-direta" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:0.5rem;">🔧 Assistência Técnica Direta</div>
+          <div class="info-box" style="margin-bottom:1rem;">Cria um pedido de assistência técnica diretamente na etapa de Vistoria Final, sem passar pelo funil de vendas. Use quando o cliente já tem contrato e precisa de atendimento imediato.</div>
+
+          <div class="form-grid">
+            <div class="form-row">
+              <label>Nome do cliente <span style="color:var(--accent)">*</span></label>
+              <input type="text" id="atd-cliente" placeholder="Nome completo do cliente">
+            </div>
+            <div class="form-row">
+              <label>Telefone / WhatsApp</label>
+              <input type="text" id="atd-tel" placeholder="(21) 99999-0000">
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>E-mail</label>
+              <input type="email" id="atd-email" placeholder="cliente@email.com">
+            </div>
+            <div class="form-row">
+              <label>Empresa <span style="color:var(--accent)">*</span></label>
+              <select id="atd-empresa" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
+                <option value="marcenario">Marcena Rio</option>
+                <option value="conceptus">Conceptus Italínea</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Vínculo com contrato existente ou novo -->
+          <div class="divider"></div>
+          <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;">Contrato</div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button id="atd-btn-novo" onclick="setModoContratoAtd('novo')" style="flex:1;padding:10px;border:1.5px solid var(--brand);background:var(--brand);color:#fff;border-radius:var(--radius-sm);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;">✚ Novo contrato</button>
+            <button id="atd-btn-existente" onclick="setModoContratoAtd('existente')" style="flex:1;padding:10px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);border-radius:var(--radius-sm);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;">🔗 Vincular existente</button>
+          </div>
+
+          <div id="atd-wrap-novo">
+            <div class="form-row">
+              <label>Número do contrato <span style="font-size:11px;color:var(--text3);font-weight:400;">(deixe em branco para gerar automaticamente)</span></label>
+              <input type="text" id="atd-contrato-novo" placeholder="Ex: CT-2026-001">
+            </div>
+          </div>
+          <div id="atd-wrap-existente" style="display:none;">
+            <div class="form-row">
+              <label>Buscar contrato/projeto existente</label>
+              <div style="position:relative;">
+                <input type="text" id="atd-busca-contrato" placeholder="Digite o nome do cliente ou número do contrato..." autocomplete="off"
+                  oninput="onAtdBuscaContrato(this.value)"
+                  onblur="setTimeout(()=>{const d=document.getElementById('atd-dropdown');if(d)d.style.display='none';},200)"
+                  style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+                <div id="atd-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:999;max-height:200px;overflow-y:auto;"></div>
+              </div>
+              <input type="hidden" id="atd-contrato-existente-val">
+              <input type="hidden" id="atd-projeto-id-val">
+            </div>
+            <div id="atd-contrato-selecionado" style="display:none;background:var(--green-bg);border:1px solid #a8d5b5;border-radius:var(--radius-sm);padding:10px 14px;margin-top:6px;font-size:13px;font-weight:500;"></div>
+          </div>
+
+          <div class="divider"></div>
+          <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;">Descrição do problema / Ambiente</div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>Ambiente <span style="color:var(--accent)">*</span></label>
+              <input type="text" id="atd-ambiente" placeholder="Ex: Cozinha, Quarto casal...">
+            </div>
+            <div class="form-row">
+              <label>Data agendada</label>
+              <input type="date" id="atd-data">
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Descrição do problema <span style="color:var(--accent)">*</span></label>
+            <textarea id="atd-descricao" style="height:80px;resize:none;" placeholder="Descreva o problema a ser resolvido na assistência técnica..."></textarea>
+          </div>
+
+          <div id="atd-alert" style="margin-bottom:8px;"></div>
+          <button class="btn-submit" onclick="salvarAssistenciaTecnica()" id="btn-at-direta">🔧 Criar Assistência Técnica</button>
+        </div>
+      </div>
+
       <div id="mt-equipes" style="display:none">
         <div class="card">
           <div class="card-title" style="margin-bottom:1rem;">Cadastrar nova equipe</div>
@@ -2188,6 +2271,7 @@ async function onLogin(user){
   document.getElementById('nav-financeiro').style.display=admOuGer?'block':'none';
   document.getElementById('nav-admin').style.display=isAdmin()?'block':'none'; // só admin
   document.getElementById('nav-usuarios').style.display=admOuGer?'block':'none';
+  document.getElementById('mt-nav-at-direta').style.display=admOuGer?'block':'none';
   document.getElementById('mt-nav-equipes').style.display=admOuGer?'block':'none';
   document.getElementById('mt-nav-relatorio').style.display=admOuGer?'block':'none';
   document.getElementById('conf-nav-conferentes').style.display=admOuGer?'block':'none';
@@ -2420,7 +2504,7 @@ function showSection(id,btn){
 }
 
 function showSubMontagem(id,btn){
-  ['mt-fila','mt-novo','mt-equipes','mt-relatorio'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none'});
+  ['mt-fila','mt-novo','mt-at-direta','mt-equipes','mt-relatorio'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none'});
   document.querySelectorAll('.sub-nav .nav-item').forEach(n=>n.classList.remove('active'));
   const el=document.getElementById(id);if(el)el.style.display='block';
   if(btn)btn.classList.add('active');
@@ -4881,6 +4965,222 @@ async function salvarCampoAt(atId,campo,labelCampo,novoValor){
   abrirModalAt(atId);
 }
 
+
+// ══════════════════════════════════════════════════════
+//  ASSISTÊNCIA TÉCNICA DIRETA
+// ══════════════════════════════════════════════════════
+
+let _atdModo = 'novo'; // 'novo' | 'existente'
+
+function setModoContratoAtd(modo){
+  _atdModo = modo;
+  const btnNovo = document.getElementById('atd-btn-novo');
+  const btnExist = document.getElementById('atd-btn-existente');
+  const wrapNovo = document.getElementById('atd-wrap-novo');
+  const wrapExist = document.getElementById('atd-wrap-existente');
+  if(modo === 'novo'){
+    btnNovo.style.background = 'var(--brand)'; btnNovo.style.color = '#fff'; btnNovo.style.borderColor = 'var(--brand)';
+    btnExist.style.background = 'transparent'; btnExist.style.color = 'var(--text2)'; btnExist.style.borderColor = 'var(--border2)';
+    wrapNovo.style.display = 'block'; wrapExist.style.display = 'none';
+  } else {
+    btnExist.style.background = 'var(--brand)'; btnExist.style.color = '#fff'; btnExist.style.borderColor = 'var(--brand)';
+    btnNovo.style.background = 'transparent'; btnNovo.style.color = 'var(--text2)'; btnNovo.style.borderColor = 'var(--border2)';
+    wrapNovo.style.display = 'none'; wrapExist.style.display = 'block';
+  }
+}
+
+async function onAtdBuscaContrato(q){
+  const drop = document.getElementById('atd-dropdown');
+  if(!q || q.length < 2){ drop.style.display='none'; return; }
+  // Buscar em projetos e atendimentos
+  const [projRes, atRes] = await Promise.all([
+    db.from('projetos').select('id,titulo,cliente_nome,numero_contrato_at').ilike('cliente_nome','%'+q+'%').limit(8),
+    db.from('atendimentos').select('id,cliente_nome,numero_contrato').ilike('cliente_nome','%'+q+'%').not('numero_contrato','is',null).limit(8)
+  ]);
+  const itens = [];
+  (projRes.data||[]).forEach(p=>{
+    if(p.numero_contrato_at||p.titulo) itens.push({label: (p.cliente_nome||p.titulo)+' — '+(p.numero_contrato_at||'sem contrato'), contrato: p.numero_contrato_at||'', projetoId: p.id, clienteNome: p.cliente_nome||p.titulo});
+  });
+  (atRes.data||[]).forEach(a=>{
+    if(!itens.find(i=>i.contrato===a.numero_contrato))
+      itens.push({label: a.cliente_nome+' — '+a.numero_contrato, contrato: a.numero_contrato, projetoId: null, clienteNome: a.cliente_nome});
+  });
+  if(!itens.length){ drop.innerHTML='<div style="padding:10px;font-size:12px;color:var(--text3);">Nenhum resultado.</div>'; drop.style.display='block'; return; }
+  drop.innerHTML = itens.map((it,i)=>
+    '<div style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);" '
+    +'onmousedown="selecionarContratoAtd('+i+')" data-idx="'+i+'">'+it.label+'</div>'
+  ).join('');
+  drop._itens = itens;
+  drop.style.display = 'block';
+}
+
+function selecionarContratoAtd(idx){
+  const drop = document.getElementById('atd-dropdown');
+  const it = drop._itens[idx];
+  if(!it) return;
+  document.getElementById('atd-contrato-existente-val').value = it.contrato;
+  document.getElementById('atd-projeto-id-val').value = it.projetoId||'';
+  document.getElementById('atd-busca-contrato').value = it.label;
+  // Preencher nome do cliente automaticamente
+  if(it.clienteNome) document.getElementById('atd-cliente').value = it.clienteNome;
+  const sel = document.getElementById('atd-contrato-selecionado');
+  sel.textContent = '✅ Selecionado: '+it.label;
+  sel.style.display = 'block';
+  drop.style.display = 'none';
+}
+
+async function salvarAssistenciaTecnica(){
+  const cliente  = (document.getElementById('atd-cliente')?.value||'').trim();
+  const tel      = (document.getElementById('atd-tel')?.value||'').trim();
+  const email    = (document.getElementById('atd-email')?.value||'').trim();
+  const empresa  = document.getElementById('atd-empresa')?.value||'marcenario';
+  const ambiente = (document.getElementById('atd-ambiente')?.value||'').trim();
+  const descricao= (document.getElementById('atd-descricao')?.value||'').trim();
+  const data     = document.getElementById('atd-data')?.value||'';
+  const alertEl  = document.getElementById('atd-alert');
+
+  if(!cliente){ setAlert('atd-alert','Preencha o nome do cliente.','error'); return; }
+  if(!ambiente){ setAlert('atd-alert','Preencha o ambiente.','error'); return; }
+  if(!descricao){ setAlert('atd-alert','Descreva o problema.','error'); return; }
+
+  // Número do contrato
+  let numeroContrato = '';
+  let projetoId = null;
+  if(_atdModo === 'novo'){
+    numeroContrato = (document.getElementById('atd-contrato-novo')?.value||'').trim();
+    if(!numeroContrato){
+      // Gerar automaticamente: AT-YYYYMM-XXX
+      const mes = new Date().toISOString().slice(0,7).replace('-','');
+      const {data:existentes} = await db.from('pedidos_montagem').select('id').ilike('numero_contrato','AT-'+mes+'%');
+      const seq = String((existentes?.length||0)+1).padStart(3,'0');
+      numeroContrato = 'AT-'+mes+'-'+seq;
+    }
+  } else {
+    numeroContrato = document.getElementById('atd-contrato-existente-val')?.value||'';
+    projetoId = document.getElementById('atd-projeto-id-val')?.value||null;
+    if(!numeroContrato){ setAlert('atd-alert','Selecione um contrato existente.','error'); return; }
+  }
+
+  const btn = document.getElementById('btn-at-direta');
+  btn.disabled = true; btn.textContent = 'Criando...';
+  setAlert('atd-alert','','');
+
+  // Distribuir equipe (mesma lógica do pedido normal)
+  const equipe = await distribuirEquipe(0);
+  if(!equipe){
+    setAlert('atd-alert','Cadastre pelo menos uma equipe antes.','error');
+    btn.disabled=false; btn.textContent='🔧 Criar Assistência Técnica'; return;
+  }
+
+  // 1. Criar pedido de montagem já em status "vistoria"
+  const ambObj = [{nome: ambiente, valor: 0, pedido:'', nf:'', confirmado:true}];
+  const {data:pedido, error:pedErr} = await db.from('pedidos_montagem').insert({
+    cliente_nome:    cliente,
+    numero_contrato: numeroContrato,
+    data_chegada:    data||new Date().toISOString().slice(0,10),
+    valor_total:     0,
+    ambientes:       JSON.stringify(ambObj),
+    equipe_id:       equipe.id,
+    equipe_nome:     equipe.nome,
+    status:          'vistoria',  // entra direto na vistoria
+    tipo:            'assistencia_tecnica',
+    empresa:         empresa,
+    observacao:      descricao,
+    criado_por:      currentUser?.id||null
+  }).select().single();
+
+  if(pedErr){
+    setAlert('atd-alert','Erro ao criar assistência técnica: '+pedErr.message,'error');
+    btn.disabled=false; btn.textContent='🔧 Criar Assistência Técnica'; return;
+  }
+
+  // 2. Criar/vincular projeto para timeline do cliente
+  let projetoFinalId = projetoId;
+  if(!projetoFinalId && email){
+    // Criar novo projeto vinculado
+    let clienteUserId = null;
+    if(email){
+      const {data:perfilExist} = await db.from('perfis').select('id').eq('email',email).maybeSingle();
+      clienteUserId = perfilExist?.id||null;
+      if(!clienteUserId){
+        const _adj=['azul','verde','forte','novo','belo'];
+        const _sub=['casa','mesa','porta','janela','chave'];
+        const _verb=['move','sobe','abre','liga','cria'];
+        const _r=()=>Math.floor(Math.random()*5);
+        const senha=_adj[_r()]+_sub[_r()]+_verb[_r()]+Math.floor(Math.random()*900+100);
+        const {data:su} = await db.auth.signUp({email,password:senha,options:{data:{nome:cliente,telefone:tel}}});
+        if(su?.user?.id){
+          clienteUserId = su.user.id;
+          await db.from('perfis').upsert({id:clienteUserId,email,nome:cliente,nivel:'cliente'});
+        }
+      }
+    }
+    const {data:proj} = await db.from('projetos').insert({
+      titulo:         'Assistência Técnica — '+ambiente+' ('+numeroContrato+')',
+      ambiente,
+      descricao,
+      etapa_atual:    11, // etapa de vistoria final (ajuste conforme seu setup)
+      cliente_email:  email||'',
+      cliente_nome:   cliente,
+      cliente_tel:    tel,
+      user_id:        clienteUserId||null,
+      empresa,
+      numero_contrato_at: numeroContrato
+    }).select().single();
+    projetoFinalId = proj?.id||null;
+  }
+
+  // 3. Registrar anotação de abertura
+  if(projetoFinalId){
+    await db.from('at_anotacoes').insert({
+      atendimento_id: null,
+      tipo: 'log_alteracao',
+      texto: '[ASSIST. TECNICA] Criada por '+currentUser.email+'\nContrato: '+numeroContrato+'\nProblema: '+descricao,
+
+
+      criado_por: currentUser.id,
+      criado_por_nome: currentUser.email
+    }).catch(()=>{});
+  }
+
+  // 4. Enviar email de boas-vindas ao cliente se tiver email
+  if(email){
+    try{
+      await fetch(SUPABASE_URL+'/functions/v1/email-boas-vindas',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+        body:JSON.stringify({
+          nome: cliente,
+          email,
+          senha: null,
+          numero_atendimento: numeroContrato,
+          empresa,
+          projeto_id: projetoFinalId||null,
+          usuario_novo: false,
+          etapa_atual: 'Vistoria Final',
+          mensagem_extra: 'Sua assistência técnica foi aberta. Em breve nossa equipe realizará a vistoria.'
+        })
+      });
+    }catch(e){ console.warn('Email AT não enviado:', e); }
+  }
+
+  notify('✅ Assistência técnica criada! Contrato: '+numeroContrato+' · Equipe: '+equipe.nome);
+  setAlert('atd-alert','✅ Assistência técnica criada com sucesso! Contrato: '+numeroContrato+'. Já aparece na fila de Vistoria.','success');
+
+  // Limpar campos
+  ['atd-cliente','atd-tel','atd-email','atd-ambiente','atd-descricao','atd-contrato-novo','atd-busca-contrato'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('atd-contrato-existente-val').value='';
+  document.getElementById('atd-projeto-id-val').value='';
+  document.getElementById('atd-contrato-selecionado').style.display='none';
+  document.getElementById('atd-data').value='';
+  setModoContratoAtd('novo');
+  btn.disabled=false; btn.textContent='🔧 Criar Assistência Técnica';
+
+  // Recarregar fila
+  loadFilaMt();
+}
 
 async function moverParaVistoriaMt(id){
   await db.from('pedidos_montagem').update({status:'vistoria'}).eq('id',id);
