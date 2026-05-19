@@ -415,7 +415,22 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
     <!-- SOLICITAR ORÇAMENTO -->
     <div id="solicitar" class="section active">
-      <div class="card">
+      <!-- Seletor de tipo: Orçamento ou Assistência Técnica -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem;">
+        <button id="sol-modo-orc" class="at-tipo-btn active" onclick="setSolicitarModo('orcamento')" style="padding:14px 12px;text-align:center;">
+          <div style="font-size:22px;margin-bottom:4px;">📐</div>
+          <div style="font-size:13px;font-weight:600;">Orçamento</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Iniciar um novo projeto</div>
+        </button>
+        <button id="sol-modo-at" class="at-tipo-btn" onclick="setSolicitarModo('at')" style="padding:14px 12px;text-align:center;">
+          <div style="font-size:22px;margin-bottom:4px;">🔧</div>
+          <div style="font-size:13px;font-weight:600;">Assistência Técnica</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Solicitar atendimento pós-venda</div>
+        </button>
+      </div>
+
+      <!-- FORM: ORÇAMENTO -->
+      <div id="sol-form-orc" class="card">
         <div class="card-header"><div><div class="card-title">Nova solicitação de orçamento</div><div class="card-sub">Preencha as informações para iniciarmos seu projeto</div></div></div>
         <div class="form-grid">
           <div class="form-row"><label>Nome completo <span style="color:var(--accent)">*</span></label><input type="text" id="orc-nome" placeholder="Seu nome completo"></div>
@@ -446,6 +461,51 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         </div>
         <div id="orc-alert"></div>
         <button class="btn-submit" onclick="enviarOrcamento()" id="btn-orc">Enviar solicitação</button>
+      </div>
+
+      <!-- FORM: ASSISTÊNCIA TÉCNICA (cliente) -->
+      <div id="sol-form-at" class="card" style="display:none;">
+        <div class="card-header"><div><div class="card-title">🔧 Solicitar Assistência Técnica</div><div class="card-sub">Para clientes com contrato existente. Nossa equipe entrará em contato para agendar a vistoria.</div></div></div>
+
+        <div class="form-grid">
+          <div class="form-row"><label>Nome completo <span style="color:var(--accent)">*</span></label><input type="text" id="atc-nome" placeholder="Seu nome completo"></div>
+          <div class="form-row"><label>Telefone / WhatsApp <span style="color:var(--accent)">*</span></label><input type="text" id="atc-tel" placeholder="(21) 99999-0000"></div>
+        </div>
+
+        <div class="form-row">
+          <label>Empresa <span style="color:var(--accent)">*</span></label>
+          <div id="atc-empresa-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+            <button class="at-tipo-btn active" id="atc-emp-marcenario" onclick="setEmpresaAtCliente('marcenario',this)" style="padding:12px 8px;text-align:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+              <span style="display:none;font-size:12px;font-weight:600;color:inherit;">MARCENA RIO</span>
+            </button>
+            <button class="at-tipo-btn" id="atc-emp-conceptus" onclick="setEmpresaAtCliente('conceptus',this)" style="padding:12px 8px;text-align:center;">
+              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+              <span style="display:none;font-size:11px;font-weight:600;color:inherit;">italínea CONCEPTUS</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Vincular a um projeto existente (opcional)</label>
+          <select id="atc-projeto" onchange="onAtcProjetoChange(this.value)" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+            <option value="">— Sem vínculo / nova ocorrência —</option>
+          </select>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">Selecione o projeto para vincular a AT ao mesmo contrato.</div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-row"><label>Ambiente <span style="color:var(--accent)">*</span></label><input type="text" id="atc-ambiente" placeholder="Ex: Cozinha, Quarto casal..."></div>
+          <div class="form-row"><label>Data desejada (opcional)</label><input type="date" id="atc-data"></div>
+        </div>
+
+        <div class="form-row">
+          <label>Descrição do problema <span style="color:var(--accent)">*</span></label>
+          <textarea id="atc-descricao" style="height:90px;resize:none;" placeholder="Descreva o problema que precisa ser resolvido..."></textarea>
+        </div>
+
+        <div id="atc-alert"></div>
+        <button class="btn-submit" onclick="enviarAssistenciaTecnicaCliente()" id="btn-atc">🔧 Solicitar Assistência Técnica</button>
       </div>
     </div>
 
@@ -3166,6 +3226,9 @@ function renderProjeto(p){
         <button onclick="abrirReclamacao('${p.id}')" style="display:flex;align-items:center;gap:10px;background:#1a56db;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;">
           💬 Elogios, Sugestões e Reclamações
         </button>
+        <button onclick="abrirAtCardProjeto('${p.id}')" style="display:flex;align-items:center;gap:10px;background:#e07b00;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;">
+          🔧 Solicitar Assistência Técnica
+        </button>
       </div>`;
     })()}`;
   // Bloco de garantia — visível para todos quando projeto concluído E data_conclusao preenchida
@@ -5595,6 +5658,280 @@ async function salvarAssistenciaTecnica(){
 
   // Recarregar fila
   loadFilaMt();
+}
+
+// ══════════════════════════════════════════════════════
+//  ASSISTÊNCIA TÉCNICA — LADO CLIENTE
+// ══════════════════════════════════════════════════════
+
+let _atcEmpresa = 'marcenario';
+let _atcProjetosCache = [];
+
+function setSolicitarModo(modo){
+  const btnOrc = document.getElementById('sol-modo-orc');
+  const btnAt  = document.getElementById('sol-modo-at');
+  const formOrc= document.getElementById('sol-form-orc');
+  const formAt = document.getElementById('sol-form-at');
+  if(modo === 'at'){
+    btnAt.classList.add('active'); btnOrc.classList.remove('active');
+    formOrc.style.display = 'none'; formAt.style.display = '';
+    prefillAtCliente();
+  } else {
+    btnOrc.classList.add('active'); btnAt.classList.remove('active');
+    formAt.style.display = 'none'; formOrc.style.display = '';
+  }
+}
+
+function setEmpresaAtCliente(empresa, btn){
+  _atcEmpresa = empresa;
+  document.querySelectorAll('#atc-empresa-btns .at-tipo-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+
+async function prefillAtCliente(){
+  if(!currentUser) return;
+  // Nome/telefone: tenta perfil; se não tiver telefone, pega do último projeto
+  const {data:perfil} = await db.from('perfis').select('nome,telefone').eq('id', currentUser.id).maybeSingle();
+  const nomeEl = document.getElementById('atc-nome');
+  const telEl  = document.getElementById('atc-tel');
+  if(nomeEl && !nomeEl.value) nomeEl.value = perfil?.nome || '';
+  if(telEl && !telEl.value)   telEl.value  = perfil?.telefone || '';
+
+  // Carregar projetos do cliente
+  const {data:projs} = await db.from('projetos')
+    .select('id,titulo,ambiente,empresa,numero_contrato_at,cliente_nome,cliente_tel')
+    .eq('user_id', currentUser.id)
+    .order('created_at',{ascending:false})
+    .limit(50);
+  _atcProjetosCache = projs||[];
+  const sel = document.getElementById('atc-projeto');
+  if(sel){
+    sel.innerHTML = '<option value="">— Sem vínculo / nova ocorrência —</option>'
+      + _atcProjetosCache.map(p=>{
+          const lbl = (p.titulo||p.ambiente||'Projeto') + (p.numero_contrato_at?(' · '+p.numero_contrato_at):'');
+          return `<option value="${p.id}">${lbl}</option>`;
+        }).join('');
+  }
+
+  // Se houver pelo menos um projeto, pré-seleciona a empresa do mais recente
+  const primeiroComEmpresa = _atcProjetosCache.find(p=>p.empresa);
+  if(primeiroComEmpresa?.empresa){
+    const emp = primeiroComEmpresa.empresa;
+    _atcEmpresa = emp;
+    document.querySelectorAll('#atc-empresa-btns .at-tipo-btn').forEach(b=>b.classList.remove('active'));
+    const btnEmp = document.getElementById('atc-emp-'+emp);
+    if(btnEmp) btnEmp.classList.add('active');
+  }
+}
+
+function onAtcProjetoChange(projetoId){
+  if(!projetoId) return;
+  const p = _atcProjetosCache.find(x=>String(x.id)===String(projetoId));
+  if(!p) return;
+  const nomeEl = document.getElementById('atc-nome');
+  const telEl  = document.getElementById('atc-tel');
+  const ambEl  = document.getElementById('atc-ambiente');
+  if(p.cliente_nome && nomeEl && !nomeEl.value.trim()) nomeEl.value = p.cliente_nome;
+  if(p.cliente_tel  && telEl  && !telEl.value.trim())  telEl.value  = p.cliente_tel;
+  if(p.ambiente     && ambEl  && !ambEl.value.trim())  ambEl.value  = p.ambiente;
+  if(p.empresa){
+    _atcEmpresa = p.empresa;
+    document.querySelectorAll('#atc-empresa-btns .at-tipo-btn').forEach(b=>b.classList.remove('active'));
+    const btnEmp = document.getElementById('atc-emp-'+p.empresa);
+    if(btnEmp) btnEmp.classList.add('active');
+  }
+}
+
+// Núcleo compartilhado: cria pedido de montagem em vistoria, distribui equipe,
+// cria/vincula projeto na etapa 11 e registra anotação. Espelha salvarAssistenciaTecnica.
+async function _criarAssistenciaTecnica({cliente, tel, email, empresa, ambiente, descricao, data, projetoId, numeroContrato, criadoPorCliente}){
+  // Distribuir equipe
+  const equipe = await distribuirEquipe(0);
+  if(!equipe) return {ok:false, msg:'Sem equipes de montagem cadastradas. Entre em contato com a loja.'};
+
+  // Determinar contrato: se não veio explícito, tentar do projeto vinculado
+  let contrato = (numeroContrato||'').trim();
+  if(!contrato && projetoId){
+    const {data:pj} = await db.from('projetos').select('numero_contrato_at').eq('id',projetoId).maybeSingle();
+    contrato = pj?.numero_contrato_at || '';
+  }
+  if(!contrato){
+    const mes = new Date().toISOString().slice(0,7).replace('-','');
+    const {data:existentes} = await db.from('pedidos_montagem').select('id').ilike('numero_contrato','AT-'+mes+'%');
+    const seq = String((existentes?.length||0)+1).padStart(3,'0');
+    contrato = 'AT-'+mes+'-'+seq;
+  }
+
+  // 1. Pedido de montagem direto em vistoria
+  const ambObj = [{nome: ambiente, valor: 0, pedido:'', nf:'', confirmado:true}];
+  const {data:pedido, error:pedErr} = await db.from('pedidos_montagem').insert({
+    cliente_nome:    cliente,
+    numero_contrato: contrato,
+    data_chegada:    data||new Date().toISOString().slice(0,10),
+    valor_total:     0,
+    ambientes:       JSON.stringify(ambObj),
+    equipe_id:       equipe.id,
+    equipe_nome:     equipe.nome,
+    status:          'vistoria',
+    tipo:            'assistencia_tecnica',
+    empresa,
+    observacao:      descricao,
+    criado_por:      currentUser?.id||null
+  }).select().single();
+  if(pedErr) return {ok:false, msg:'Erro ao criar pedido: '+pedErr.message};
+
+  // 2. Criar projeto novo se necessário (mantém timeline do cliente)
+  let projetoFinalId = projetoId||null;
+  if(!projetoFinalId){
+    const {data:proj} = await db.from('projetos').insert({
+      titulo:         'Assistência Técnica — '+ambiente+' ('+contrato+')',
+      ambiente,
+      descricao,
+      etapa_atual:    11,
+      cliente_email:  email||'',
+      cliente_nome:   cliente,
+      cliente_tel:    tel,
+      user_id:        currentUser?.id||null,
+      empresa,
+      numero_contrato_at: contrato
+    }).select().single();
+    projetoFinalId = proj?.id||null;
+  }
+
+  // 3. Registrar anotação de abertura
+  const origem = criadoPorCliente ? 'CLIENTE' : 'LOJA';
+  await db.from('at_anotacoes').insert({
+    atendimento_id: null,
+    tipo: 'log_alteracao',
+    texto: '[ASSIST. TECNICA — '+origem+'] Solicitada por '+(currentUser?.email||'(sem usuário)')+'\nContrato: '+contrato+'\nProblema: '+descricao,
+    criado_por: currentUser?.id||null,
+    criado_por_nome: currentUser?.email||null
+  }).catch(()=>{});
+
+  return {ok:true, contrato, equipe, projetoId: projetoFinalId};
+}
+
+async function enviarAssistenciaTecnicaCliente(){
+  if(!currentUser){ setAlert('atc-alert','Você precisa estar logado.','error'); return; }
+  const cliente   = (document.getElementById('atc-nome')?.value||'').trim();
+  const tel       = (document.getElementById('atc-tel')?.value||'').trim();
+  const empresa   = _atcEmpresa||'marcenario';
+  const projetoId = document.getElementById('atc-projeto')?.value||'';
+  const ambiente  = (document.getElementById('atc-ambiente')?.value||'').trim();
+  const descricao = (document.getElementById('atc-descricao')?.value||'').trim();
+  const data      = document.getElementById('atc-data')?.value||'';
+
+  if(!cliente){  setAlert('atc-alert','Preencha o nome completo.','error'); return; }
+  if(!tel){      setAlert('atc-alert','Preencha o telefone / WhatsApp.','error'); return; }
+  if(!ambiente){ setAlert('atc-alert','Informe o ambiente.','error'); return; }
+  if(!descricao){setAlert('atc-alert','Descreva o problema.','error'); return; }
+
+  const btn = document.getElementById('btn-atc');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  setAlert('atc-alert','','');
+
+  const res = await _criarAssistenciaTecnica({
+    cliente, tel, email: currentUser.email, empresa,
+    ambiente, descricao, data,
+    projetoId: projetoId||null,
+    numeroContrato: '',
+    criadoPorCliente: true
+  });
+
+  if(!res.ok){
+    setAlert('atc-alert', res.msg, 'error');
+    btn.disabled=false; btn.textContent='🔧 Solicitar Assistência Técnica';
+    return;
+  }
+
+  // Email de confirmação (opcional, silencioso)
+  try{
+    await fetch(SUPABASE_URL+'/functions/v1/email-boas-vindas',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+      body:JSON.stringify({
+        nome: cliente, email: currentUser.email, senha: null,
+        numero_atendimento: res.contrato, empresa, projeto_id: res.projetoId,
+        usuario_novo: false, etapa_atual: 'Vistoria Final',
+        mensagem_extra: 'Sua assistência técnica foi aberta. Em breve nossa equipe entrará em contato para agendar a vistoria.'
+      })
+    });
+  }catch(e){}
+
+  notify('✅ Assistência técnica solicitada! Contrato: '+res.contrato);
+  setAlert('atc-alert','✅ Solicitação enviada! Contrato: '+res.contrato+'. Nossa equipe entrará em contato em breve.','success');
+
+  // Limpar campos
+  ['atc-ambiente','atc-descricao','atc-data'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const sel = document.getElementById('atc-projeto'); if(sel) sel.value='';
+  btn.disabled=false; btn.textContent='🔧 Solicitar Assistência Técnica';
+}
+
+// Modal para abrir AT direto a partir de um projeto específico (botão no card)
+function abrirAtCardProjeto(projetoId){
+  const p = (_todosProj||[]).find(x=>String(x.id)===String(projetoId));
+  if(!p){ notify('Projeto não encontrado.','error'); return; }
+  const ambientePre = p.ambiente||'';
+  const html = `
+    <div id="atModalProj-overlay" onclick="if(event.target===this)fecharAtCardProjeto()" style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:var(--bg);max-width:480px;width:100%;border-radius:var(--radius);padding:1.25rem;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-size:16px;font-weight:600;">🔧 Solicitar Assistência Técnica</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px;">${(p.titulo||p.ambiente||'')} ${p.numero_contrato_at?'· '+p.numero_contrato_at:''}</div>
+          </div>
+          <button onclick="fecharAtCardProjeto()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3);">✕</button>
+        </div>
+        <div class="form-row"><label>Ambiente <span style="color:var(--accent)">*</span></label><input type="text" id="atmp-ambiente" value="${(ambientePre+'').replace(/"/g,'&quot;')}" placeholder="Ex: Cozinha"></div>
+        <div class="form-row"><label>Data desejada (opcional)</label><input type="date" id="atmp-data"></div>
+        <div class="form-row"><label>Descrição do problema <span style="color:var(--accent)">*</span></label><textarea id="atmp-descricao" style="height:90px;resize:none;" placeholder="Descreva o problema..."></textarea></div>
+        <div id="atmp-alert"></div>
+        <button class="btn-submit" id="btn-atmp" onclick="enviarAtCardProjeto('${p.id}')">Enviar solicitação</button>
+      </div>
+    </div>`;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap.firstElementChild);
+}
+
+function fecharAtCardProjeto(){
+  const el = document.getElementById('atModalProj-overlay');
+  if(el) el.remove();
+}
+
+async function enviarAtCardProjeto(projetoId){
+  const ambiente  = (document.getElementById('atmp-ambiente')?.value||'').trim();
+  const descricao = (document.getElementById('atmp-descricao')?.value||'').trim();
+  const data      = document.getElementById('atmp-data')?.value||'';
+  if(!ambiente){ setAlert('atmp-alert','Informe o ambiente.','error'); return; }
+  if(!descricao){setAlert('atmp-alert','Descreva o problema.','error'); return; }
+
+  const p = (_todosProj||[]).find(x=>String(x.id)===String(projetoId));
+  if(!p){ setAlert('atmp-alert','Projeto não encontrado.','error'); return; }
+
+  const btn = document.getElementById('btn-atmp');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  setAlert('atmp-alert','','');
+
+  const res = await _criarAssistenciaTecnica({
+    cliente: p.cliente_nome||'',
+    tel:     p.cliente_tel||'',
+    email:   p.cliente_email||currentUser?.email||'',
+    empresa: p.empresa||'marcenario',
+    ambiente, descricao, data,
+    projetoId,
+    numeroContrato: p.numero_contrato_at||'',
+    criadoPorCliente: true
+  });
+
+  if(!res.ok){
+    setAlert('atmp-alert', res.msg, 'error');
+    btn.disabled=false; btn.textContent='Enviar solicitação';
+    return;
+  }
+
+  notify('✅ Assistência técnica solicitada! Contrato: '+res.contrato);
+  fecharAtCardProjeto();
 }
 
 async function moverParaVistoriaMt(id){
