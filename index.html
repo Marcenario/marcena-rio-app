@@ -4431,6 +4431,20 @@ async function abrirDetalhesMt(pedidoId){
         <button onclick="salvarTarefaMt('${pedidoId}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;">+ Tarefa</button>
       </div>
     </div>
+    ${p.tipo==='assistencia_tecnica'&&!p.empresa?`
+    <div style="background:#fffbe6;border:1.5px solid #f0c040;border-radius:8px;padding:14px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:600;color:#7a5c00;margin-bottom:10px;">⚠️ Escolha a empresa para confirmar o atendimento</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="definirEmpresaMt('${p.id}','marcenario')" class="at-tipo-btn" style="padding:12px 8px;text-align:center;">
+          <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span style="display:none;font-size:12px;font-weight:600;">MARCENA RIO</span>
+        </button>
+        <button onclick="definirEmpresaMt('${p.id}','conceptus')" class="at-tipo-btn" style="padding:12px 8px;text-align:center;">
+          <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span style="display:none;font-size:11px;font-weight:600;">italínea CONCEPTUS</span>
+        </button>
+      </div>
+    </div>`:''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       ${!isIniciado&&p.status!=='concluido'?`<button onclick="iniciarMontagem('${p.id}')" style="background:#1e3a2f;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:600;">▶ Iniciar ${tipoLabel}</button>`:''}
       ${p.status!=='concluido'?`<button onclick="concluirPedidoMt('${p.id}');fecharModalAt();" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">✓ Concluir</button>`:''}
@@ -4453,6 +4467,49 @@ async function iniciarMontagem(pedidoId){
   const local = window._todosPedidosMt?.find(x=>x.id===pedidoId);
   if(local){ local.iniciado_em=agora; local.iniciado_por=usuario; }
   // Reabrir modal com dados atualizados e recarregar fila
+  abrirDetalhesMt(pedidoId);
+  loadFilaMt();
+}
+
+async function definirEmpresaMt(pedidoId, empresa){
+  const {data:pedido, error:pedErr} = await db.from('pedidos_montagem')
+    .update({empresa}).eq('id', pedidoId).select().single();
+  if(pedErr){ notify('Erro ao definir empresa.','error'); return; }
+
+  // Atualizar projeto vinculado (se existir, pelo contrato ou user)
+  let projetoId = null;
+  const {data:proj} = await db.from('projetos')
+    .select('id,cliente_email,cliente_nome,cliente_tel')
+    .eq('numero_contrato_at', pedido.numero_contrato)
+    .maybeSingle();
+  if(proj){
+    await db.from('projetos').update({empresa}).eq('id', proj.id);
+    projetoId = proj.id;
+  }
+
+  // Enviar email de boas-vindas da empresa correta ao cliente
+  const email = proj?.cliente_email || '';
+  if(email){
+    try{
+      await fetch(SUPABASE_URL+'/functions/v1/email-boas-vindas',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+        body:JSON.stringify({
+          nome: proj?.cliente_nome || pedido.cliente_nome,
+          email,
+          senha: null,
+          numero_atendimento: pedido.numero_contrato,
+          empresa,
+          projeto_id: projetoId,
+          usuario_novo: false,
+          etapa_atual: 'Vistoria Final',
+          mensagem_extra: 'Sua assistência técnica foi aceita pela nossa equipe. Em breve entraremos em contato para agendar a vistoria.'
+        })
+      });
+    }catch(e){ console.warn('Email AT não enviado:', e); }
+  }
+
+  notify('✅ Empresa definida! E-mail de confirmação enviado ao cliente.');
   abrirDetalhesMt(pedidoId);
   loadFilaMt();
 }
@@ -5784,7 +5841,7 @@ async function enviarAssistenciaTecnicaCliente(){
   const tel       = (document.getElementById('atc-tel')?.value||'').trim();
   const projetoId = document.getElementById('atc-projeto')?.value||'';
   const projetoVinculado = _atcProjetosCache.find(x=>String(x.id)===String(projetoId));
-  const empresa   = projetoVinculado?.empresa||'marcenario';
+  const empresa   = projetoVinculado?.empresa||null;
   const ambiente  = (document.getElementById('atc-ambiente')?.value||'').trim();
   const descricao = (document.getElementById('atc-descricao')?.value||'').trim();
   const data      = document.getElementById('atc-data')?.value||'';
