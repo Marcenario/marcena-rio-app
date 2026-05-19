@@ -541,6 +541,11 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             <button id="mt-tipo-montagem" onclick="setFiltroTipoMt('montagem',this)" style="padding:6px 14px;border-radius:4px;border:none;background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">🔨 Montagem</button>
             <button id="mt-tipo-asteca" onclick="setFiltroTipoMt('asteca',this)" style="padding:6px 14px;border-radius:4px;border:none;background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">🔧 ASTECA</button>
           </div>
+          <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:3px;">
+            <button id="mt-emp-todas" onclick="setFiltroEmpresaMt('todas',this)" style="padding:6px 14px;border-radius:4px;border:none;background:var(--brand);color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;">🏢 Todas</button>
+            <button id="mt-emp-marcenario" onclick="setFiltroEmpresaMt('marcenario',this)" style="padding:6px 14px;border-radius:4px;border:none;background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">Marcena Rio</button>
+            <button id="mt-emp-conceptus" onclick="setFiltroEmpresaMt('conceptus',this)" style="padding:6px 14px;border-radius:4px;border:none;background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">Conceptus</button>
+          </div>
         </div>
         <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
           <div class="stat-card"><div class="stat-num" id="mt-st-ag">—</div><div class="stat-label">Aguardando</div></div>
@@ -652,10 +657,16 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
             </div>
             <div class="form-row">
               <label>Empresa <span style="color:var(--accent)">*</span></label>
-              <select id="atd-empresa" style="width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">
-                <option value="marcenario">Marcena Rio</option>
-                <option value="conceptus">Conceptus Italínea</option>
-              </select>
+              <div id="atd-empresa-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+                <button class="at-tipo-btn active" id="atd-emp-marcenario" onclick="setEmpresaAtd('marcenario',this)" style="padding:12px 8px;text-align:center;">
+                  <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                  <span style="display:none;font-size:12px;font-weight:600;color:inherit;">MARCENA RIO</span>
+                </button>
+                <button class="at-tipo-btn" id="atd-emp-conceptus" onclick="setEmpresaAtd('conceptus',this)" style="padding:12px 8px;text-align:center;">
+                  <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                  <span style="display:none;font-size:11px;font-weight:600;color:inherit;">italínea CONCEPTUS</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -3928,6 +3939,18 @@ async function salvarPedidoMt(){
 
 let _filtroTipoMt = 'todos';
 
+let _filtroEmpresaMt = "todas";
+
+function setFiltroEmpresaMt(empresa, btn){
+  _filtroEmpresaMt = empresa;
+  ["mt-emp-todas","mt-emp-marcenario","mt-emp-conceptus"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.style.background="transparent"; el.style.color="var(--text2)"; }
+  });
+  if(btn){ btn.style.background="var(--brand)"; btn.style.color="#fff"; }
+  renderKanbanMt(window._todosPedidosMt||[]);
+}
+
 function setFiltroTipoMt(tipo, btn){
   _filtroTipoMt = tipo;
   ['mt-tipo-todos','mt-tipo-montagem','mt-tipo-asteca'].forEach(id=>{
@@ -4036,10 +4059,12 @@ function renderKanbanMt(data){
   const cont=document.getElementById('mt-fila-content');
   const equipes=window._equipesMt||[];
 
-  // Filtrar por tipo
+  // Filtrar por empresa
   let lista=data;
-  if(_filtroTipoMt==='montagem') lista=data.filter(p=>p.tipo!=='asteca');
-  else if(_filtroTipoMt==='asteca') lista=data.filter(p=>p.tipo==='asteca');
+  if(_filtroEmpresaMt && _filtroEmpresaMt!=="todas") lista=lista.filter(p=>p.empresa===_filtroEmpresaMt);
+  // Filtrar por tipo
+  if(_filtroTipoMt==='montagem') lista=lista.filter(p=>p.tipo!=='asteca');
+  else if(_filtroTipoMt==='asteca') lista=lista.filter(p=>p.tipo==='asteca');
 
   const ativos=lista.filter(p=>p.status!=='concluido'&&p.status!=='vistoria'&&p.status!=='asteca_pendente');
   const vistoria=lista.filter(p=>p.status==='vistoria');
@@ -4181,7 +4206,10 @@ function renderCardKanbanMt(p){
     style="border-left:3px solid ${corBorda};cursor:grab;${isIniciado?'background:linear-gradient(135deg,#f0fff4,#fff);':''}">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:4px;">
       <div style="font-size:13px;font-weight:500;">${p.cliente_nome||'—'}</div>
-      ${isAsteca?`<span style="font-size:10px;font-weight:600;background:#8a1a1a;color:#fff;padding:2px 6px;border-radius:6px;flex-shrink:0;">ASTECA</span>`:''}
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        ${isAsteca?`<span style="font-size:10px;font-weight:600;background:#8a1a1a;color:#fff;padding:2px 6px;border-radius:6px;">ASTECA</span>`:''}
+        ${p.empresa==="conceptus"?`<span style="font-size:10px;font-weight:600;background:#e8f0fc;color:#1a3a6e;padding:2px 6px;border-radius:6px;">Conceptus</span>`:p.empresa==="marcenario"?`<span style="font-size:10px;font-weight:600;background:#f5efe8;color:#6b4c2a;padding:2px 6px;border-radius:6px;">Marcena Rio</span>`:'${""}'}  
+      </div>
     </div>
     <div style="font-size:11px;color:var(--text2);">Contrato: ${p.numero_contrato||'—'}</div>
     <div style="font-size:11px;color:var(--text2);">Chegada: ${dataStr}</div>
@@ -4258,7 +4286,7 @@ async function abrirDetalhesMt(pedidoId){
   const prazoStr=prazoDate?prazoDate.toLocaleDateString('pt-BR'):null;
 
   document.getElementById('modal-at-body').innerHTML=`
-    <div style="font-size:16px;font-weight:600;margin-bottom:4px;">${p.cliente_nome||'—'}${isAsteca?' <span style="color:#8a1a1a;font-size:13px;">⚡ ASTECA</span>':''}</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:4px;">${p.cliente_nome||'—'}${isAsteca?' <span style="color:#8a1a1a;font-size:13px;">⚡ ASTECA</span>':''}  ${p.empresa==="conceptus"?'<span style="font-size:11px;font-weight:600;background:#e8f0fc;color:#1a3a6e;padding:2px 8px;border-radius:6px;vertical-align:middle;">Conceptus</span>':'${""}'}  ${p.empresa==="marcenario"?'<span style="font-size:11px;font-weight:600;background:#f5efe8;color:#6b4c2a;padding:2px 8px;border-radius:6px;vertical-align:middle;">Marcena Rio</span>':''}</div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:2px;">Contrato: <strong>${p.numero_contrato||'—'}</strong></div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:2px;">Chegada: ${dataStr}</div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:2px;">Equipe: ${p.equipe_nome||'—'}</div>
@@ -4448,7 +4476,7 @@ function renderPedidoMt(p){
   return `<div class="pedido-item ${isAsteca?'asteca-urgente':''}">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <div>
-        <div style="font-size:14px;font-weight:500;">${p.cliente_nome}${isAsteca?' <span style="color:#8a1a1a;font-size:12px;">⚡ Assistência Técnica</span>':''}</div>
+        <div style="font-size:14px;font-weight:500;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${p.cliente_nome}${isAsteca?' <span style="color:#8a1a1a;font-size:12px;">⚡ Assist. Técnica</span>':''} ${p.empresa==="conceptus"?'<span style="font-size:10px;font-weight:600;background:#e8f0fc;color:#1a3a6e;padding:2px 7px;border-radius:6px;">Conceptus</span>':''}${p.empresa==="marcenario"?'<span style="font-size:10px;font-weight:600;background:#f5efe8;color:#6b4c2a;padding:2px 7px;border-radius:6px;">Marcena Rio</span>':''}</div>
         <div style="font-size:12px;color:var(--text2);">Contrato: <strong>${p.numero_contrato||'—'}</strong> · Chegada: ${dataStr} · <strong>${p.equipe_nome||'—'}</strong></div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:15px;font-weight:500;color:var(--accent);">${fmt(p.valor_total)}</span><span class="badge ${badgeClass}">${badgeText}</span></div>
@@ -4971,6 +4999,13 @@ async function salvarCampoAt(atId,campo,labelCampo,novoValor){
 // ══════════════════════════════════════════════════════
 
 let _atdModo = 'novo'; // 'novo' | 'existente'
+let _atdEmpresa = 'marcenario';
+
+function setEmpresaAtd(empresa, btn){
+  _atdEmpresa = empresa;
+  document.querySelectorAll('#atd-empresa-btns .at-tipo-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
 
 function setModoContratoAtd(modo){
   _atdModo = modo;
@@ -5033,7 +5068,7 @@ async function salvarAssistenciaTecnica(){
   const cliente  = (document.getElementById('atd-cliente')?.value||'').trim();
   const tel      = (document.getElementById('atd-tel')?.value||'').trim();
   const email    = (document.getElementById('atd-email')?.value||'').trim();
-  const empresa  = document.getElementById('atd-empresa')?.value||'marcenario';
+  const empresa  = _atdEmpresa||'marcenario';
   const ambiente = (document.getElementById('atd-ambiente')?.value||'').trim();
   const descricao= (document.getElementById('atd-descricao')?.value||'').trim();
   const data     = document.getElementById('atd-data')?.value||'';
@@ -5176,6 +5211,7 @@ async function salvarAssistenciaTecnica(){
   document.getElementById('atd-contrato-selecionado').style.display='none';
   document.getElementById('atd-data').value='';
   setModoContratoAtd('novo');
+  setEmpresaAtd('marcenario', document.getElementById('atd-emp-marcenario'));
   btn.disabled=false; btn.textContent='🔧 Criar Assistência Técnica';
 
   // Recarregar fila
