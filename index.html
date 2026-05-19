@@ -473,20 +473,6 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         </div>
 
         <div class="form-row">
-          <label>Empresa <span style="color:var(--accent)">*</span></label>
-          <div id="atc-empresa-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
-            <button class="at-tipo-btn active" id="atc-emp-marcenario" onclick="setEmpresaAtCliente('marcenario',this)" style="padding:12px 8px;text-align:center;">
-              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_marcenario.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-              <span style="display:none;font-size:12px;font-weight:600;color:inherit;">MARCENA RIO</span>
-            </button>
-            <button class="at-tipo-btn" id="atc-emp-conceptus" onclick="setEmpresaAtCliente('conceptus',this)" style="padding:12px 8px;text-align:center;">
-              <img src="https://gnjykqkqtcqqdadhyvcw.supabase.co/storage/v1/object/public/projetos/logo_conceptus.png.png" style="height:28px;object-fit:contain;max-width:100%;display:block;margin:0 auto;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-              <span style="display:none;font-size:11px;font-weight:600;color:inherit;">italínea CONCEPTUS</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="form-row">
           <label>Vincular a um projeto existente (opcional)</label>
           <select id="atc-projeto" onchange="onAtcProjetoChange(this.value)" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
             <option value="">— Sem vínculo / nova ocorrência —</option>
@@ -5664,7 +5650,6 @@ async function salvarAssistenciaTecnica(){
 //  ASSISTÊNCIA TÉCNICA — LADO CLIENTE
 // ══════════════════════════════════════════════════════
 
-let _atcEmpresa = 'marcenario';
 let _atcProjetosCache = [];
 
 function setSolicitarModo(modo){
@@ -5682,22 +5667,14 @@ function setSolicitarModo(modo){
   }
 }
 
-function setEmpresaAtCliente(empresa, btn){
-  _atcEmpresa = empresa;
-  document.querySelectorAll('#atc-empresa-btns .at-tipo-btn').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-}
-
 async function prefillAtCliente(){
   if(!currentUser) return;
-  // Nome/telefone: tenta perfil; se não tiver telefone, pega do último projeto
   const {data:perfil} = await db.from('perfis').select('nome,telefone').eq('id', currentUser.id).maybeSingle();
   const nomeEl = document.getElementById('atc-nome');
   const telEl  = document.getElementById('atc-tel');
   if(nomeEl && !nomeEl.value) nomeEl.value = perfil?.nome || '';
   if(telEl && !telEl.value)   telEl.value  = perfil?.telefone || '';
 
-  // Carregar projetos do cliente
   const {data:projs} = await db.from('projetos')
     .select('id,titulo,ambiente,empresa,numero_contrato_at,cliente_nome,cliente_tel')
     .eq('user_id', currentUser.id)
@@ -5711,16 +5688,6 @@ async function prefillAtCliente(){
           const lbl = (p.titulo||p.ambiente||'Projeto') + (p.numero_contrato_at?(' · '+p.numero_contrato_at):'');
           return `<option value="${p.id}">${lbl}</option>`;
         }).join('');
-  }
-
-  // Se houver pelo menos um projeto, pré-seleciona a empresa do mais recente
-  const primeiroComEmpresa = _atcProjetosCache.find(p=>p.empresa);
-  if(primeiroComEmpresa?.empresa){
-    const emp = primeiroComEmpresa.empresa;
-    _atcEmpresa = emp;
-    document.querySelectorAll('#atc-empresa-btns .at-tipo-btn').forEach(b=>b.classList.remove('active'));
-    const btnEmp = document.getElementById('atc-emp-'+emp);
-    if(btnEmp) btnEmp.classList.add('active');
   }
 }
 
@@ -5815,8 +5782,9 @@ async function enviarAssistenciaTecnicaCliente(){
   if(!currentUser){ setAlert('atc-alert','Você precisa estar logado.','error'); return; }
   const cliente   = (document.getElementById('atc-nome')?.value||'').trim();
   const tel       = (document.getElementById('atc-tel')?.value||'').trim();
-  const empresa   = _atcEmpresa||'marcenario';
   const projetoId = document.getElementById('atc-projeto')?.value||'';
+  const projetoVinculado = _atcProjetosCache.find(x=>String(x.id)===String(projetoId));
+  const empresa   = projetoVinculado?.empresa||'marcenario';
   const ambiente  = (document.getElementById('atc-ambiente')?.value||'').trim();
   const descricao = (document.getElementById('atc-descricao')?.value||'').trim();
   const data      = document.getElementById('atc-data')?.value||'';
