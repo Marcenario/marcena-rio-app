@@ -1778,6 +1778,23 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <div id="admin-corrigir-projetos-list" style="margin-top:8px;"></div>
       </div>
 
+      <!-- FLUXO DE NUTRIÇÃO -->
+      <div class="card">
+        <div class="card-header" style="margin-bottom:1rem;">
+          <div>
+            <div class="card-title">📧 Fluxo de Nutrição — Templates de E-mail</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px;">Mensagens enviadas automaticamente a cada tentativa de contato sem resposta.</div>
+          </div>
+          <button onclick="salvarTemplatesNutricao()" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;">💾 Salvar templates</button>
+        </div>
+        <div id="nutricao-templates-form">
+          <div style="font-size:12px;color:var(--text3);background:var(--bg2);padding:10px 14px;border-radius:8px;margin-bottom:1rem;">
+            Use <strong>{{nome}}</strong> para o nome do cliente e <strong>{{empresa}}</strong> para o nome da empresa. O sistema envia às 9h automaticamente via pg_cron.
+          </div>
+          <div id="nutricao-templates-list"><div class="loader">Carregando...</div></div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header"><div class="card-title">Todos os projetos</div></div>
         <div id="admin-projetos"><div class="loader">Carregando...</div></div>
@@ -2344,6 +2361,9 @@ async function iniciarAvisosTarefas(){
 }
 
 async function verificarAvisosTarefas(){
+  // Verificar nutrição junto com os avisos
+  verificarNutricaoDiaria().catch(e=>console.warn("Nutrição erro:", e));
+
   if(!currentUser) return;
 
   const agora = new Date();
@@ -3688,6 +3708,8 @@ async function toggleEmpresaAtivo(id, ativo){
 }
 
 async function loadAdmin(){
+  loadTemplatesNutricao();
+
   loadEmpresasAdmin();
   const {data}=await db.from('projetos').select('*').order('created_at',{ascending:false});
   if(!data)return;
@@ -5126,6 +5148,213 @@ async function abrirEditarValorAmb(atId, ambIdx, valorAtual, nomeAmb){
 
   notify('Valor atualizado!');
   abrirModalAt(atId);
+}
+
+// ══════════════════════════════════════════════════════════
+//  FLUXO DE NUTRIÇÃO — TENTATIVAS DE CONTATO
+// ══════════════════════════════════════════════════════════
+
+const NUTRICAO_TENTATIVAS = [
+  {etapa: 'Contato Realizado - 1ª tentativa', ordem: 1},
+  {etapa: 'Contato Realizado - 2ª tentativa', ordem: 2},
+  {etapa: 'Contato Realizado - 3ª tentativa', ordem: 3},
+  {etapa: 'Contato Realizado - 4ª tentativa', ordem: 4},
+  {etapa: 'Contato Realizado - 5ª tentativa', ordem: 5},
+];
+
+// Ativar ou pausar o fluxo de nutrição de um atendimento
+async function toggleNutricao(atId, ativo){
+  const novoEstado = !ativo;
+  const msg = novoEstado ? 'Ativar fluxo automatico de e-mails?\nO sistema enviara mensagens diarias as 9h.' : 'Pausar o fluxo automatico de e-mails?';
+
+
+
+
+  if(!confirm(msg)) return;
+
+  const update = {nutricao_ativa: novoEstado};
+  if(novoEstado){
+    update.nutricao_iniciada_em = new Date().toISOString();
+    update.nutricao_tentativa_atual = 0;
+    update.nutricao_ultimo_envio = null;
+  } else {
+    update.nutricao_pausada_em = new Date().toISOString();
+  }
+
+  const {error} = await db.from('atendimentos').update(update).eq('id', atId);
+  if(error){ notify('Erro: '+error.message, 'error'); return; }
+
+  await registrarLogAt(atId, 'Fluxo de nutrição', ativo?'Ativo':'Pausado', novoEstado?'Ativo':'Pausado');
+  notify(novoEstado ? '▶ Fluxo de nutrição ativado!' : '⏸ Fluxo pausado.');
+  abrirModalAt(atId);
+}
+
+// Marcar que houve interação manual (para o cliente)
+async function registrarInteracaoNutricao(atId){
+  await db.from('atendimentos').update({
+    nutricao_ativa: false,
+    nutricao_pausada_em: new Date().toISOString(),
+    nutricao_interagiu: true
+  }).eq('id', atId);
+  await registrarLogAt(atId, 'Fluxo de nutrição', 'Ativo', 'Pausado (interação registrada)');
+  notify('✅ Interação registrada — fluxo automático pausado.');
+  abrirModalAt(atId);
+}
+
+// Carregar templates de nutrição no painel admin
+async function loadTemplatesNutricao(){
+  const cont = document.getElementById('nutricao-templates-list');
+  if(!cont) return;
+  const {data} = await db.from('nutricao_templates').select('*').order('tentativa');
+  const templates = data && data.length ? data : NUTRICAO_TENTATIVAS.map((t,i)=>({
+    tentativa: i+1,
+    assunto: `Olá {{nome}}, ainda quer transformar seu espaço?`,
+    corpo: `Olá {{nome}},
+
+Tentamos entrar em contato mas ainda não conseguimos conversar.
+
+Sabemos que a escolha do mobiliário certo é uma decisão importante. Estamos aqui para ajudar!
+
+Aguardamos seu retorno.
+
+Equipe {{empresa}}`
+  }));
+
+  cont.innerHTML = templates.map((t,i)=>`
+    <div style="border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:600;color:var(--brand);margin-bottom:10px;">
+        ${i+1}ª tentativa — ${NUTRICAO_TENTATIVAS[i]?.etapa||'Tentativa '+(i+1)}
+      </div>
+      <div class="form-row" style="margin-bottom:8px;">
+        <label style="font-size:11px;">Assunto do e-mail</label>
+        <input type="text" id="nut-assunto-${i+1}" value="${(t.assunto||'').replace(/"/g,'&quot;')}"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;box-sizing:border-box;">
+      </div>
+      <div class="form-row">
+        <label style="font-size:11px;">Corpo do e-mail <span style="color:var(--text3);font-weight:400;">(use {{nome}} e {{empresa}})</span></label>
+        <textarea id="nut-corpo-${i+1}" style="width:100%;min-height:100px;padding:8px 12px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;resize:vertical;box-sizing:border-box;">${t.corpo||''}</textarea>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function salvarTemplatesNutricao(){
+  const rows = [];
+  for(let i=1;i<=5;i++){
+    const assunto = document.getElementById('nut-assunto-'+i)?.value?.trim();
+    const corpo   = document.getElementById('nut-corpo-'+i)?.value?.trim();
+    if(assunto && corpo) rows.push({tentativa:i, assunto, corpo});
+  }
+  if(!rows.length){ notify('Preencha ao menos um template.','error'); return; }
+
+  // Upsert por tentativa
+  for(const row of rows){
+    await db.from('nutricao_templates').upsert({...row}, {onConflict:'tentativa'});
+  }
+  notify('✅ Templates salvos!');
+}
+
+// Verificação diária — chamada quando o app é aberto (fallback do pg_cron)
+async function verificarNutricaoDiaria(){
+  if(!isAdmOuGer()) return;
+  const hoje = dataHojeBR();
+  const hora = new Date().getHours();
+  // Só verificar a partir das 9h
+  if(hora < 9) return;
+
+  // Buscar atendimentos com nutrição ativa que ainda não foram processados hoje
+  const {data:ats} = await db.from('atendimentos')
+    .select('id,cliente_nome,cliente_email,nutricao_tentativa_atual,nutricao_ultimo_envio,empresa,funil_id')
+    .eq('nutricao_ativa', true)
+    .eq('status','em_andamento');
+
+  if(!ats||!ats.length) return;
+
+  const {data:templates} = await db.from('nutricao_templates').select('*').order('tentativa');
+  const {data:etapas}    = await db.from('funis_etapas').select('id,nome,funil_id').order('ordem');
+  const {data:funilVendas} = await db.from('funis').select('id').ilike('nome','%venda%').limit(1).single();
+  const {data:etapaPerdas} = await db.from('funis_etapas').select('id').ilike('nome','%perda%').eq('funil_id',funilVendas?.id||'').limit(1).single();
+  const {data:motivoSR}    = await db.from('motivos_perda').select('id,descricao').ilike('descricao','%sem retorno%').limit(1).single();
+
+  for(const at of ats){
+    const ultimoEnvio = at.nutricao_ultimo_envio ? at.nutricao_ultimo_envio.slice(0,10) : null;
+    const tentAtual   = at.nutricao_tentativa_atual || 0;
+
+    // Se já enviou hoje, pular
+    if(ultimoEnvio === hoje) continue;
+
+    // Se já passou das 5 tentativas + 48h sem interação → mover para perdas
+    if(tentAtual >= 5){
+      const ultimaData = ultimoEnvio ? new Date(ultimoEnvio) : new Date();
+      const horasPassadas = (Date.now() - ultimaData.getTime()) / 3600000;
+      if(horasPassadas >= 48 && etapaPerdas?.id){
+        await db.from('atendimentos').update({
+          nutricao_ativa:      false,
+          status:              'concluido_perdido',
+          motivo_perda:        'Sem retorno do cliente',
+          data_conclusao:      new Date().toISOString(),
+          etapa_funil_id:      etapaPerdas.id,
+          etapa_funil_id_anterior: null
+        }).eq('id', at.id);
+        await db.from('at_anotacoes').insert({
+          atendimento_id: at.id,
+          tipo: 'log_alteracao',
+          texto: '[NUTRIÇÃO] Movido para Perdas automaticamente — sem retorno após 5 tentativas + 48h.',
+          criado_por: null,
+          criado_por_nome: 'Sistema'
+        });
+      }
+      continue;
+    }
+
+    // Avançar para próxima etapa de tentativa
+    const proxTentativa = tentAtual + 1;
+    const nomeTentativa = `Contato Realizado - ${proxTentativa}ª tentativa`;
+    const etapaDest = etapas?.find(e=>
+      e.nome.toLowerCase().includes(proxTentativa+'ª tentativa') ||
+      e.nome.toLowerCase().includes(proxTentativa+'a tentativa') ||
+      (e.nome.toLowerCase().includes('tentativa') && e.nome.includes(String(proxTentativa)))
+    );
+
+    const updateAt = {
+      nutricao_tentativa_atual: proxTentativa,
+      nutricao_ultimo_envio:    hoje
+    };
+    if(etapaDest?.id) updateAt.etapa_funil_id = etapaDest.id;
+
+    await db.from('atendimentos').update(updateAt).eq('id', at.id);
+
+    // Enviar email se tiver template e email do cliente
+    if(at.cliente_email && templates?.length){
+      const tmpl = templates.find(t=>t.tentativa===proxTentativa);
+      if(tmpl){
+        const empresaNome = at.empresa==='conceptus' ? 'Conceptus Italínea' : 'Marcena Rio';
+        const assunto = tmpl.assunto.replace(/\{\{nome\}\}/g, at.cliente_nome||'').replace(/\{\{empresa\}\}/g, empresaNome);
+        const corpo   = tmpl.corpo.replace(/\{\{nome\}\}/g, at.cliente_nome||'').replace(/\{\{empresa\}\}/g, empresaNome);
+
+        fetch(SUPABASE_URL+'/functions/v1/email-nutricao', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_ANON},
+          body: JSON.stringify({
+            email:   at.cliente_email,
+            nome:    at.cliente_nome,
+            assunto,
+            corpo,
+            empresa: at.empresa,
+            tentativa: proxTentativa
+          })
+        }).catch(e=>console.warn('Email nutrição erro:', e));
+      }
+    }
+
+    await db.from('at_anotacoes').insert({
+      atendimento_id: at.id,
+      tipo: 'log_alteracao',
+      texto: `[NUTRIÇÃO] ${proxTentativa}ª tentativa disparada automaticamente às 9h.`,
+      criado_por: null,
+      criado_por_nome: 'Sistema'
+    }).catch(()=>{});
+  }
 }
 
 async function salvarCampoAt(atId,campo,labelCampo,novoValor){
@@ -10706,6 +10935,7 @@ async function abrirModalAt(id){
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
       <select id="modal-at-etapa" style="flex:1;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;">${etapasOpts}</select>
       <button onclick="avancarEtapaAt('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:9px 18px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;">Salvar etapa</button>
+      ${!isConferencia?`<button onclick="toggleNutricao('${id}',${!!a.nutricao_ativa})" style="background:${a.nutricao_ativa?'#8a1a1a':'#5a2a9a'};color:#fff;border:none;border-radius:6px;padding:9px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;" title="${a.nutricao_ativa?'Pausar fluxo automático de e-mails':'Ativar fluxo automático de tentativas de contato'}">${a.nutricao_ativa?'⏸ Pausar nutrição':'▶ Ativar nutrição'}</button>`:''}
     </div>
     <div class="divider"></div>
     <div style="font-size:13px;font-weight:500;margin-bottom:0.75rem;">${isConferencia ? 'Concluir Conferência' : 'Concluir atendimento'}</div>
