@@ -4316,14 +4316,6 @@ async function abrirDetalhesMt(pedidoId){
   const prazoVencido=prazoDate&&prazoDate<hoje;
   const prazoStr=prazoDate?prazoDate.toLocaleDateString('pt-BR'):null;
 
-  // Event delegation para botões de auxiliar
-  setTimeout(()=>{
-    const body = document.getElementById('modal-at-body');
-    if(body) body.addEventListener('click', function(e){
-      const btn = e.target.closest('.btn-aux-projeto');
-      if(btn) abrirSelecionarAuxiliar(btn.dataset.atid, parseInt(btn.dataset.ambidx), btn.dataset.ambname);
-    }, {once:true});
-  }, 100);
   document.getElementById('modal-at-body').innerHTML=`
     <div style="font-size:16px;font-weight:600;margin-bottom:4px;">${p.cliente_nome||'—'}${isAsteca?' <span style="color:#8a1a1a;font-size:13px;">⚡ ASTECA</span>':''}  ${p.empresa==="conceptus"?'<span style="font-size:11px;font-weight:600;background:#e8f0fc;color:#1a3a6e;padding:2px 8px;border-radius:6px;vertical-align:middle;">Conceptus</span>':'${""}'}  ${p.empresa==="marcenario"?'<span style="font-size:11px;font-weight:600;background:#f5efe8;color:#6b4c2a;padding:2px 8px;border-radius:6px;vertical-align:middle;">Marcena Rio</span>':''}</div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:2px;">Contrato: <strong>${p.numero_contrato||'—'}</strong></div>
@@ -10906,6 +10898,18 @@ async function abrirModalAt(id){
   `;
   // Guarda referência dos ambientes para toggleVendeuModal
   window._atModalAmbs={id,ambs};
+  // Event delegation para botões de auxiliar — adicionar APÓS innerHTML
+  (() => {
+    const _b = document.getElementById('modal-at-body');
+    if(_b){
+      if(window._auxH) _b.removeEventListener('click', window._auxH);
+      window._auxH = function(e){
+        const btn = e.target.closest('.btn-aux-projeto');
+        if(btn) abrirSelecionarAuxiliar(btn.dataset.atid, parseInt(btn.dataset.ambidx), btn.dataset.ambname);
+      };
+      _b.addEventListener('click', window._auxH);
+    }
+  })();
   // Carregar feed de anotações, tarefas e histórico de anexos
   setTimeout(()=>{
     carregarFeedAnotacoes(id);
