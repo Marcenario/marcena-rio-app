@@ -14289,7 +14289,7 @@ let vsAcIdx=-1;
 
 async function carregarPedidosSelectVistoria(){
   const {data}=await db.from('pedidos_montagem')
-    .select('id,cliente_nome,numero_contrato,ambientes,valor_total,status')
+    .select('id,cliente_nome,numero_contrato,ambientes,valor_total,status,tipo')
     .order('created_at',{ascending:false});
   vsContratos=data||[];
   acContratos=data||[];
@@ -14312,9 +14312,12 @@ function vsAcInput(val){
   dd._hits=hits;
   dd.innerHTML=hits.map((c,i)=>{
     const ambs=typeof c.ambientes==='string'?JSON.parse(c.ambientes||'[]'):c.ambientes||[];
+    const isAt=c.tipo==='assistencia_tecnica';
+    const icone=isAt?'🔧 ':'📋 ';
+    const numLabel=c.numero_contrato||(isAt?'AT sem número':'Sem contrato');
     return `<div class="ac-item" data-i="${i}" onmousedown="vsAcSelecionar('${c.id}')">
-      <div class="ac-item-ct">${c.numero_contrato||'Sem contrato'}</div>
-      <div class="ac-item-sub">${c.cliente_nome||'—'} · ${ambs.length} pedido${ambs.length!==1?'s':''} · ${fmt(c.valor_total)}</div>
+      <div class="ac-item-ct">${icone}${numLabel}</div>
+      <div class="ac-item-sub">${c.cliente_nome||'—'} · ${ambs.length} ambiente${ambs.length!==1?'s':''} · ${fmt(c.valor_total)}</div>
     </div>`;
   }).join('');
   dd.classList.add('open');
