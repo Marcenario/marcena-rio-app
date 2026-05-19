@@ -490,6 +490,17 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <textarea id="atc-descricao" style="height:90px;resize:none;" placeholder="Descreva o problema que precisa ser resolvido..."></textarea>
         </div>
 
+        <div class="form-row">
+          <label>Fotos ou vídeos do problema (opcional)</label>
+          <div onclick="document.getElementById('atc-arquivos').click()" style="border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;background:var(--bg);">
+            <input type="file" id="atc-arquivos" multiple accept="image/*,video/*" style="display:none" onchange="atcAddFiles(this.files)">
+            <div style="font-size:22px;margin-bottom:4px;">📷</div>
+            <div style="font-size:13px;color:var(--text2);font-weight:500;">Toque para adicionar fotos ou vídeos</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;">Pode selecionar vários arquivos</div>
+          </div>
+          <div id="atc-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+        </div>
+
         <div id="atc-alert"></div>
         <button class="btn-submit" onclick="enviarAssistenciaTecnicaCliente()" id="btn-atc">🔧 Solicitar Assistência Técnica</button>
       </div>
@@ -4400,6 +4411,18 @@ async function abrirDetalhesMt(pedidoId){
       <tr style="background:var(--bg2);"><th style="padding:6px;text-align:left;border:1px solid var(--border);">Pedido</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">NF</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">Ambiente</th><th style="padding:6px;text-align:right;border:1px solid var(--border);">Valor</th></tr>
       ${ambs.map(a=>`<tr><td style="padding:6px;border:1px solid var(--border);">${a.pedido||a.nped||'—'}</td><td style="padding:6px;border:1px solid var(--border);">${a.nf||'—'}</td><td style="padding:6px;border:1px solid var(--border);">${a.nome||a.ambiente||'—'}</td><td style="padding:6px;border:1px solid var(--border);text-align:right;">${fmt(a.valor||0)}</td></tr>`).join('')}
     </table>`:''}
+    ${tarefas.filter(t=>t.tipo==='midia').length?`
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:600;color:var(--brand);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📷 Arquivos enviados pelo cliente</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${tarefas.filter(t=>t.tipo==='midia').map(m=>{
+          const isImg = (m.mimeType||'').startsWith('image/');
+          return isImg
+            ? `<a href="${m.url}" target="_blank" title="${m.nome||''}"><img src="${m.url}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border2);display:block;"></a>`
+            : `<a href="${m.url}" target="_blank" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:80px;height:80px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);font-size:10px;color:var(--text2);text-decoration:none;text-align:center;gap:4px;padding:4px;"><span style="font-size:24px;">🎥</span><span>${(m.nome||'vídeo').substring(0,12)}</span></a>`;
+        }).join('')}
+      </div>
+    </div>`:''}
     <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
       <div style="font-size:12px;font-weight:600;color:var(--brand);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📝 Observações</div>
       <div id="mt-obs-lista-${pedidoId}" style="margin-bottom:10px;">
@@ -5835,8 +5858,69 @@ async function _criarAssistenciaTecnica({cliente, tel, email, empresa, ambiente,
     criado_por_nome: currentUser?.email||null
   }).catch(()=>{});
 
-  return {ok:true, contrato, equipe, projetoId: projetoFinalId};
+  return {ok:true, contrato, equipe, projetoId: projetoFinalId, pedidoId: pedido.id};
 }
+
+// ── Mídia AT cliente ─────────────────────────────────
+let _atcFiles = [];
+let _atmpFiles = [];
+
+function atcAddFiles(fileList){
+  Array.from(fileList).forEach(f=>{
+    if(!_atcFiles.find(x=>x.name===f.name&&x.size===f.size)) _atcFiles.push(f);
+  });
+  _renderAtPreview('atc-preview', _atcFiles, 'atcRemoveFile');
+}
+function atcRemoveFile(i){ _atcFiles.splice(i,1); _renderAtPreview('atc-preview',_atcFiles,'atcRemoveFile'); }
+
+function atmpAddFiles(fileList){
+  Array.from(fileList).forEach(f=>{
+    if(!_atmpFiles.find(x=>x.name===f.name&&x.size===f.size)) _atmpFiles.push(f);
+  });
+  _renderAtPreview('atmp-preview', _atmpFiles, 'atmpRemoveFile');
+}
+function atmpRemoveFile(i){ _atmpFiles.splice(i,1); _renderAtPreview('atmp-preview',_atmpFiles,'atmpRemoveFile'); }
+
+function _renderAtPreview(containerId, files, removeFn){
+  const cont = document.getElementById(containerId);
+  if(!cont) return;
+  cont.innerHTML = files.map((f,i)=>{
+    const isImg = f.type.startsWith('image/');
+    const src = isImg ? URL.createObjectURL(f) : '';
+    return `<div style="position:relative;display:inline-block;">
+      ${isImg
+        ? `<img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border2);">`
+        : `<div style="width:72px;height:72px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--text2);padding:4px;text-align:center;gap:2px;"><span style="font-size:22px;">🎥</span><span>${f.name.substring(0,12)}</span></div>`
+      }
+      <button onclick="${removeFn}(${i})" style="position:absolute;top:-6px;right:-6px;background:#e74c3c;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;padding:0;line-height:1;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function _uploadAtMidia(contrato, files){
+  const urls = [];
+  for(const f of files){
+    const ts = Date.now();
+    const nomeSanitizado = f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path = `at/${contrato}/${ts}_${nomeSanitizado}`;
+    const {error} = await db.storage.from('arquivos').upload(path, f, {upsert:true});
+    if(!error){
+      const {data} = db.storage.from('arquivos').getPublicUrl(path);
+      urls.push({url: data.publicUrl, nome: f.name, mimeType: f.type});
+    }
+  }
+  return urls;
+}
+
+async function _anexarMidiaAoPedido(pedidoId, midias, usuario){
+  if(!midias.length) return;
+  const {data:p} = await db.from('pedidos_montagem').select('tarefas').eq('id',pedidoId).single();
+  const tarefas = typeof p?.tarefas==='string' ? JSON.parse(p?.tarefas||'[]') : (p?.tarefas||[]);
+  const dataStr = new Date().toLocaleDateString('pt-BR');
+  midias.forEach(m => tarefas.push({tipo:'midia', url:m.url, nome:m.nome, mimeType:m.mimeType, data:dataStr, usuario}));
+  await db.from('pedidos_montagem').update({tarefas: JSON.stringify(tarefas)}).eq('id',pedidoId);
+}
+// ─────────────────────────────────────────────────────
 
 async function enviarAssistenciaTecnicaCliente(){
   if(!currentUser){ setAlert('atc-alert','Você precisa estar logado.','error'); return; }
@@ -5886,6 +5970,15 @@ async function enviarAssistenciaTecnicaCliente(){
     });
   }catch(e){}
 
+  // Upload de fotos/vídeos (silencioso, não bloqueia o fluxo)
+  if(_atcFiles.length){
+    const midias = await _uploadAtMidia(res.contrato, _atcFiles);
+    if(midias.length) await _anexarMidiaAoPedido(res.pedidoId, midias, currentUser.email);
+    _atcFiles = [];
+    _renderAtPreview('atc-preview', _atcFiles, 'atcRemoveFile');
+    const inp = document.getElementById('atc-arquivos'); if(inp) inp.value='';
+  }
+
   notify('✅ Assistência técnica solicitada! Contrato: '+res.contrato);
   setAlert('atc-alert','✅ Solicitação enviada! Contrato: '+res.contrato+'. Nossa equipe entrará em contato em breve.','success');
 
@@ -5913,6 +6006,15 @@ function abrirAtCardProjeto(projetoId){
         <div class="form-row"><label>Ambiente <span style="color:var(--accent)">*</span></label><input type="text" id="atmp-ambiente" value="${(ambientePre+'').replace(/"/g,'&quot;')}" placeholder="Ex: Cozinha"></div>
         <div class="form-row"><label>Data desejada (opcional)</label><input type="date" id="atmp-data"></div>
         <div class="form-row"><label>Descrição do problema <span style="color:var(--accent)">*</span></label><textarea id="atmp-descricao" style="height:90px;resize:none;" placeholder="Descreva o problema..."></textarea></div>
+        <div class="form-row">
+          <label>Fotos ou vídeos do problema (opcional)</label>
+          <div onclick="document.getElementById('atmp-arquivos').click()" style="border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg);">
+            <input type="file" id="atmp-arquivos" multiple accept="image/*,video/*" style="display:none" onchange="atmpAddFiles(this.files)">
+            <div style="font-size:20px;margin-bottom:3px;">📷</div>
+            <div style="font-size:13px;color:var(--text2);font-weight:500;">Toque para adicionar fotos ou vídeos</div>
+          </div>
+          <div id="atmp-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+        </div>
         <div id="atmp-alert"></div>
         <button class="btn-submit" id="btn-atmp" onclick="enviarAtCardProjeto('${p.id}')">Enviar solicitação</button>
       </div>
@@ -5956,6 +6058,13 @@ async function enviarAtCardProjeto(projetoId){
     setAlert('atmp-alert', res.msg, 'error');
     btn.disabled=false; btn.textContent='Enviar solicitação';
     return;
+  }
+
+  // Upload de fotos/vídeos
+  if(_atmpFiles.length){
+    const midias = await _uploadAtMidia(res.contrato, _atmpFiles);
+    if(midias.length) await _anexarMidiaAoPedido(res.pedidoId, midias, currentUser?.email||'cliente');
+    _atmpFiles = [];
   }
 
   notify('✅ Assistência técnica solicitada! Contrato: '+res.contrato);
