@@ -2457,19 +2457,26 @@ function prefillOrcamento(){
   if(meta.telefone)document.getElementById('orc-tel').value=meta.telefone;
 }
 
+let _secaoAtiva = null;
+
 function showSection(id,btn){
+  // Não recarregar se já está na mesma seção
+  const mudou = id !== _secaoAtiva;
+  _secaoAtiva = id;
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-bar>.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(id==='projetos')loadProjetos();
-  if(id==='admin')loadAdmin();
-  if(id==='montagem')loadFilaMt();
-  if(id==='conferencia')loadConferencia();
-  if(id==='agenda')loadAgenda();
-  if(id==='marketing')loadMarketing();
-  if(id==='usuarios')loadUsuarios();
-  if(id==='dashboard')loadDashboard();
+  if(mudou){
+    if(id==='projetos')loadProjetos();
+    if(id==='admin')loadAdmin();
+    if(id==='montagem')loadFilaMt();
+    if(id==='conferencia')loadConferencia();
+    if(id==='agenda')loadAgenda();
+    if(id==='marketing')loadMarketing();
+    if(id==='usuarios')loadUsuarios();
+    if(id==='dashboard')loadDashboard();
+  }
   if(id==='rh'){
     loadPontoHoje();
     const isAdm=isAdmin();
@@ -2480,6 +2487,7 @@ function showSection(id,btn){
     document.getElementById('rh-nav-ajuste-ponto').style.display=admOuGer?'block':'none';
     document.getElementById('rh-nav-folgas').style.display=admOuGer?'block':'none';
   }
+
   if(id==='financeiro'){
     preencherFiltroFinMes('fin-dre-mes');
     // Gerente vê Despesas e Receitas, mas NÃO DRE, Ponto de Equilíbrio e Configurações
@@ -4236,7 +4244,7 @@ function dragStartMt(event, pedidoId){
 async function dropMt(event, equipeId, equipeNome){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
-  document.querySelectorAll('.funil-wrap').forEach(w=>{ w.style.overflowX='auto'; if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const pedidoId = _dragMtId || event.dataTransfer.getData('text/plain');
   if(!pedidoId||!equipeId) return;
 
@@ -9022,7 +9030,7 @@ function toggleColunaConf(etapaId){
 async function dropConf(event, etapaId){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
-  document.querySelectorAll('.funil-wrap').forEach(w=>{ w.style.overflowX='auto'; if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const atId = _dragAtId || event.dataTransfer.getData('text/plain');
   if(!atId||!etapaId) return;
   const at = window._todosConferencia?.find(a=>a.id===atId);
@@ -9680,13 +9688,13 @@ function dragStartRec(event, recId){
   event.currentTarget.classList.add('dragging');
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', recId);
-  document.querySelectorAll('.funil-wrap').forEach(w=>{ w._scrollLeft=w.scrollLeft; w.style.overflowX='hidden'; });
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ w._scrollLeft=w.scrollLeft; });
 }
 
 async function dropRec(event, etapaNome){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
-  document.querySelectorAll('.funil-wrap').forEach(w=>{ w.style.overflowX='auto'; if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const recId = _dragRecId || event.dataTransfer.getData('text/plain');
   if(!recId || !etapaNome) return;
 
@@ -9710,10 +9718,10 @@ function dragStart(event, atId){
   event.currentTarget.classList.add('dragging');
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', atId);
-  // Fixar scroll do funil-wrap durante drag para evitar scroll para a esquerda
+  // Salvar scrollLeft sem travar overflow (evita o card voltar para esquerda)
   document.querySelectorAll('.funil-wrap').forEach(w=>{
     w._scrollLeft = w.scrollLeft;
-    w.style.overflowX = 'hidden';
+    w.style.scrollSnapType = 'none';
   });
 }
 
@@ -9744,7 +9752,7 @@ function dragLeave(event){
 async function drop(event, etapaId){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
-  document.querySelectorAll('.funil-wrap').forEach(w=>{ w.style.overflowX='auto'; if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
+  document.querySelectorAll('.funil-wrap').forEach(w=>{ if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const atId = _dragAtId || event.dataTransfer.getData('text/plain');
   if(!atId || !etapaId) return;
 
