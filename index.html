@@ -1001,6 +1001,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <button class="nav-item" id="rh-nav-ajuste-ponto" style="display:none" onclick="showSubRH('rh-ajuste-ponto',this)">✏️ Ajuste de Ponto</button>
         <button class="nav-item" id="rh-nav-folgas" style="display:none" onclick="showSubRH('rh-folgas',this)">Folgas</button>
         <button class="nav-item" id="rh-nav-pasta" style="display:none" onclick="showSubRH('rh-pasta',this)">📁 Pasta do Funcionário</button>
+        <button class="nav-item" id="rh-nav-estagiarios" style="display:none" onclick="showSubRH('rh-estagiarios',this)">🎓 Estagiários</button>
       </div>
 
       <!-- MEU PONTO -->
@@ -1235,6 +1236,69 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
         <div id="rh-pasta-content"><div class="loader">Carregando...</div></div>
       </div>
+
+      <!-- ESTAGIÁRIOS -->
+      <div id="rh-estagiarios" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <!-- Cadastro -->
+          <div class="card">
+            <div class="card-title">🎓 Cadastrar Estagiário</div>
+            <div class="form-row"><label>Nome completo <span style="color:var(--accent)">*</span></label>
+              <input type="text" id="est-nome" placeholder="Nome do estagiário">
+            </div>
+            <div class="form-row"><label>E-mail <span style="color:var(--accent)">*</span></label>
+              <input type="email" id="est-email" placeholder="email@exemplo.com">
+            </div>
+            <div class="form-row"><label>Empresa</label>
+              <select id="est-empresa" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+                <option value="marcenario">Marcena Rio</option>
+                <option value="conceptus">Conceptus Italínea</option>
+              </select>
+            </div>
+            <div class="form-grid">
+              <div class="form-row"><label>Início <span style="color:var(--accent)">*</span></label><input type="date" id="est-inicio"></div>
+              <div class="form-row"><label>Fim do estágio</label><input type="date" id="est-fim"></div>
+            </div>
+            <div id="est-alert" style="margin-bottom:8px;"></div>
+            <button class="btn-submit" onclick="salvarEstagiario()">+ Cadastrar estagiário</button>
+          </div>
+
+          <!-- Escala semanal -->
+          <div class="card">
+            <div class="card-title">📅 Escala Semanal</div>
+            <div class="form-row"><label>Estagiário</label>
+              <select id="est-escala-id" onchange="carregarEscalaEstagiario(this.value)" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <div id="est-escala-form" style="display:none">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:10px;background:var(--bg2);padding:8px 10px;border-radius:6px;">
+                📋 Carga horária: <strong>30h/semana</strong> · Almoço automático se trabalhar mais de 6h
+              </div>
+              <div style="display:grid;grid-template-columns:72px 1fr 1fr 40px;gap:5px;font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;padding:0 2px;">
+                <span>Dia</span><span>Entrada</span><span>Saída</span><span>Horas</span>
+              </div>
+              <div id="est-escala-dias"></div>
+              <div style="font-size:13px;font-weight:600;color:var(--brand);margin-top:8px;padding:6px 10px;background:var(--bg2);border-radius:6px;" id="est-esc-total">Total: 0h / 30h</div>
+              <div id="est-escala-alert" style="margin-top:6px;"></div>
+              <button class="btn-submit" style="margin-top:8px;" onclick="salvarEscalaEstagiario()">💾 Salvar escala</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista + cartão de ponto -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+            <div class="card-title" style="margin:0;">👥 Estagiários · Ponto e Banco de Horas</div>
+            <div style="display:flex;gap:8px;">
+              <select id="est-list-mes" onchange="loadEstagiarios()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></select>
+              <button onclick="loadEstagiarios()" style="padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">↻ Atualizar</button>
+            </div>
+          </div>
+          <div id="est-list-content"><div class="loader">Carregando...</div></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ── AGENDA ── -->
@@ -2270,6 +2334,7 @@ async function onLogin(user){
   document.getElementById('nav-atendimento').style.display=isStaff?'block':'none';
   document.getElementById('nav-conferencia').style.display=isStaff?'block':'none';
   document.getElementById('rh-nav-pasta').style.display=isAdmOuGer()?'block':'none';
+  document.getElementById('rh-nav-estagiarios').style.display=isAdmOuGer()?'block':'none';
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
@@ -2486,6 +2551,7 @@ function showSection(id,btn){
     document.getElementById('rh-nav-relatorios').style.display=admOuGer?'block':'none';
     document.getElementById('rh-nav-ajuste-ponto').style.display=admOuGer?'block':'none';
     document.getElementById('rh-nav-folgas').style.display=admOuGer?'block':'none';
+    document.getElementById('rh-nav-estagiarios').style.display=admOuGer?'block':'none';
   }
 
   if(id==='financeiro'){
@@ -6192,7 +6258,7 @@ async function loadDashMontadoresRanking(mes) {
 let rhFuncAtual = null; // dados do funcionário logado
 
 function showSubRH(id, btn) {
-  ['rh-ponto','rh-atestado','rh-folha','rh-funcionarios','rh-relatorios','rh-folgas','rh-pasta','rh-ajuste-ponto'].forEach(s => {
+  ['rh-ponto','rh-atestado','rh-folha','rh-funcionarios','rh-relatorios','rh-folgas','rh-pasta','rh-ajuste-ponto','rh-estagiarios'].forEach(s => {
     const el = document.getElementById(s); if(el) el.style.display = 'none';
   });
   document.querySelectorAll('#rh .sub-nav .nav-item').forEach(n => n.classList.remove('active'));
@@ -6229,6 +6295,317 @@ async function loadFuncSelectRH(elId, comTodos = false) {
 }
 
 /* ── BATER PONTO ── */
+// ══════════════════════════════════════════════════════
+//  MÓDULO DE ESTAGIÁRIOS
+// ══════════════════════════════════════════════════════
+
+const DIAS_SEMANA_EST = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+function preencherFiltroEstMes(){
+  const sel = document.getElementById('est-list-mes');
+  if(!sel) return;
+  const atual = new Date();
+  sel.innerHTML = '';
+  for(let i=0; i<12; i++){
+    const d = new Date(atual.getFullYear(), atual.getMonth()-i, 1);
+    const val = d.toISOString().slice(0,7);
+    const label = d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    sel.innerHTML += `<option value="${val}" ${i===0?'selected':''}>${label}</option>`;
+  }
+}
+
+async function loadSelectEstagiarios(){
+  const {data} = await db.from('rh_estagiarios').select('id,nome').eq('ativo',true).order('nome');
+  const sel1 = document.getElementById('est-escala-id');
+  if(sel1){
+    sel1.innerHTML = '<option value="">Selecione...</option>';
+    (data||[]).forEach(e=>{ sel1.innerHTML += `<option value="${e.id}">${e.nome}</option>`; });
+  }
+}
+
+async function salvarEstagiario(){
+  const nome  = (document.getElementById('est-nome')?.value||'').trim();
+  const email = (document.getElementById('est-email')?.value||'').trim();
+  const empresa = document.getElementById('est-empresa')?.value||'marcenario';
+  const inicio = document.getElementById('est-inicio')?.value;
+  const fim    = document.getElementById('est-fim')?.value||null;
+  if(!nome||!email||!inicio){ setAlert('est-alert','Preencha nome, e-mail e data de início.','error'); return; }
+
+  // Criar login
+  const senha = 'Est@'+Math.floor(Math.random()*9000+1000);
+  const {data:su} = await db.auth.signUp({email, password:senha, options:{data:{nome}}});
+  const userId = su?.user?.id||null;
+  if(userId) await db.from('perfis').upsert({id:userId,email,nome,nivel:'funcionario'});
+
+  const {error} = await db.from('rh_estagiarios').insert({
+    nome, email, empresa, data_inicio:inicio, data_fim:fim,
+    user_id:userId, ativo:true, carga_semanal:30
+  });
+  if(error){ setAlert('est-alert','Erro: '+error.message,'error'); return; }
+
+  setAlert('est-alert',`✅ Estagiário cadastrado! Login: ${email} / Senha: ${senha}`,'success');
+  ['est-nome','est-email','est-inicio','est-fim'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  loadEstagiarios();
+  loadSelectEstagiarios();
+}
+
+function renderEscalaDias(){
+  const cont = document.getElementById('est-escala-dias');
+  if(!cont) return;
+  cont.innerHTML = DIAS_SEMANA_EST.map((d,i)=>
+    `<div style="display:grid;grid-template-columns:72px 1fr 1fr 40px;gap:5px;align-items:center;margin-bottom:6px;">
+      <label style="font-size:12px;font-weight:500;">${d}</label>
+      <input type="time" id="est-esc-ini-${i}" oninput="calcTotalEscala()" style="padding:6px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+      <input type="time" id="est-esc-fim-${i}" oninput="calcTotalEscala()" style="padding:6px 8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
+      <span id="est-esc-h-${i}" style="font-size:11px;color:var(--text3);text-align:center;"></span>
+    </div>`
+  ).join('');
+}
+
+function calcTotalEscala(){
+  let totalMin = 0;
+  for(let i=0;i<6;i++){
+    const ini = document.getElementById(`est-esc-ini-${i}`)?.value;
+    const fim = document.getElementById(`est-esc-fim-${i}`)?.value;
+    const hEl = document.getElementById(`est-esc-h-${i}`);
+    if(ini && fim){
+      const [ih,im] = ini.split(':').map(Number);
+      const [fh,fm] = fim.split(':').map(Number);
+      let min = (fh*60+fm) - (ih*60+im);
+      // Desconta 1h de almoço se >6h
+      if(min > 360) min -= 60;
+      if(min < 0) min = 0;
+      if(hEl) hEl.textContent = (min/60).toFixed(1)+'h';
+      totalMin += min;
+    } else {
+      if(hEl) hEl.textContent = '';
+    }
+  }
+  const totalEl = document.getElementById('est-esc-total');
+  const totalH = (totalMin/60).toFixed(1);
+  const cor = parseFloat(totalH) > 30 ? '#8a1a1a' : parseFloat(totalH) === 30 ? '#1a6b35' : 'var(--brand)';
+  if(totalEl) totalEl.innerHTML = `Total: <span style="color:${cor};font-size:15px;">${totalH}h</span> / 30h`;
+}
+
+async function carregarEscalaEstagiario(estId){
+  const form = document.getElementById('est-escala-form');
+  if(!form) return;
+  if(!estId){ form.style.display='none'; return; }
+  form.style.display = 'block';
+  renderEscalaDias();
+  // Buscar escala existente
+  const {data} = await db.from('rh_estagiarios_escala')
+    .select('*').eq('estagiario_id', estId).order('dia_semana');
+  (data||[]).forEach(e=>{
+    const i = e.dia_semana;
+    const ini = document.getElementById(`est-esc-ini-${i}`);
+    const fim = document.getElementById(`est-esc-fim-${i}`);
+    if(ini) ini.value = e.hora_entrada||'';
+    if(fim) fim.value = e.hora_saida||'';
+  });
+  calcTotalEscala();
+}
+
+async function salvarEscalaEstagiario(){
+  const estId = document.getElementById('est-escala-id')?.value;
+  if(!estId){ setAlert('est-escala-alert','Selecione um estagiário.','error'); return; }
+
+  // Deletar escala anterior
+  await db.from('rh_estagiarios_escala').delete().eq('estagiario_id', estId);
+
+  const rows = [];
+  for(let i=0;i<6;i++){
+    const ini = document.getElementById(`est-esc-ini-${i}`)?.value;
+    const fim = document.getElementById(`est-esc-fim-${i}`)?.value;
+    if(ini && fim){
+      let min = 0;
+      const [ih,im]=ini.split(':').map(Number), [fh,fm]=fim.split(':').map(Number);
+      min = (fh*60+fm)-(ih*60+im);
+      const temAlmoco = min > 360;
+      if(temAlmoco) min -= 60;
+      rows.push({
+        estagiario_id: estId,
+        dia_semana: i,
+        hora_entrada: ini,
+        hora_saida: fim,
+        tem_almoco: temAlmoco,
+        minutos_esperados: Math.max(0, min)
+      });
+    }
+  }
+
+  if(rows.length){
+    const {error} = await db.from('rh_estagiarios_escala').insert(rows);
+    if(error){ setAlert('est-escala-alert','Erro ao salvar: '+error.message,'error'); return; }
+  }
+
+  setAlert('est-escala-alert','✅ Escala salva!','success');
+  loadEstagiarios();
+}
+
+async function loadEstagiarios(){
+  const cont = document.getElementById('est-list-content');
+  if(!cont) return;
+  cont.innerHTML = '<div class="loader">Carregando...</div>';
+  const mes = document.getElementById('est-list-mes')?.value || new Date().toISOString().slice(0,7);
+
+  const {data:estagiarios} = await db.from('rh_estagiarios').select('*').eq('ativo',true).order('nome');
+  if(!estagiarios||!estagiarios.length){
+    cont.innerHTML = '<div class="empty-state"><p>Nenhum estagiário cadastrado.</p></div>'; return;
+  }
+
+  // Buscar pontos do mês para cada estagiário
+  const ids = estagiarios.map(e=>e.id);
+  const {data:pontos} = await db.from('rh_pontos').select('*').in('funcionario_id',ids).eq('mes_ref',mes);
+  const {data:escalas} = await db.from('rh_estagiarios_escala').select('*').in('estagiario_id',ids);
+
+  const html = estagiarios.map(est=>{
+    const escEst = (escalas||[]).filter(e=>e.estagiario_id===est.id);
+    const pontosEst = (pontos||[]).filter(p=>p.funcionario_id===est.id);
+
+    // Calcular horas trabalhadas e banco de horas do mês
+    let minTrabalhados = 0;
+    let minEsperados = 0;
+
+    // Agrupar pontos por data
+    const porData = {};
+    pontosEst.forEach(p=>{ if(!porData[p.data]) porData[p.data]=[]; porData[p.data].push(p); });
+
+    Object.entries(porData).forEach(([data, regs])=>{
+      const entrada = regs.find(r=>r.tipo==='entrada');
+      const saida   = regs.find(r=>r.tipo==='saida');
+      if(entrada && saida){
+        const h1 = (entrada.horario||'00:00').slice(0,5).split(':').map(Number);
+        const h2 = (saida.horario||'00:00').slice(0,5).split(':').map(Number);
+        let min = (h2[0]*60+h2[1]) - (h1[0]*60+h1[1]);
+        const saidaAlm = regs.find(r=>r.tipo==='saida_almoco');
+        const retAlm   = regs.find(r=>r.tipo==='retorno_almoco');
+        if(saidaAlm && retAlm){
+          const sa = (saidaAlm.horario||'00:00').slice(0,5).split(':').map(Number);
+          const ra = (retAlm.horario||'00:00').slice(0,5).split(':').map(Number);
+          const almMin = (ra[0]*60+ra[1]) - (sa[0]*60+sa[1]);
+          min -= Math.max(0, almMin);
+        } else if(min > 360){
+          min -= 60; // desconta 1h automático
+        }
+        minTrabalhados += Math.max(0, min);
+      }
+    });
+
+    // Horas esperadas: contar dias úteis do mês que batem com a escala
+    const [ano, mesNum] = mes.split('-').map(Number);
+    const diasMes = new Date(ano, mesNum, 0).getDate();
+    for(let d=1; d<=diasMes; d++){
+      const dt = new Date(ano, mesNum-1, d);
+      const diaSem = dt.getDay(); // 0=dom,1=seg,...,6=sab
+      const idx = diaSem === 0 ? null : diaSem - 1; // 0=seg,...,5=sab
+      if(idx === null) continue;
+      const esc = escEst.find(e=>e.dia_semana===idx);
+      if(esc) minEsperados += esc.minutos_esperados||0;
+    }
+
+    const banco = minTrabalhados - minEsperados;
+    const bancoH = (Math.abs(banco)/60).toFixed(1);
+    const bancoStr = banco >= 0 ? `+${bancoH}h` : `-${bancoH}h`;
+    const bancoCor = banco >= 0 ? '#1a6b35' : '#8a1a1a';
+    const bancoBg  = banco >= 0 ? '#eaf5ee' : '#fce8e8';
+
+    const trabH = (minTrabalhados/60).toFixed(1);
+    const espH  = (minEsperados/60).toFixed(1);
+
+    return `<div style="border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-size:14px;font-weight:600;">${est.nome}</div>
+          <div style="font-size:11px;color:var(--text2);">${est.email} · ${est.empresa==='conceptus'?'Conceptus':'Marcena Rio'}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Estágio: ${est.data_inicio||'—'}${est.data_fim?' até '+est.data_fim:''}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div style="text-align:center;background:var(--bg2);border-radius:6px;padding:8px 14px;">
+            <div style="font-size:11px;color:var(--text3);">Trabalhado</div>
+            <div style="font-size:16px;font-weight:600;color:var(--brand);">${trabH}h</div>
+            <div style="font-size:10px;color:var(--text3);">de ${espH}h prev.</div>
+          </div>
+          <div style="text-align:center;background:${bancoBg};border-radius:6px;padding:8px 14px;">
+            <div style="font-size:11px;color:var(--text3);">Banco de horas</div>
+            <div style="font-size:16px;font-weight:600;color:${bancoCor};">${bancoStr}</div>
+          </div>
+          <button onclick="verPontoEstagiario('${est.id}','${est.nome}','${mes}')"
+            style="padding:8px 14px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
+            📋 Ver ponto
+          </button>
+          <button onclick="desativarEstagiario('${est.id}')"
+            style="padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
+            🗑
+          </button>
+        </div>
+      </div>
+      ${escEst.length ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">
+        ${escEst.map(e=>{
+          const diasNomes=['Seg','Ter','Qua','Qui','Sex','Sáb'];
+          return `<span style="font-size:11px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;">
+            ${diasNomes[e.dia_semana]} ${e.hora_entrada||''}–${e.hora_saida||''}${e.tem_almoco?' 🍽':''}</span>`;
+        }).join('')}
+      </div>` : '<div style="margin-top:8px;font-size:11px;color:var(--accent);">⚠️ Sem escala definida</div>'}
+    </div>`;
+  }).join('');
+
+  cont.innerHTML = html;
+}
+
+async function verPontoEstagiario(estId, estNome, mes){
+  const {data:pontos} = await db.from('rh_pontos')
+    .select('*').eq('funcionario_id',estId).eq('mes_ref',mes).order('data').order('created_at');
+
+  const porData = {};
+  (pontos||[]).forEach(p=>{ if(!porData[p.data]) porData[p.data]=[]; porData[p.data].push(p); });
+
+  const linhas = Object.entries(porData).map(([data, regs])=>{
+    const fmt = (tipo) => {
+      const r = regs.find(r=>r.tipo===tipo);
+      return r ? (r.horario||'—').slice(0,5) : '—';
+    };
+    const dtFmt = new Date(data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+    return `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px 6px;font-size:12px;">${dtFmt}</td>
+      <td style="padding:8px 6px;font-size:12px;text-align:center;">${fmt('entrada')}</td>
+      <td style="padding:8px 6px;font-size:12px;text-align:center;">${fmt('saida_almoco')}</td>
+      <td style="padding:8px 6px;font-size:12px;text-align:center;">${fmt('retorno_almoco')}</td>
+      <td style="padding:8px 6px;font-size:12px;text-align:center;">${fmt('saida')}</td>
+    </tr>`;
+  }).join('');
+
+  let modal = document.getElementById('modal-ponto-est');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'modal-ponto-est';
+    modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;';
+    modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
+    modal.innerHTML='<div style="background:var(--surface);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:560px;max-height:80vh;overflow-y:auto;margin:1rem;"><div style="display:flex;justify-content:space-between;margin-bottom:1rem;"><h3 style="margin:0;" id="ponto-est-titulo"></h3><button onclick="document.getElementById(\'modal-ponto-est\').style.display=\'none\'" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button></div><div id="ponto-est-body"></div></div>';
+    document.body.appendChild(modal);
+  }
+  document.getElementById('ponto-est-titulo').textContent = '📋 Ponto — '+estNome+' ('+mes+')';
+  document.getElementById('ponto-est-body').innerHTML = linhas
+    ? `<table style="width:100%;border-collapse:collapse;">
+        <tr style="background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);">
+          <th style="padding:8px 6px;text-align:left;">Data</th>
+          <th style="padding:8px 6px;">Entrada</th>
+          <th style="padding:8px 6px;">S.Almoço</th>
+          <th style="padding:8px 6px;">R.Almoço</th>
+          <th style="padding:8px 6px;">Saída</th>
+        </tr>${linhas}</table>`
+    : '<p style="color:var(--text3);font-size:13px;">Sem registros de ponto neste mês.</p>';
+  modal.style.display='flex';
+}
+
+async function desativarEstagiario(id){
+  if(!confirm('Desativar este estagiário? O histórico de ponto será mantido.')) return;
+  await db.from('rh_estagiarios').update({ativo:false}).eq('id',id);
+  notify('Estagiário desativado.');
+  loadEstagiarios();
+  loadSelectEstagiarios();
+}
+
 async function loadPontoHoje() {
   const cont = document.getElementById('rh-ponto-hoje');
   const hcont = document.getElementById('rh-ponto-historico');
