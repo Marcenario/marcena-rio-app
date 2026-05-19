@@ -5804,7 +5804,7 @@ async function _criarAssistenciaTecnica({cliente, tel, email, empresa, ambiente,
   }).select().single();
   if(pedErr) return {ok:false, msg:'Erro ao criar pedido: '+pedErr.message};
 
-  // 2. Criar projeto novo se necessário (mantém timeline do cliente)
+  // 2. Criar projeto novo ou mover existente para etapa 11 (Vistoria Final)
   let projetoFinalId = projetoId||null;
   if(!projetoFinalId){
     const {data:proj} = await db.from('projetos').insert({
@@ -5820,6 +5820,9 @@ async function _criarAssistenciaTecnica({cliente, tel, email, empresa, ambiente,
       numero_contrato_at: contrato
     }).select().single();
     projetoFinalId = proj?.id||null;
+  } else {
+    // Projeto existente — move direto para etapa 11 (igual à AT direta da loja)
+    await db.from('projetos').update({etapa_atual: 11}).eq('id', projetoFinalId);
   }
 
   // 3. Registrar anotação de abertura
