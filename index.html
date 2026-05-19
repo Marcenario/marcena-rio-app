@@ -4244,6 +4244,7 @@ function dragStartMt(event, pedidoId){
 async function dropMt(event, equipeId, equipeNome){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
+  if(_dragScrollRAF){ cancelAnimationFrame(_dragScrollRAF); _dragScrollRAF=null; }
   document.querySelectorAll('.funil-wrap').forEach(w=>{ if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const pedidoId = _dragMtId || event.dataTransfer.getData('text/plain');
   if(!pedidoId||!equipeId) return;
@@ -9030,6 +9031,7 @@ function toggleColunaConf(etapaId){
 async function dropConf(event, etapaId){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
+  if(_dragScrollRAF){ cancelAnimationFrame(_dragScrollRAF); _dragScrollRAF=null; }
   document.querySelectorAll('.funil-wrap').forEach(w=>{ if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const atId = _dragAtId || event.dataTransfer.getData('text/plain');
   if(!atId||!etapaId) return;
@@ -9689,11 +9691,17 @@ function dragStartRec(event, recId){
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', recId);
   document.querySelectorAll('.funil-wrap').forEach(w=>{ w._scrollLeft=w.scrollLeft; });
+  function lockScrollRec(){
+    document.querySelectorAll('.funil-wrap').forEach(w=>{ if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
+    _dragScrollRAF = requestAnimationFrame(lockScrollRec);
+  }
+  _dragScrollRAF = requestAnimationFrame(lockScrollRec);
 }
 
 async function dropRec(event, etapaNome){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
+  if(_dragScrollRAF){ cancelAnimationFrame(_dragScrollRAF); _dragScrollRAF=null; }
   document.querySelectorAll('.funil-wrap').forEach(w=>{ if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const recId = _dragRecId || event.dataTransfer.getData('text/plain');
   if(!recId || !etapaNome) return;
@@ -9713,24 +9721,33 @@ async function dropRec(event, etapaNome){
 /* ── DRAG AND DROP FUNIL ── */
 let _dragAtId = null;
 
+let _dragScrollRAF = null;
+
 function dragStart(event, atId){
   _dragAtId = atId;
   event.currentTarget.classList.add('dragging');
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', atId);
-  // Salvar scrollLeft sem travar overflow (evita o card voltar para esquerda)
+  // Salvar e fixar o scroll via rAF durante todo o drag
   document.querySelectorAll('.funil-wrap').forEach(w=>{
     w._scrollLeft = w.scrollLeft;
-    w.style.scrollSnapType = 'none';
   });
+  // Loop de rAF que força o scrollLeft a não mudar durante o drag
+  function lockScroll(){
+    document.querySelectorAll('.funil-wrap').forEach(w=>{
+      if(w._scrollLeft !== undefined) w.scrollLeft = w._scrollLeft;
+    });
+    _dragScrollRAF = requestAnimationFrame(lockScroll);
+  }
+  _dragScrollRAF = requestAnimationFrame(lockScroll);
 }
 
 function dragEnd(event){
   event.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.funil-col-body').forEach(col=>col.classList.remove('drag-over'));
-  // Restaurar scroll do funil-wrap
+  // Parar o loop de rAF e manter o scroll onde estava
+  if(_dragScrollRAF){ cancelAnimationFrame(_dragScrollRAF); _dragScrollRAF = null; }
   document.querySelectorAll('.funil-wrap').forEach(w=>{
-    w.style.overflowX = 'auto';
     if(w._scrollLeft !== undefined) w.scrollLeft = w._scrollLeft;
   });
 }
@@ -9752,6 +9769,7 @@ function dragLeave(event){
 async function drop(event, etapaId){
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
+  if(_dragScrollRAF){ cancelAnimationFrame(_dragScrollRAF); _dragScrollRAF=null; }
   document.querySelectorAll('.funil-wrap').forEach(w=>{ if(w._scrollLeft!==undefined) w.scrollLeft=w._scrollLeft; });
   const atId = _dragAtId || event.dataTransfer.getData('text/plain');
   if(!atId || !etapaId) return;
