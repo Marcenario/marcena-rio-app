@@ -10992,11 +10992,24 @@ async function abrirModalAt(id){
 
     <!-- Input nova anotação -->
     <div style="border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;">
-      <textarea id="at-anotacoes-${id}" placeholder="Escreva uma observação, registro de conversa, próximo passo..."
+      <!-- Preview de imagem colada -->
+      <div id="at-anot-img-preview-${id}" style="display:none;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border2);">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">📸 Imagem copiada — será salva junto com a anotação</div>
+        <img id="at-anot-img-thumb-${id}" style="max-height:120px;max-width:100%;border-radius:6px;object-fit:contain;">
+        <button onclick="limparImagemAnot('${id}')" style="display:block;margin-top:4px;font-size:11px;background:none;border:none;color:var(--red);cursor:pointer;">✕ Remover imagem</button>
+      </div>
+      <textarea id="at-anotacoes-${id}" placeholder="Escreva uma observação... Cole imagens com Ctrl+V"
         style="width:100%;min-height:80px;padding:10px 12px;border:none;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;resize:none;box-sizing:border-box;line-height:1.5;"
-        onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();salvarAnotacaoFeed('${id}');}"></textarea>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg);border-top:1px solid var(--border2);">
-        <span style="font-size:11px;color:var(--text3);">Ctrl+Enter para salvar</span>
+        onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();salvarAnotacaoFeed('${id}');}"
+        onpaste="handlePasteAnot(event,'${id}')"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg);border-top:1px solid var(--border2);gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--text3);">Ctrl+Enter para salvar · Ctrl+V para colar imagem</span>
+          <label style="cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:3px 8px;" title="Anexar áudio do WhatsApp">
+            🎵 Áudio
+            <input type="file" accept="audio/*,.ogg,.opus,.m4a,.mp3,.aac,.wav" style="display:none" onchange="handleAudioAnot(event,'${id}')">
+          </label>
+        </div>
         <button onclick="salvarAnotacaoFeed('${id}')" style="background:var(--brand);color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:600;">💾 Registrar</button>
       </div>
     </div>
@@ -12541,11 +12554,91 @@ async function carregarFeedAnotacoes(atId){
           <span style="font-size:12px;font-weight:600;color:var(--text);">${autor}${canalBadge}</span>
           <span style="font-size:11px;color:var(--text3);">${dataFmt} às ${horaFmt}</span>
         </div>
-        <div style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;">${n.texto.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        ${n.midia_url && n.midia_tipo==='imagem' ? `<img src="${n.midia_url}" style="max-width:100%;max-height:300px;border-radius:8px;margin-bottom:6px;cursor:pointer;object-fit:contain;display:block;" onclick="window.open('${n.midia_url}','_blank')">` : ''}
+        ${n.midia_url && n.midia_tipo==='audio' ? `<audio controls style="width:100%;margin-bottom:6px;"><source src="${n.midia_url}"></audio>` : ''}
+        ${n.texto?`<div style="font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;">${n.texto.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}
       </div>
     </div>`;
   }).join('');
   feed.scrollTop = feed.scrollHeight;
+}
+
+// ══════════════════════════════════════════════════════════
+//  MÍDIAS NAS ANOTAÇÕES (imagem por paste, áudio por upload)
+// ══════════════════════════════════════════════════════════
+
+// Armazena temporariamente a imagem colada antes de salvar
+const _anotImagemPendente = {};
+
+function handlePasteAnot(event, atId){
+  const items = event.clipboardData?.items;
+  if(!items) return;
+  for(const item of items){
+    if(item.type.startsWith('image/')){
+      event.preventDefault();
+      const file = item.getAsFile();
+      if(!file) return;
+      // Mostrar preview
+      const reader = new FileReader();
+      reader.onload = e => {
+        const preview = document.getElementById('at-anot-img-preview-'+atId);
+        const thumb   = document.getElementById('at-anot-img-thumb-'+atId);
+        if(preview) preview.style.display = 'block';
+        if(thumb)   thumb.src = e.target.result;
+        _anotImagemPendente[atId] = file;
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+  }
+}
+
+function limparImagemAnot(atId){
+  const preview = document.getElementById('at-anot-img-preview-'+atId);
+  const thumb   = document.getElementById('at-anot-img-thumb-'+atId);
+  if(preview) preview.style.display = 'none';
+  if(thumb)   thumb.src = '';
+  delete _anotImagemPendente[atId];
+}
+
+async function handleAudioAnot(event, atId){
+  const file = event.target.files[0];
+  if(!file) return;
+  // Salvar imediatamente como anotação de áudio
+  await salvarMidiaAnot(atId, file, 'audio');
+  event.target.value = '';
+}
+
+async function uploadMidiaAnotacao(file, atId, tipo){
+  const ext  = file.name.split('.').pop() || (tipo==='audio'?'ogg':'jpg');
+  const path = `anotacoes/${atId}/${Date.now()}.${ext}`;
+  const { data, error } = await db.storage.from('projetos').upload(path, file, {
+    contentType: file.type,
+    upsert: false
+  });
+  if(error) throw new Error('Erro no upload: '+error.message);
+  const { data: urlData } = db.storage.from('projetos').getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+async function salvarMidiaAnot(atId, file, tipo){
+  notify('Enviando '+( tipo==='audio'?'áudio':'imagem')+'...','info');
+  try{
+    const url = await uploadMidiaAnotacao(file, atId, tipo);
+    const { error } = await db.from('at_anotacoes').insert({
+      atendimento_id: atId,
+      texto: tipo==='audio' ? '🎵 Áudio da conversa WhatsApp' : '📸 Imagem da conversa WhatsApp',
+      midia_url:  url,
+      midia_tipo: tipo,
+      autor_id:   currentUser?.id||null,
+      autor_nome: currentUser?.nome || currentUser?.email || 'Usuário'
+    });
+    if(error){ notify('Erro ao salvar: '+error.message,'error'); return; }
+    notify(tipo==='audio'?'🎵 Áudio salvo nas anotações!':'📸 Imagem salva nas anotações!');
+    carregarFeedAnotacoes(atId);
+  }catch(e){
+    notify('Erro: '+e.message,'error');
+  }
 }
 
 async function salvarAnotacaoFeed(atId){
@@ -12553,14 +12646,27 @@ async function salvarAnotacaoFeed(atId){
   if(!ta) return;
   const texto = ta.value.trim();
   if(!texto){ notify('Digite algo antes de registrar.','error'); return; }
+  // Verificar se há imagem pendente
+  const imgFile = _anotImagemPendente[atId];
+  let midiaUrl = null;
+  let midiaTipo = null;
+  if(imgFile){
+    try{
+      midiaUrl  = await uploadMidiaAnotacao(imgFile, atId, 'imagem');
+      midiaTipo = 'imagem';
+    }catch(e){ notify('Erro no upload da imagem: '+e.message,'error'); return; }
+  }
   const {error} = await db.from('at_anotacoes').insert({
     atendimento_id: atId,
     texto,
+    midia_url:  midiaUrl||null,
+    midia_tipo: midiaTipo||null,
     autor_id: currentUser?.id||null,
     autor_nome: currentUser?.nome || currentUser?.email || 'Usuário'
   });
   if(error){ notify('Erro ao salvar anotação: '+error.message,'error'); return; }
   ta.value = '';
+  limparImagemAnot(atId);
   notify('Anotação registrada!');
   carregarFeedAnotacoes(atId);
 }
