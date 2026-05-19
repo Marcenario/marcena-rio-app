@@ -12284,6 +12284,22 @@ async function salvarNascimentoAt(id){
       } else {
         console.warn('Email aniversário: cliente sem email cadastrado');
       }
+      // Disparar WhatsApp de aniversário
+      const telCliente = atLocal2?.cliente_tel;
+      if(telCliente){
+        const msgAniv = '🎂 Parabéns, '+(nomeCliente||'')+'! '
+          +'A equipe '+(empresaCliente==='conceptus'?'Conceptus Italínea':'Marcena Rio')+' deseja um feliz aniversário! 🎉\n\n'
+          +(cupom?'Como presente, temos um cupom especial para você: *'+cupom+'* 🎟\n\nUse na sua próxima compra conosco!'
+          :'Que este dia seja repleto de alegria e realizações!');
+        fetch(`${SUPABASE_URL}/functions/v1/whatsapp-nutricao`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_ANON}`},
+          body:JSON.stringify({telefone:telCliente, mensagem:msgAniv, empresa:empresaCliente})
+        }).then(r=>r.json()).then(d=>{
+          if(d.key||d.id) notify('📱 WhatsApp de aniversário enviado!','success');
+          else console.warn('WhatsApp aniversário:', d);
+        }).catch(e=>console.warn('WhatsApp aniversário erro:',e));
+      }
     }catch(e){ console.warn('Email aniversário não enviado:',e); }
   }
 
