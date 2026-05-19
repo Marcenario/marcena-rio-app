@@ -1001,7 +1001,6 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
         <button class="nav-item" id="rh-nav-ajuste-ponto" style="display:none" onclick="showSubRH('rh-ajuste-ponto',this)">✏️ Ajuste de Ponto</button>
         <button class="nav-item" id="rh-nav-folgas" style="display:none" onclick="showSubRH('rh-folgas',this)">Folgas</button>
         <button class="nav-item" id="rh-nav-pasta" style="display:none" onclick="showSubRH('rh-pasta',this)">📁 Pasta do Funcionário</button>
-        <button class="nav-item" id="rh-nav-estagiarios" style="display:none" onclick="showSubRH('rh-estagiarios',this)">🎓 Estagiários</button>
       </div>
 
       <!-- MEU PONTO -->
@@ -1071,6 +1070,20 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           <div class="form-grid">
             <div class="form-row"><label>Início almoço (Sábado)</label><input type="time" id="rh-func-alm-ini-sab" value="12:00"></div>
             <div class="form-row"><label>Fim almoço (Sábado)</label><input type="time" id="rh-func-alm-fim-sab" value="13:00"></div>
+          </div>
+          <!-- Estagiário -->
+          <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="rh-func-estagiario" onchange="toggleCamposEstagiario(this.checked)" style="width:16px;height:16px;cursor:pointer;">
+              <span style="font-size:13px;font-weight:500;">🎓 Este funcionário é estagiário</span>
+            </label>
+            <div id="rh-func-est-campos" style="display:none;margin-top:10px;">
+              <div class="form-grid">
+                <div class="form-row"><label>Carga horária semanal (h)</label><input type="number" id="rh-func-carga-semanal" value="30" min="1" max="40" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);outline:none;"></div>
+                <div class="form-row"><label>Data fim do estágio</label><input type="date" id="rh-func-data-fim-estagio"></div>
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin-top:6px;">Almoço automático descontado quando turno ultrapassar 6h trabalhadas.</div>
+            </div>
           </div>
           <div id="rh-func-alert"></div>
           <button class="btn-submit" onclick="cadastrarFuncionario()">Cadastrar funcionário</button>
@@ -1234,69 +1247,6 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
           </div>
         </div>
 
-        <div id="rh-pasta-content"><div class="loader">Carregando...</div></div>
-      </div>
-
-      <!-- ESTAGIÁRIOS -->
-      <div id="rh-estagiarios" style="display:none">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-          <!-- Cadastro -->
-          <div class="card">
-            <div class="card-title">🎓 Cadastrar Estagiário</div>
-            <div class="form-row"><label>Nome completo <span style="color:var(--accent)">*</span></label>
-              <input type="text" id="est-nome" placeholder="Nome do estagiário">
-            </div>
-            <div class="form-row"><label>E-mail <span style="color:var(--accent)">*</span></label>
-              <input type="email" id="est-email" placeholder="email@exemplo.com">
-            </div>
-            <div class="form-row"><label>Empresa</label>
-              <select id="est-empresa" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
-                <option value="marcenario">Marcena Rio</option>
-                <option value="conceptus">Conceptus Italínea</option>
-              </select>
-            </div>
-            <div class="form-grid">
-              <div class="form-row"><label>Início <span style="color:var(--accent)">*</span></label><input type="date" id="est-inicio"></div>
-              <div class="form-row"><label>Fim do estágio</label><input type="date" id="est-fim"></div>
-            </div>
-            <div id="est-alert" style="margin-bottom:8px;"></div>
-            <button class="btn-submit" onclick="salvarEstagiario()">+ Cadastrar estagiário</button>
-          </div>
-
-          <!-- Escala semanal -->
-          <div class="card">
-            <div class="card-title">📅 Escala Semanal</div>
-            <div class="form-row"><label>Estagiário</label>
-              <select id="est-escala-id" onchange="carregarEscalaEstagiario(this.value)" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;">
-                <option value="">Selecione...</option>
-              </select>
-            </div>
-            <div id="est-escala-form" style="display:none">
-              <div style="font-size:11px;color:var(--text3);margin-bottom:10px;background:var(--bg2);padding:8px 10px;border-radius:6px;">
-                📋 Carga horária: <strong>30h/semana</strong> · Almoço automático se trabalhar mais de 6h
-              </div>
-              <div style="display:grid;grid-template-columns:72px 1fr 1fr 40px;gap:5px;font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;padding:0 2px;">
-                <span>Dia</span><span>Entrada</span><span>Saída</span><span>Horas</span>
-              </div>
-              <div id="est-escala-dias"></div>
-              <div style="font-size:13px;font-weight:600;color:var(--brand);margin-top:8px;padding:6px 10px;background:var(--bg2);border-radius:6px;" id="est-esc-total">Total: 0h / 30h</div>
-              <div id="est-escala-alert" style="margin-top:6px;"></div>
-              <button class="btn-submit" style="margin-top:8px;" onclick="salvarEscalaEstagiario()">💾 Salvar escala</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Lista + cartão de ponto -->
-        <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
-            <div class="card-title" style="margin:0;">👥 Estagiários · Ponto e Banco de Horas</div>
-            <div style="display:flex;gap:8px;">
-              <select id="est-list-mes" onchange="loadEstagiarios()" style="padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg2);outline:none;"></select>
-              <button onclick="loadEstagiarios()" style="padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">↻ Atualizar</button>
-            </div>
-          </div>
-          <div id="est-list-content"><div class="loader">Carregando...</div></div>
-        </div>
       </div>
 
     </div>
@@ -2334,7 +2284,6 @@ async function onLogin(user){
   document.getElementById('nav-atendimento').style.display=isStaff?'block':'none';
   document.getElementById('nav-conferencia').style.display=isStaff?'block':'none';
   document.getElementById('rh-nav-pasta').style.display=isAdmOuGer()?'block':'none';
-  document.getElementById('rh-nav-estagiarios').style.display=isAdmOuGer()?'block':'none';
   document.getElementById('nav-montagem').style.display=isStaff?'block':'none';
   document.getElementById('nav-ocorrencias').style.display=isStaff?'block':'none';
   document.getElementById('nav-vistoria').style.display=isStaff?'block':'none';
@@ -2551,7 +2500,6 @@ function showSection(id,btn){
     document.getElementById('rh-nav-relatorios').style.display=admOuGer?'block':'none';
     document.getElementById('rh-nav-ajuste-ponto').style.display=admOuGer?'block':'none';
     document.getElementById('rh-nav-folgas').style.display=admOuGer?'block':'none';
-    document.getElementById('rh-nav-estagiarios').style.display=admOuGer?'block':'none';
   }
 
   if(id==='financeiro'){
@@ -6258,7 +6206,7 @@ async function loadDashMontadoresRanking(mes) {
 let rhFuncAtual = null; // dados do funcionário logado
 
 function showSubRH(id, btn) {
-  ['rh-ponto','rh-atestado','rh-folha','rh-funcionarios','rh-relatorios','rh-folgas','rh-pasta','rh-ajuste-ponto','rh-estagiarios'].forEach(s => {
+  ['rh-ponto','rh-atestado','rh-folha','rh-funcionarios','rh-relatorios','rh-folgas','rh-pasta','rh-ajuste-ponto'].forEach(s => {
     const el = document.getElementById(s); if(el) el.style.display = 'none';
   });
   document.querySelectorAll('#rh .sub-nav .nav-item').forEach(n => n.classList.remove('active'));
@@ -7143,6 +7091,15 @@ async function loadMeusAtestados() {
 }
 
 /* ── FUNCIONÁRIOS (admin) ── */
+function toggleCamposEstagiario(on){
+  const campos = document.getElementById("rh-func-est-campos");
+  if(campos) campos.style.display = on ? "block" : "none";
+  if(on){
+    const cargo = document.getElementById("rh-func-cargo");
+    if(cargo && !cargo.value) cargo.value = "Estagiário";
+  }
+}
+
 async function cadastrarFuncionario() {
   const nome = document.getElementById('rh-func-nome').value.trim();
   const cargo = document.getElementById('rh-func-cargo').value.trim();
@@ -7170,11 +7127,17 @@ async function cadastrarFuncionario() {
       saida_sab: document.getElementById('rh-func-saida-sab').value,
       alm_ini_sab: document.getElementById('rh-func-alm-ini-sab').value,
       alm_fim_sab: document.getElementById('rh-func-alm-fim-sab').value,
+      estagiario: document.getElementById('rh-func-estagiario')?.checked||false,
+      carga_semanal: parseInt(document.getElementById('rh-func-carga-semanal')?.value||30),
+      data_fim_estagio: document.getElementById('rh-func-data-fim-estagio')?.value||null,
     })
   });
   const json = await res.json();
   if(!res.ok) { setAlert('rh-func-alert', 'Erro: ' + (json.error||'desconhecido'), 'error'); return; }
   setAlert('rh-func-alert', 'Funcionário cadastrado com sucesso!', 'success');
+  const estCb = document.getElementById('rh-func-estagiario');
+  if(estCb){ estCb.checked=false; toggleCamposEstagiario(false); }
+  if(document.getElementById('rh-func-data-fim-estagio')) document.getElementById('rh-func-data-fim-estagio').value='';
   loadFuncionariosRH();
 }
 
@@ -7194,8 +7157,8 @@ async function loadFuncionariosRH() {
     return `<div class="team-card" style="${inativo?'opacity:0.7;border:1px dashed var(--border2);':''}">
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px;">
         <div>
-          <div style="font-size:15px;font-weight:500;">${f.nome} ${inativo?'<span style="font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:4px;">Inativo</span>':''}</div>
-          <div style="font-size:12px;color:var(--text2);">${f.cargo||'—'}</div>
+          <div style="font-size:15px;font-weight:500;">${f.nome} ${inativo?'<span style="font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:4px;">Inativo</span>':''} ${f.estagiario?'<span style="font-size:10px;background:#7b4fc9;color:#fff;padding:1px 6px;border-radius:4px;">🎓 Estagiário</span>':''}</div>
+          <div style="font-size:12px;color:var(--text2);">${f.cargo||'—'}${f.estagiario&&f.carga_semanal?' · '+f.carga_semanal+'h/sem':''}</div>
           ${inativo&&dataDeslig?`<div style="font-size:11px;color:var(--red);margin-top:2px;">Desligado em ${dataDeslig} · Docs retidos até ${dataRet}</div>`:''}
         </div>
         <div style="display:flex;gap:6px;">
